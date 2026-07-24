@@ -1,4 +1,16 @@
 :root[data-theme="light"] {
+  --app-bg: #f4f0e8;
+  --surface-1: #f8f5ed;
+  --surface-2: #fffdf8;
+  --surface-3: #f3ecdf;
+  --card-bg: #fffdf8;
+  --card-bg-hover: #f3ecdf;
+  --border-default: #d4c7b5;
+  --border-accent: #b79a6a;
+  --accent-blue: #24556b;
+  --selected-bg: #a87834;
+  --selected-text: #fff8e9;
+  --danger: #a14334;
   --bg-app: #f4f0e8;
   --bg-surface: #f8f5ed;
   --bg-card: #fffdf8;
@@ -18,6 +30,18 @@
 }
 
 :root[data-theme="dark"] {
+  --app-bg: #101e26;
+  --surface-1: #14232c;
+  --surface-2: #1b2d37;
+  --surface-3: #263b46;
+  --card-bg: #1b2d37;
+  --card-bg-hover: #263b46;
+  --border-default: #40535c;
+  --border-accent: #7d6746;
+  --accent-blue: #39738d;
+  --selected-bg: #d1a45d;
+  --selected-text: #102633;
+  --danger: #e69b8e;
   --bg-app: #101e26;
   --bg-surface: #14232c;
   --bg-card: #1b2d37;
@@ -174,6 +198,42 @@
   color: inherit;
 }
 
+:root[data-theme] .relationship-collapse-icon {
+  position: static;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: 21px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 1;
+  transform: none;
+}
+
+:root[data-theme] .relationship-collapse-icon::before,
+:root[data-theme] .relationship-collapse-icon::after {
+  display: none;
+  content: none;
+}
+
+:root[data-theme] .relationship-category-group.is-open .relationship-collapse-icon,
+:root[data-theme] .relationship-category-group.is-collapsed .relationship-collapse-icon {
+  transform: none;
+}
+
+:root[data-theme] .relationship-category-group.is-collapsed .group-connector::after {
+  display: none;
+}
+
 :root[data-theme] .relationship-group-heading small {
   color: var(--text-secondary);
 }
@@ -231,6 +291,291 @@
 :root[data-theme="dark"] .relationship-placeholder {
   background: linear-gradient(145deg, #2b414b, #172a33);
   color: #d8b675;
+}
+
+/* Shared themed surfaces. These overrides intentionally come after the legacy
+   prefers-color-scheme rules so the explicit app setting always wins. */
+:root[data-theme] .content,
+:root[data-theme] .view-content,
+:root[data-theme] .map-content,
+:root[data-theme] .relationship-overview {
+  background: var(--app-bg);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .hero,
+:root[data-theme] .detail-header,
+:root[data-theme] .map-header,
+:root[data-theme] .relationship-header {
+  background: linear-gradient(145deg, var(--header-bg), #173e50);
+  color: #f7f3e8;
+}
+
+:root[data-theme] .search,
+:root[data-theme] .filter-panel,
+:root[data-theme] .recent-card,
+:root[data-theme] .facility-card,
+:root[data-theme] .map-selected-card,
+:root[data-theme] .map-empty,
+:root[data-theme] .overview-status,
+:root[data-theme] .relationship-filters {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: 0 5px 16px var(--shadow-color);
+}
+
+:root[data-theme] .search input,
+:root[data-theme] .facility-card-link,
+:root[data-theme] .facility-card strong,
+:root[data-theme] .recent-card,
+:root[data-theme] .recent-card strong,
+:root[data-theme] .map-selected-card button {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .search input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+:root[data-theme] .filter-summary strong,
+:root[data-theme] .compact-heading h2,
+:root[data-theme] .section-heading h2 {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .filter-summary span,
+:root[data-theme] .compact-heading span,
+:root[data-theme] .facility-meta,
+:root[data-theme] .map-selected-card small,
+:root[data-theme] .map-selected-card em {
+  color: var(--text-muted);
+}
+
+:root[data-theme] .category-filter button,
+:root[data-theme] .expanded-category-grid button,
+:root[data-theme] .tag-filter button,
+:root[data-theme] .favorite-filter,
+:root[data-theme] .park-switch button,
+:root[data-theme] .map-filter-button,
+:root[data-theme] .map-filter-actions button,
+:root[data-theme] .map-category-filter-grid button,
+:root[data-theme] .relationship-filters select {
+  border-color: var(--border-default);
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .category-filter button.active,
+:root[data-theme] .expanded-category-grid button.active,
+:root[data-theme] .tag-filter button.active,
+:root[data-theme] .favorite-filter.active,
+:root[data-theme] .park-switch button.active,
+:root[data-theme] .map-filter-button.active,
+:root[data-theme] .map-category-filter-grid button.selected {
+  border-color: var(--accent-gold);
+  background: var(--selected-bg);
+  color: var(--selected-text);
+}
+
+:root[data-theme] .category-filter button.active span,
+:root[data-theme] .expanded-category-grid button.active span,
+:root[data-theme] .favorite-filter.active span,
+:root[data-theme] .map-category-filter-grid button.selected small {
+  color: inherit;
+}
+
+:root[data-theme] .recent-card-body small,
+:root[data-theme] .facility-card .category,
+:root[data-theme] .map-selected-info > span {
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .card-tag {
+  background: var(--surface-3);
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .favorite-star {
+  border-color: var(--border-default);
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+:root[data-theme] .favorite-star.active {
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .facility-card i {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .home-bottom-nav {
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  box-shadow: 0 -7px 24px var(--shadow-color);
+}
+
+:root[data-theme] .home-bottom-nav button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .home-bottom-nav button:active {
+  background: var(--surface-3);
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .map-filter-sheet {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .map-filter-sheet h2 {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .map-filter-sheet > header > button,
+:root[data-theme] .map-filter-sheet-handle,
+:root[data-theme] .map-filter-future-note {
+  background: var(--surface-3);
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .map-count-status,
+:root[data-theme] .map-count-status strong,
+:root[data-theme] .map-category-filter-grid button small {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .map-count-status button {
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .leaflet-map,
+:root[data-theme] .maplibregl-map,
+:root[data-theme] .park-map-canvas,
+:root[data-theme] .coordinate-canvas {
+  border-color: var(--border-default);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+
+:root[data-theme] .maplibregl-popup-content {
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .map-facility-popup {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .map-facility-popup-text small {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .map-facility-popup-text button {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+:root[data-theme] .relationship-filters {
+  border-bottom-color: var(--border-default);
+  background: var(--surface-1);
+}
+
+:root[data-theme] .overview-status {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .relationship-canvas {
+  background: var(--app-bg);
+}
+
+:root[data-theme] .relationship-canvas .react-flow__background {
+  color: var(--border-default);
+}
+
+:root[data-theme] .relationship-canvas .react-flow__node {
+  border-color: var(--border-default);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: 0 5px 16px var(--shadow-color);
+}
+
+:root[data-theme] .relationship-canvas .react-flow__node.selected {
+  border-color: var(--accent-gold);
+  background: var(--card-bg-hover);
+  box-shadow: 0 0 0 2px var(--accent-gold-soft), 0 7px 20px var(--shadow-color);
+}
+
+:root[data-theme] .relationship-canvas .react-flow__node.related {
+  border-color: var(--accent-gold);
+}
+
+:root[data-theme] .relationship-canvas .react-flow__node.dimmed {
+  opacity: .58;
+}
+
+:root[data-theme] .relationship-canvas .relation-node-content strong {
+  color: var(--text-primary) !important;
+  text-shadow: none;
+}
+
+:root[data-theme] .relation-node-content > span {
+  background: var(--surface-3);
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .relation-node-content button {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+:root[data-theme] .relationship-canvas .react-flow__edge-path {
+  stroke: var(--border-default);
+}
+
+:root[data-theme] .relationship-canvas .relation-edge.active .react-flow__edge-path {
+  stroke: var(--accent-gold);
+}
+
+:root[data-theme="dark"] .content,
+:root[data-theme="dark"] .view-content,
+:root[data-theme="dark"] .map-content,
+:root[data-theme="dark"] .relationship-overview,
+:root[data-theme="dark"] .recent-list,
+:root[data-theme="dark"] .filter-chip-row,
+:root[data-theme="dark"] .tag-filter {
+  background-color: var(--app-bg);
+}
+
+:root[data-theme="dark"] .search,
+:root[data-theme="dark"] .filter-panel,
+:root[data-theme="dark"] .recent-card,
+:root[data-theme="dark"] .facility-card,
+:root[data-theme="dark"] .map-selected-card,
+:root[data-theme="dark"] .map-empty,
+:root[data-theme="dark"] .overview-status {
+  background: var(--card-bg);
+}
+
+:root[data-theme="dark"] .maplibregl-ctrl-group {
+  background: var(--surface-2);
+}
+
+:root[data-theme="dark"] .maplibregl-ctrl-group button {
+  filter: invert(.88) sepia(.08) saturate(.7);
+}
+
+:root[data-theme="dark"] .maplibregl-ctrl-attrib {
+  background: #eef2f0d9;
+  color: #17313e;
+}
+
+:root[data-theme="dark"] .maplibregl-popup-tip {
+  border-top-color: var(--surface-2);
+  border-bottom-color: var(--surface-2);
 }
 
 @media (max-width: 359px) {
