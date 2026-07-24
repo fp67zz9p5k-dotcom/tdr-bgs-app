@@ -2,11 +2,14 @@
   "name": "tdr-archive",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
   "type": "module",
   "scripts": {
     "dev": "vite --configLoader runner",
+    "typecheck": "tsc -b",
     "build": "tsc -b && vite build --configLoader runner",
-    "preview": "vite preview --configLoader runner"
+    "preview": "vite preview --configLoader runner",
+    "check": "pnpm typecheck && pnpm build"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.4.1",
