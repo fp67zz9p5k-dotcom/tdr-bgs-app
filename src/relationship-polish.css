@@ -61,22 +61,6 @@
   transform: rotate(180deg);
 }
 
-.relationship-chevron {
-  display: block;
-  width: 10px;
-  height: 10px;
-  justify-self: center;
-  border-top: 2px solid currentColor;
-  border-left: 2px solid currentColor;
-  transform: translateY(2px) rotate(45deg);
-  color: #d8b675;
-  transition: transform 200ms ease;
-}
-
-.relationship-chevron.is-collapsed {
-  transform: translateY(-2px) rotate(225deg);
-}
-
 .relationship-category-overview button {
   transition:
     transform 180ms ease,
@@ -171,11 +155,26 @@
   .center-node-stage { margin-bottom: 0; }
   .relationship-category-overview { margin-top: 7px; }
   .center-tree-trunk {
-    width: 2px;
+    position: relative;
+    width: 100%;
     height: 26px;
     margin-top: 10px;
-    background: linear-gradient(#d5ad68b8, #a97b3c9e);
+    background: transparent;
     box-shadow: none;
+  }
+
+  .center-tree-trunk::before {
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 14px;
+  }
+
+  .center-tree-trunk::after {
+    top: 12px;
+    right: 50%;
+    left: var(--relationship-rail-x);
+    height: 2px;
   }
 
   .center-tree-trunk::before,
