@@ -1,0 +1,240 @@
+:root[data-theme="light"] {
+  --bg-app: #f4f0e8;
+  --bg-surface: #f8f5ed;
+  --bg-card: #fffdf8;
+  --bg-card-strong: #f3ecdf;
+  --text-primary: #17384b;
+  --text-secondary: #425d68;
+  --text-muted: #66777e;
+  --border-color: #d4c7b5;
+  --border-strong: #b79a6a;
+  --accent-gold: #a87834;
+  --accent-gold-soft: #ead8b8;
+  --header-bg: #153e5c;
+  --relationship-heading-bg: #e8dfcf;
+  --relationship-heading-text: #173c50;
+  --relationship-line: #a87834;
+  --shadow-color: #17384b20;
+}
+
+:root[data-theme="dark"] {
+  --bg-app: #101e26;
+  --bg-surface: #14232c;
+  --bg-card: #1b2d37;
+  --bg-card-strong: #263b46;
+  --text-primary: #eef6f8;
+  --text-secondary: #c4d0d5;
+  --text-muted: #a9b7bd;
+  --border-color: #40535c;
+  --border-strong: #7d6746;
+  --accent-gold: #d1a45d;
+  --accent-gold-soft: #4a3821;
+  --header-bg: #0b2536;
+  --relationship-heading-bg: #263b46;
+  --relationship-heading-text: #eef6f8;
+  --relationship-line: #d1a45d;
+  --shadow-color: #00000066;
+}
+
+:root[data-theme] {
+  background: var(--bg-app);
+  color: var(--text-primary);
+}
+
+:root[data-theme] body,
+:root[data-theme] .app-shell,
+:root[data-theme] .relationship-page {
+  background: var(--bg-app);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .settings-drawer {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .settings-drawer > header {
+  border-color: var(--border-color);
+}
+
+:root[data-theme] .settings-drawer h2,
+:root[data-theme] .settings-section-heading strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .settings-drawer > header > button {
+  background: var(--bg-card-strong);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .settings-section {
+  border-color: var(--border-color);
+  background: var(--bg-card);
+}
+
+:root[data-theme] .settings-section-heading > span {
+  background: var(--bg-card-strong);
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .settings-section-heading small,
+:root[data-theme] .settings-future-note {
+  color: var(--text-muted);
+}
+
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-surface);
+}
+
+.theme-options button {
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 4px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.theme-options button.active {
+  border-color: var(--border-strong);
+  background: var(--header-bg);
+  color: #fff8e9;
+  box-shadow: 0 2px 7px var(--shadow-color);
+}
+
+:root[data-theme] .relationship-description {
+  border-color: var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .center-summary h2 {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .center-summary p {
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .center-summary span {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .relationship-category-overview {
+  border-color: var(--border-color);
+  background: var(--bg-surface);
+}
+
+:root[data-theme] .relationship-category-overview button {
+  border-color: var(--border-strong);
+  background: var(--bg-card-strong);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .relationship-category-overview button b {
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .relationship-category-overview button.active {
+  border-color: var(--accent-gold);
+  background: var(--header-bg);
+  color: #fff8e9;
+}
+
+:root[data-theme] .relationship-category-group {
+  border-color: var(--border-color);
+  background: var(--bg-card);
+}
+
+:root[data-theme] .relationship-group-heading,
+:root[data-theme] .relationship-category-group.is-open .relationship-group-heading {
+  border-color: var(--border-strong);
+  border-left-color: var(--relationship-line);
+  background: var(--relationship-heading-bg);
+  color: var(--relationship-heading-text);
+}
+
+:root[data-theme] .relationship-category-group.is-collapsed .relationship-group-heading {
+  background: var(--bg-card-strong);
+  color: var(--text-primary);
+  opacity: .82;
+}
+
+:root[data-theme] .relationship-group-heading strong,
+:root[data-theme] .relationship-group-heading b {
+  color: inherit;
+}
+
+:root[data-theme] .relationship-group-heading small {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .related-facility-card,
+:root[data-theme] .related-card-main {
+  border-color: var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .related-card-main strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .related-card-main small {
+  color: var(--text-secondary);
+}
+
+:root[data-theme] .related-detail-button {
+  border-color: var(--border-strong);
+  background: var(--bg-card-strong);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .center-tree-trunk::before,
+:root[data-theme] .center-tree-trunk::after,
+:root[data-theme] .relationship-branch-scroll::before,
+:root[data-theme] .group-connector,
+:root[data-theme] .group-connector::after {
+  background: var(--relationship-line);
+}
+
+:root[data-theme] .relationship-history {
+  border-color: var(--border-color);
+  background: var(--bg-surface);
+}
+
+:root[data-theme] .relationship-history-actions button,
+:root[data-theme] .relationship-breadcrumbs button {
+  border-color: var(--border-color);
+  background: var(--bg-card-strong);
+  color: var(--text-primary);
+}
+
+:root[data-theme] .relationship-history > p {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .relationship-placeholder {
+  background: linear-gradient(145deg, #dce5e3, #c9d8d6);
+  color: #365d65;
+}
+
+:root[data-theme="dark"] .relationship-placeholder {
+  background: linear-gradient(145deg, #2b414b, #172a33);
+  color: #d8b675;
+}
+
+@media (max-width: 359px) {
+  .theme-options {
+    grid-template-columns: 1fr;
+  }
+}

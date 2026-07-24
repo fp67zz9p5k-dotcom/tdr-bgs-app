@@ -127,6 +127,29 @@ const searchableText = (facility: Facility) =>
     facility.notes,
   ].join(' ')
 
+type ThemePreference = 'light' | 'dark' | 'system'
+
+const THEME_STORAGE_KEY = 'tdr-bgs-theme'
+
+const readThemePreference = (): ThemePreference => {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY)
+    return value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
+const applyThemePreference = (preference: ThemePreference) => {
+  const resolvedTheme = preference === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : preference
+  document.documentElement.dataset.theme = resolvedTheme
+  document.documentElement.style.colorScheme = resolvedTheme
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    ?.setAttribute('content', resolvedTheme === 'dark' ? '#0b2536' : '#153e5c')
+}
+
 export default function App() {
   const [facilities, setFacilities] = useState<Facility[]>([])
   const [screen, setScreen] = useState<Screen>({ page: 'home' })
@@ -141,6 +164,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference)
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
@@ -157,6 +181,20 @@ export default function App() {
       getRecentFacilityIds().then(setRecentFacilityIds),
     ]).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, themePreference)
+    } catch {
+      // Storage can be unavailable in private browsing; the theme still applies for this session.
+    }
+    applyThemePreference(themePreference)
+    if (themePreference !== 'system') return
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => applyThemePreference('system')
+    media.addEventListener('change', handleChange)
+    return () => media.removeEventListener('change', handleChange)
+  }, [themePreference])
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -491,6 +529,29 @@ export default function App() {
                 </label>
               </div>
               {backupMessage && <p className="settings-message" role="status">{backupMessage}</p>}
+            </section>
+            <section className="settings-section">
+              <div className="settings-section-heading">
+                <span aria-hidden="true">◐</span>
+                <div><strong>外観</strong><small>アプリの表示テーマを切り替えます</small></div>
+              </div>
+              <div className="theme-options" role="group" aria-label="表示テーマ">
+                {([
+                  ['light', 'ライト'],
+                  ['dark', 'ダーク'],
+                  ['system', '端末設定'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={themePreference === value ? 'active' : ''}
+                    aria-pressed={themePreference === value}
+                    onClick={() => setThemePreference(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </section>
             <section className="settings-section">
               <div className="settings-section-heading">
