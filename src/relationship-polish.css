@@ -118,10 +118,9 @@
   z-index: -1;
   inset: 0;
   background:
-    repeating-radial-gradient(circle at 50% 50%, transparent 0 14px, #d4a95e0d 14.5px 15px),
-    linear-gradient(115deg, transparent 35%, #d4a95e12 35.5%, transparent 36%),
-    linear-gradient(25deg, transparent 61%, #69a4a915 61.5%, transparent 62%),
-    radial-gradient(circle at 50% 45%, #d4a95e20, transparent 50%);
+    linear-gradient(115deg, transparent 35%, #d4a95e14 35.5%, transparent 36%),
+    linear-gradient(25deg, transparent 61%, #69a4a918 61.5%, transparent 62%),
+    radial-gradient(circle at 50% 45%, #d4a95e25, transparent 48%);
   content: '';
 }
 
@@ -157,21 +156,6 @@
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m16.2 7.8-2.7 5.7-5.7 2.7 2.7-5.7z'/%3E%3Ccircle cx='12' cy='12' r='1'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.related-detail-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.related-detail-button span {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: .8;
-  transition: transform 180ms ease;
-}
-
-.related-detail-button:active span { transform: translateX(2px); }
-
 @keyframes relationship-center-enter {
   from { opacity: .5; transform: translateY(7px) scale(.992); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -181,15 +165,14 @@
   .relationship-center-view {
     --relationship-rail-x: 10px;
     --relationship-branch-length: 14px;
-    --relationship-line-width: 1.5px;
   }
 
   .center-summary { margin-bottom: 8px; }
   .center-node-stage { margin-bottom: 0; }
   .relationship-category-overview { margin-top: 7px; }
   .center-tree-trunk {
-    width: var(--relationship-line-width);
-    height: 24px;
+    width: 2px;
+    height: 26px;
     margin-top: 10px;
     background: linear-gradient(#d5ad68b8, #a97b3c9e);
     box-shadow: none;
@@ -204,20 +187,16 @@
   }
 
   .center-tree-trunk::before,
-  .relationship-branch-scroll::before { width: var(--relationship-line-width); }
-  .center-tree-trunk::after { height: var(--relationship-line-width); }
+  .relationship-branch-scroll::before { width: 2px; }
+  .center-tree-trunk::after { height: 2px; }
   .relationship-branch-scroll {
     position: relative;
-    padding-top: 9px;
+    padding-top: 10px;
     padding-left: calc(var(--relationship-rail-x) + var(--relationship-branch-length));
   }
 
   .relationship-branch-scroll::before {
-    top: 0;
-    bottom: 25px;
     left: var(--relationship-rail-x);
-    border-radius: 2px;
-    background: linear-gradient(#c99c57b8, #a9793f8f);
   }
 
   .relationship-category-groups {
@@ -234,42 +213,31 @@
   }
 
   .group-connector {
-    top: 23px;
+    top: 25px;
     left: calc(-1 * var(--relationship-branch-length));
     width: var(--relationship-branch-length);
-    height: var(--relationship-line-width);
-    background: #c49a5c;
+    height: 2px;
   }
 
   .group-connector::after {
-    top: -2.5px;
-    left: -3px;
-    width: 7px;
-    height: 7px;
+    top: -3px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
   }
 
   .relationship-category-group:last-child::after {
     left: calc(-1 * var(--relationship-branch-length));
   }
-  .relationship-category-groups { gap: 6px; }
-
-  .relationship-group-heading {
-    min-height: 44px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-  }
+  .relationship-category-groups { gap: 12px; }
 
   .relationship-card-list,
   .density-many .relationship-card-list {
     gap: 8px;
-    padding-top: 7px;
-    padding-bottom: 2px;
+    padding-top: 8px;
   }
 
-  .related-card-main {
-    min-height: 142px;
-    height: auto;
-  }
+  .related-card-main { min-height: 158px; }
 
   .related-card-main > img,
   .related-card-main > .relationship-placeholder {
@@ -279,7 +247,7 @@
 
   .related-card-main > span:last-child {
     gap: 2px;
-    padding: 5px 7px 24px;
+    padding: 6px 7px 28px;
   }
 
   .related-card-main strong {
@@ -292,9 +260,9 @@
 
   .related-detail-button {
     right: 6px;
-    bottom: 4px;
-    min-height: 21px;
-    padding: 2px 6px 2px 7px;
+    bottom: 5px;
+    min-height: 22px;
+    padding: 2px 7px;
     font-size: 8px;
   }
 
