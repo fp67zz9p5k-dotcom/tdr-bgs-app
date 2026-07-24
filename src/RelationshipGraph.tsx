@@ -218,7 +218,9 @@ function CenterRelationshipView({
                                 <small>{category.icon} {category.label}</small>
                               </span>
                             </button>
-                            <button type="button" className="related-detail-button" onClick={() => onOpenFacility(facility)}>詳細</button>
+                            <button type="button" className="related-detail-button" onClick={() => onOpenFacility(facility)}>
+                              詳細<span aria-hidden="true">›</span>
+                            </button>
                           </article>
                         ))}
                       </div>
