@@ -51,14 +51,21 @@
 
 .relationship-group-heading:active { transform: scale(.992); }
 
-.relationship-group-heading b {
+.relationship-collapse-icon {
   font-size: 21px;
   line-height: 1;
-  transition: transform 220ms ease;
+  transition: color 220ms ease;
 }
 
-.relationship-category-group.is-open .relationship-group-heading b {
-  transform: rotate(180deg);
+.relationship-group-heading::before,
+.relationship-group-heading::after,
+.relationship-group-heading small::before,
+.relationship-group-heading small::after,
+.relationship-collapse-icon::before,
+.relationship-collapse-icon::after,
+.group-connector::after {
+  display: none;
+  content: none;
 }
 
 .relationship-category-overview button {

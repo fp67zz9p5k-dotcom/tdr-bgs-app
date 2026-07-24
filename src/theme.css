@@ -194,7 +194,7 @@
 }
 
 :root[data-theme] .relationship-group-heading strong,
-:root[data-theme] .relationship-group-heading b {
+:root[data-theme] .relationship-collapse-icon {
   color: inherit;
 }
 
@@ -230,8 +230,13 @@
   transform: none;
 }
 
-:root[data-theme] .relationship-category-group.is-collapsed .group-connector::after {
+:root[data-theme] .relationship-group-heading::before,
+:root[data-theme] .relationship-group-heading::after,
+:root[data-theme] .relationship-group-heading small::before,
+:root[data-theme] .relationship-group-heading small::after,
+:root[data-theme] .group-connector::after {
   display: none;
+  content: none;
 }
 
 :root[data-theme] .relationship-group-heading small {
@@ -262,8 +267,7 @@
 :root[data-theme] .center-tree-trunk::before,
 :root[data-theme] .center-tree-trunk::after,
 :root[data-theme] .relationship-branch-scroll::before,
-:root[data-theme] .group-connector,
-:root[data-theme] .group-connector::after {
+:root[data-theme] .group-connector {
   background: var(--relationship-line);
 }
 

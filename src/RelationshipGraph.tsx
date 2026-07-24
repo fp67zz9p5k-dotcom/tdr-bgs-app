@@ -201,9 +201,9 @@ function CenterRelationshipView({
                       <span aria-hidden="true">{category.icon}</span>
                       <strong>{category.label}</strong>
                       <small>{groupFacilities.length}件</small>
-                      <b className="relationship-collapse-icon" aria-hidden="true">
+                      <span className="relationship-collapse-icon" aria-hidden="true">
                         {isCollapsed ? '＋' : '−'}
-                      </b>
+                      </span>
                     </button>
                     <div className={`relationship-card-list-shell${isCollapsed ? ' collapsed' : ''}`} aria-hidden={isCollapsed}>
                       <div className="relationship-card-list">
