@@ -410,6 +410,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
+      --relationship-style-revision: 55;
       overflow: visible;
       isolation: auto;
       contain: none;

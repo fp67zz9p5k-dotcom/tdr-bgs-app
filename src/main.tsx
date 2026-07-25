@@ -14,6 +14,15 @@ createRoot(document.getElementById('root')!).render(
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     const serviceWorkerUrl = new URL('sw.js', document.baseURI)
-    void navigator.serviceWorker.register(serviceWorkerUrl, { scope: './' })
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return
+      refreshing = true
+      window.location.reload()
+    })
+
+    void navigator.serviceWorker
+      .register(serviceWorkerUrl, { scope: './', updateViaCache: 'none' })
+      .then((registration) => registration.update())
   })
 }
