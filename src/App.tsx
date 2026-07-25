@@ -56,6 +56,7 @@ type MapReturnState = MapViewState & {
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
 
 const parks: Park[] = ['東京ディズニーランド', '東京ディズニーシー']
+const roundMapCoordinate = (value: number) => Number(value.toFixed(6))
 
 const normalizeMapReturnState = (candidate: unknown): MapReturnState | null => {
   if (typeof candidate !== 'object' || candidate === null) return null
@@ -1196,7 +1197,12 @@ function LeafletCanvas({
       })
     }
     if (onPositionChange) {
-      map.on('click', (event) => onPositionChange(event.lngLat.lat, event.lngLat.lng))
+      map.on('click', (event) => {
+        onPositionChange(
+          roundMapCoordinate(event.lngLat.lat),
+          roundMapCoordinate(event.lngLat.lng),
+        )
+      })
     }
     const recordDiagnostics = () => {
       const mapRect = diagnosticEntry.container.getBoundingClientRect()
