@@ -234,7 +234,10 @@
 :root[data-theme] .relationship-group-heading::after,
 :root[data-theme] .relationship-group-heading small::before,
 :root[data-theme] .relationship-group-heading small::after,
-:root[data-theme] .group-connector::after {
+:root[data-theme] .relationship-category-title::before,
+:root[data-theme] .relationship-category-title::after,
+:root[data-theme] .relationship-category-count::before,
+:root[data-theme] .relationship-category-count::after {
   display: none;
   content: none;
 }
@@ -267,7 +270,7 @@
 :root[data-theme] .center-tree-trunk::before,
 :root[data-theme] .center-tree-trunk::after,
 :root[data-theme] .relationship-branch-scroll::before,
-:root[data-theme] .group-connector {
+:root[data-theme] .relationship-category-group::before {
   background: var(--relationship-line);
 }
 

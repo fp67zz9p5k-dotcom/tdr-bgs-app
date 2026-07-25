@@ -185,7 +185,6 @@ function CenterRelationshipView({
                     id={`relationship-category-${category.id}`}
                     key={category.id}
                   >
-                    <div className="group-connector" aria-hidden="true" />
                     <button
                       type="button"
                       className="relationship-group-heading"
@@ -198,9 +197,11 @@ function CenterRelationshipView({
                       })}
                       aria-expanded={!isCollapsed}
                     >
-                      <span aria-hidden="true">{category.icon}</span>
-                      <strong>{category.label}</strong>
-                      <small>{groupFacilities.length}件</small>
+                      <span className="relationship-category-title">
+                        <span className="relationship-category-icon" aria-hidden="true">{category.icon}</span>
+                        <strong>{category.label}</strong>
+                      </span>
+                      <small className="relationship-category-count">{groupFacilities.length}件</small>
                       <span className="relationship-collapse-icon" aria-hidden="true">
                         {isCollapsed ? '＋' : '−'}
                       </span>

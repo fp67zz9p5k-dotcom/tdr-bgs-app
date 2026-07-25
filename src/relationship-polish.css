@@ -32,6 +32,7 @@
 }
 
 .relationship-group-heading {
+  grid-template-columns: minmax(0, 1fr) auto 28px;
   transition:
     background-color 220ms ease,
     border-color 220ms ease,
@@ -51,6 +52,35 @@
 
 .relationship-group-heading:active { transform: scale(.992); }
 
+.relationship-category-title {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: inherit;
+  font-size: inherit !important;
+  text-align: left !important;
+}
+
+.relationship-category-title strong {
+  min-width: 0;
+}
+
+.relationship-category-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.relationship-category-count {
+  min-width: 0;
+  white-space: nowrap;
+}
+
 .relationship-collapse-icon {
   font-size: 21px;
   line-height: 1;
@@ -63,9 +93,25 @@
 .relationship-group-heading small::after,
 .relationship-collapse-icon::before,
 .relationship-collapse-icon::after,
-.group-connector::after {
+.relationship-category-title::before,
+.relationship-category-title::after,
+.relationship-category-count::before,
+.relationship-category-count::after {
   display: none;
   content: none;
+}
+
+.relationship-category-group::before {
+  position: absolute;
+  z-index: 0;
+  top: -24px;
+  left: 50%;
+  width: 3px;
+  height: 24px;
+  border-radius: 3px 3px 0 0;
+  background: var(--relationship-line, #b88b46);
+  content: '';
+  transform: translateX(-50%);
 }
 
 .relationship-category-overview button {
@@ -187,8 +233,7 @@
   .center-tree-trunk::before,
   .center-tree-trunk::after,
   .relationship-branch-scroll::before,
-  .group-connector,
-  .group-connector::after {
+  .relationship-category-group::before {
     opacity: .64;
   }
 
@@ -218,18 +263,13 @@
     padding-left: 0;
   }
 
-  .group-connector {
+  .relationship-category-group::before {
     top: 25px;
     left: calc(-1 * var(--relationship-branch-length));
     width: var(--relationship-branch-length);
     height: 2px;
-  }
-
-  .group-connector::after {
-    top: -3px;
-    left: -4px;
-    width: 8px;
-    height: 8px;
+    border-radius: 0 3px 3px 0;
+    transform: none;
   }
 
   .relationship-category-group:last-child::after {
