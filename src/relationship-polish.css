@@ -403,23 +403,26 @@
 }
 
 /*
- * iOS Safari can retain the rounded clipping layer created by
- * overflow + isolation + transform and paint it over the preceding corner.
- * Keep the visual design, but avoid creating that compositor layer on phones.
+ * iOS Safari occasionally rasterizes the heading shadow outside the rounded
+ * corner when the element is promoted to a compositing layer. Keep the exact
+ * card geometry while explicitly clipping that raster to the border radius.
  */
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 55;
-      overflow: visible;
-      isolation: auto;
+      --relationship-style-revision: 56;
+      overflow: hidden;
+      isolation: isolate;
       contain: none;
       transform: none !important;
       will-change: auto;
       background-clip: border-box;
       -webkit-clip-path: none;
       clip-path: none;
-      -webkit-mask: none;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      -webkit-mask-position: 0 0;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-size: 100% 100%;
       mask: none;
       filter: none;
       -webkit-backdrop-filter: none;
