@@ -187,14 +187,14 @@
   }
 
   :root[data-theme] .relationship-card-list-shell {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  :root[data-theme] .relationship-card-list-shell > .relationship-card-list {
     border-radius: 16px;
     background: var(--bg-card);
     box-shadow: 0 4px 15px var(--shadow-color);
-  }
-
-  :root[data-theme] .relationship-card-list-shell.collapsed {
-    background: transparent;
-    box-shadow: none;
   }
 }
 
