@@ -32,7 +32,13 @@
 }
 
 .relationship-group-heading {
+  position: relative;
+  z-index: 2;
   grid-template-columns: minmax(0, 1fr) auto 28px;
+  overflow: hidden;
+  border-radius: 15px;
+  background-clip: padding-box;
+  isolation: isolate;
   transition:
     background-color 220ms ease,
     border-color 220ms ease,
@@ -133,6 +139,7 @@
   border-radius: 3px 3px 0 0;
   background: var(--relationship-line, #b88b46);
   content: '';
+  pointer-events: none;
   transform: translateX(-50%);
 }
 
@@ -292,10 +299,16 @@
   .relationship-category-group::before {
     top: 25px;
     left: calc(-1 * var(--relationship-branch-length));
-    width: var(--relationship-branch-length);
+    width: calc(var(--relationship-branch-length) - 1px);
     height: 2px;
     border-radius: 0 3px 3px 0;
     transform: none;
+  }
+
+  .relationship-group-heading {
+    overflow: hidden;
+    border-radius: 13px;
+    background-clip: padding-box;
   }
 
   .relationship-category-group:last-child::after {
