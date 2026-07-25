@@ -265,6 +265,26 @@
   color: var(--text-secondary);
 }
 
+/*
+ * iOS Safari mis-rasterizes the junction between a rounded border and a
+ * differently colored left border. Keep the same one-pixel accent visually,
+ * but draw it inside the flat part of the card instead of through the curve.
+ */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    :root[data-theme] .relationship-group-heading {
+      border-left-color: var(--border-strong);
+      background-image: linear-gradient(
+        var(--relationship-line),
+        var(--relationship-line)
+      );
+      background-position: left center;
+      background-repeat: no-repeat;
+      background-size: 1px calc(100% - 26px);
+    }
+  }
+}
+
 :root[data-theme] .related-facility-card,
 :root[data-theme] .related-card-main {
   border-color: var(--border-color);
