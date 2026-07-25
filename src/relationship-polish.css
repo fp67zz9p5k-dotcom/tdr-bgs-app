@@ -401,3 +401,36 @@
 
   html { scroll-behavior: auto; }
 }
+
+/*
+ * iOS Safari can retain the rounded clipping layer created by
+ * overflow + isolation + transform and paint it over the preceding corner.
+ * Keep the visual design, but avoid creating that compositor layer on phones.
+ */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    .relationship-group-heading {
+      overflow: visible;
+      isolation: auto;
+      contain: none;
+      transform: none !important;
+      will-change: auto;
+      background-clip: border-box;
+      -webkit-clip-path: none;
+      clip-path: none;
+      -webkit-mask: none;
+      mask: none;
+      filter: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      transition:
+        background-color 220ms ease,
+        border-color 220ms ease,
+        opacity 220ms ease;
+    }
+
+    .relationship-card-list-shell:not(.collapsed) > .relationship-card-list {
+      overflow: visible;
+    }
+  }
+}
