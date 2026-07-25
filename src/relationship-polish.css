@@ -46,6 +46,16 @@
     transform 180ms ease;
 }
 
+.relationship-group-heading-shell {
+  position: relative;
+  min-width: 0;
+}
+
+.relationship-group-heading-shadow,
+.relationship-heading-accent {
+  display: none;
+}
+
 .relationship-category-group.is-open .relationship-group-heading {
   border-color: #a98a5a;
   background: #304853;
@@ -403,23 +413,41 @@
 }
 
 /*
- * iOS Safari occasionally rasterizes the heading shadow outside the rounded
- * corner when the element is promoted to a compositing layer. Keep the exact
- * card geometry while explicitly clipping that raster to the border radius.
+ * WebKit can rasterize the differently colored left border and outer shadow
+ * as one layer, leaving a triangular fragment at the rounded top-left corner.
+ * Separate the shadow from the clipped surface and keep the accent away from
+ * the curved border junction.
  */
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
-    .relationship-group-heading {
-      --relationship-style-revision: 56;
-      overflow: hidden;
+    .relationship-group-heading-shell {
       isolation: isolate;
+    }
+
+    .relationship-group-heading-shadow {
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      display: block;
+      border-radius: 13px;
+      box-shadow: 0 3px 11px #19384a17;
+      pointer-events: none;
+    }
+
+    .relationship-group-heading {
+      --relationship-style-revision: 57;
+      z-index: 1;
+      overflow: hidden;
+      border-left-color: var(--border-strong);
+      box-shadow: none;
+      isolation: auto;
       contain: none;
       transform: none !important;
       will-change: auto;
       background-clip: border-box;
       -webkit-clip-path: none;
       clip-path: none;
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      -webkit-mask-image: linear-gradient(#fff, #fff);
       -webkit-mask-position: 0 0;
       -webkit-mask-repeat: no-repeat;
       -webkit-mask-size: 100% 100%;
@@ -431,6 +459,19 @@
         background-color 220ms ease,
         border-color 220ms ease,
         opacity 220ms ease;
+    }
+
+    .relationship-heading-accent {
+      position: absolute;
+      z-index: 1;
+      top: 13px;
+      bottom: 13px;
+      left: 0;
+      display: block;
+      width: 1px;
+      border-radius: 1px;
+      background: var(--relationship-line);
+      pointer-events: none;
     }
 
     .relationship-card-list-shell:not(.collapsed) > .relationship-card-list {
