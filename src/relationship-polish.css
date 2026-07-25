@@ -3,7 +3,7 @@
 .center-facility-card {
   background: linear-gradient(145deg, #205878, #102f46 72%);
   box-shadow:
-    0 16px 38px #071c2b66,
+    0 9px 22px #071c2b42,
     0 0 0 1px #edc77e99,
     inset 0 0 0 3px #f1d59b20;
   animation: relationship-center-enter 260ms ease-out;
@@ -56,14 +56,30 @@
   display: flex !important;
   align-items: center;
   gap: 7px;
+  width: auto !important;
+  height: auto !important;
+  flex: 1 1 auto !important;
   min-width: 0;
   color: inherit;
+  font-family: inherit;
   font-size: inherit !important;
+  line-height: 1.25;
   text-align: left !important;
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  transform: none;
 }
 
 .relationship-category-title strong {
+  display: block;
   min-width: 0;
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
 }
 
 .relationship-category-icon {
@@ -72,18 +88,24 @@
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   font-size: 20px;
   line-height: 1;
 }
 
 .relationship-category-count {
   min-width: 0;
+  line-height: 1;
   white-space: nowrap;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
 }
 
 .relationship-collapse-icon {
   font-size: 21px;
   line-height: 1;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
   transition: color 220ms ease;
 }
 
@@ -206,7 +228,11 @@
 
   .center-summary { margin-bottom: 8px; }
   .center-node-stage { margin-bottom: 0; }
-  .relationship-category-overview { margin-top: 7px; }
+  .relationship-category-overview {
+    position: relative;
+    z-index: 3;
+    margin-top: 12px;
+  }
   .center-tree-trunk {
     position: relative;
     width: 100%;
