@@ -179,6 +179,25 @@
   background: var(--bg-card);
 }
 
+@media (max-width: 767px) {
+  :root[data-theme] .relationship-category-group {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  :root[data-theme] .relationship-card-list-shell {
+    border-radius: 16px;
+    background: var(--bg-card);
+    box-shadow: 0 4px 15px var(--shadow-color);
+  }
+
+  :root[data-theme] .relationship-card-list-shell.collapsed {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
 :root[data-theme] .relationship-group-heading,
 :root[data-theme] .relationship-category-group.is-open .relationship-group-heading {
   border-color: var(--border-strong);
