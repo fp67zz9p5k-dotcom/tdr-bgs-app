@@ -186,6 +186,9 @@ function CenterRelationshipView({
                     key={category.id}
                   >
                     <div className="relationship-group-heading-shell">
+                      <svg className="relationship-group-heading-frame" aria-hidden="true">
+                        <rect />
+                      </svg>
                       <div className="relationship-group-heading-surface">
                         <button
                           type="button"
