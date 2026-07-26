@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'tdr-archive-'
-const CACHE_NAME = `${CACHE_PREFIX}v62-ios-bottom-shadow`
+const CACHE_NAME = `${CACHE_PREFIX}v63-ios-split-heading-surface`
 const scopeUrl = self.registration.scope
 const appUrl = (path) => new URL(path, scopeUrl).toString()
 const APP_SHELL = [

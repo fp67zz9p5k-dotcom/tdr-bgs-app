@@ -414,7 +414,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 62;
+      --relationship-style-revision: 63;
       -webkit-appearance: none;
       appearance: none;
       overflow: hidden;
@@ -423,8 +423,11 @@
       transform: none !important;
       will-change: auto;
       background-clip: padding-box;
-      -webkit-clip-path: inset(0 round 13px);
-      clip-path: inset(0 round 13px);
+      border: 0;
+      border-radius: 12px;
+      background: transparent !important;
+      -webkit-clip-path: none;
+      clip-path: none;
       -webkit-mask: none;
       mask: none;
       filter: none;
@@ -438,8 +441,16 @@
     }
 
     .relationship-group-heading-shell {
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
       border-radius: 13px;
+      background: var(--relationship-heading-bg);
+      background-clip: padding-box;
       box-shadow: 0 7px 11px -4px #19384a2a;
+    }
+
+    .relationship-category-group.is-collapsed .relationship-group-heading-shell {
+      background: var(--bg-card-strong);
     }
 
     .relationship-card-list-shell:not(.collapsed) > .relationship-card-list {
