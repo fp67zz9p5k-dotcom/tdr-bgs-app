@@ -1593,6 +1593,50 @@ function LeafletCanvas({
 
     let activePopup: maplibregl.Popup | null = null
     let activePin: HTMLElement | null = null
+    let popupFitFrame = 0
+    const getPopupAnchor = (longitude: number, latitude: number) => {
+      const point = map.project([longitude, latitude])
+      const width = containerRef.current?.clientWidth ?? 0
+      const height = containerRef.current?.clientHeight ?? 0
+      const horizontal = point.x < width * 0.3 ? 'left' : point.x > width * 0.7 ? 'right' : ''
+      const vertical = point.y < height * 0.34 ? 'top' : point.y > height * 0.66 ? 'bottom' : ''
+
+      if (vertical && horizontal) return `${vertical}-${horizontal}` as const
+      if (vertical) return vertical
+      if (horizontal) return horizontal
+      return 'bottom' as const
+    }
+    const fitPopupWithinMap = (popupElement: HTMLElement) => {
+      cancelAnimationFrame(popupFitFrame)
+      popupFitFrame = requestAnimationFrame(() => {
+        popupFitFrame = requestAnimationFrame(() => {
+          const container = containerRef.current
+          const popupContainer = popupElement.closest<HTMLElement>('.maplibregl-popup')
+          if (!container || !popupContainer || !activePopup) return
+
+          const mapRect = container.getBoundingClientRect()
+          const popupRect = popupContainer.getBoundingClientRect()
+          const sidePadding = 16
+          const topPadding = 16
+          const bottomPadding = 28
+          const leftLimit = mapRect.left + sidePadding
+          const rightLimit = mapRect.right - sidePadding
+          const topLimit = mapRect.top + topPadding
+          const bottomLimit = mapRect.bottom - bottomPadding
+          let panX = 0
+          let panY = 0
+
+          if (popupRect.left < leftLimit) panX = popupRect.left - leftLimit
+          else if (popupRect.right > rightLimit) panX = popupRect.right - rightLimit
+          if (popupRect.top < topLimit) panY = popupRect.top - topLimit
+          else if (popupRect.bottom > bottomLimit) panY = popupRect.bottom - bottomLimit
+
+          if (panX !== 0 || panY !== 0) {
+            map.panBy([panX, panY], { duration: 180 })
+          }
+        })
+      })
+    }
     facilities.forEach((facility) => {
       if (facility.latitude === null || facility.longitude === null) return
       const latitude = facility.latitude
@@ -1668,17 +1712,21 @@ function LeafletCanvas({
         containerRef.current?.querySelectorAll('.map-coordinate-pin.active').forEach((element) => element.classList.remove('active'))
         pinElement.classList.add('active')
         activePin = pinElement
+        const popupMaxWidth = Math.max(210, Math.min(270, (containerRef.current?.clientWidth ?? 302) - 32))
         activePopup = new maplibregl.Popup({
           offset: 38,
+          anchor: getPopupAnchor(longitude, latitude),
           closeButton: false,
           closeOnClick: true,
           focusAfterOpen: false,
-          maxWidth: '270px',
+          maxWidth: `${popupMaxWidth}px`,
         })
           .setLngLat([longitude, latitude])
           .setDOMContent(popupElement)
           .addTo(map)
+        fitPopupWithinMap(popupElement)
         activePopup.on('close', () => {
+          cancelAnimationFrame(popupFitFrame)
           pinElement.classList.remove('active')
           if (activePin === pinElement) {
             activePin = null
@@ -1795,6 +1843,7 @@ function LeafletCanvas({
     return () => {
       activePopup?.remove()
       mapDiagnosticRegistry.delete(instanceId)
+      cancelAnimationFrame(popupFitFrame)
       cancelAnimationFrame(resizeFrame)
       resizeObserver.disconnect()
       window.removeEventListener('orientationchange', resizeMap)
