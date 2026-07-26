@@ -411,9 +411,31 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 .facility-card-body { display: grid; min-width: 0; gap: 4px; }
 .facility-card-body > strong { display: -webkit-box; overflow: hidden; font-size: 15px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .facility-meta { overflow: hidden; color: #6c7b82; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.facility-search-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary, #536b76);
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 .facility-card .category { display: flex; align-items: center; gap: 4px; width: max-content; color: #9a6928; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
 .facility-card-bottom { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; }
 .card-tag { max-width: 82px; padding: 2px 5px; overflow: hidden; border-radius: 8px; background: #f1ece1; color: #75644e; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.search-hit-tag {
+  max-width: 126px;
+  padding: 2px 6px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #c88937) 42%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-gold, #c88937) 13%, transparent);
+  color: var(--accent-gold, #9a6928);
+  font-size: 8px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .facility-card i { position: absolute; right: 42px; top: 50%; transform: translateY(-50%); font-size: 23px; color: #b9ad99; font-style: normal; }
 .facility-card-photo { width: 88px; height: 70px; flex: 0 0 auto; border-radius: 10px; object-fit: cover; background: #e7e1d6; }
 .favorite-star { position: absolute; z-index: 2; top: 10px; right: 8px; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: #f4efe5; color: #a89b87; font-size: 21px; line-height: 1; }

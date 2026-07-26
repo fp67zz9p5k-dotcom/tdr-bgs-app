@@ -140,6 +140,88 @@ const normalizeSearchText = (value: string) =>
 const getSearchKeywords = (value: string) =>
   normalizeSearchText(value).trim().split(/\s+/).filter(Boolean)
 
+type FacilitySearchMatch = {
+  facility: Facility
+  score: number
+  matchedTag: string | null
+  bodySnippet: string | null
+}
+
+const getFacilityAliases = (facility: Facility) => {
+  const legacy = facility as Facility & { alias?: unknown; aliases?: unknown }
+  return [
+    ...(typeof legacy.alias === 'string' ? [legacy.alias] : []),
+    ...(Array.isArray(legacy.aliases) ? legacy.aliases.filter((value): value is string => typeof value === 'string') : []),
+  ].filter(Boolean)
+}
+
+const getFacilityBodyTexts = (facility: Facility) => [
+  facility.notes,
+  ...facility.bgs.map((entry) => entry.text),
+  ...facility.trivia.map((entry) => entry.text),
+  ...facility.props.flatMap((prop) => [prop.title, prop.description, prop.location]),
+  ...facility.photos.flatMap((photo) => [photo.title, photo.description, photo.location]),
+  ...facility.props.flatMap((prop) => prop.photos.flatMap((photo) => [photo.title, photo.description, photo.location])),
+].filter((value) => value.trim().length > 0)
+
+const includesKeyword = (values: string[], keyword: string) =>
+  values.some((value) => normalizeSearchText(value).includes(keyword))
+
+const createBodySnippet = (facility: Facility, keywords: string[]) => {
+  for (const text of getFacilityBodyTexts(facility)) {
+    const normalized = normalizeSearchText(text)
+    const positions = keywords
+      .map((keyword) => normalized.indexOf(keyword))
+      .filter((position) => position >= 0)
+    if (!positions.length) continue
+    const hitAt = Math.min(...positions)
+    const start = Math.max(0, hitAt - 24)
+    const end = Math.min(text.length, hitAt + 58)
+    return `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`
+  }
+  return null
+}
+
+const createFacilitySearchMatch = (facility: Facility, keywords: string[]): FacilitySearchMatch | null => {
+  if (!keywords.length) return { facility, score: 0, matchedTag: null, bodySnippet: null }
+
+  const aliases = getFacilityAliases(facility)
+  const bodyTexts = getFacilityBodyTexts(facility)
+  const fields = [
+    { priority: 6, values: [facility.name] },
+    { priority: 5, values: aliases },
+    { priority: 4, values: facility.tags },
+    { priority: 3, values: [facility.category] },
+    { priority: 2, values: [facility.area] },
+    { priority: 1, values: bodyTexts },
+    { priority: 1, values: [facility.park] },
+  ]
+
+  let highestPriority = 0
+  let detailScore = 0
+  for (const keyword of keywords) {
+    const matchedField = fields.find((field) => includesKeyword(field.values, keyword))
+    if (!matchedField) return null
+    highestPriority = Math.max(highestPriority, matchedField.priority)
+    detailScore += matchedField.priority * 100
+    if (matchedField.priority === 6) {
+      const normalizedName = normalizeSearchText(facility.name)
+      detailScore += normalizedName === keyword ? 80 : normalizedName.startsWith(keyword) ? 40 : 10
+    }
+  }
+
+  const matchedTag = facility.tags.find((tag) =>
+    keywords.some((keyword) => normalizeSearchText(tag).includes(keyword)),
+  ) ?? null
+
+  return {
+    facility,
+    score: highestPriority * 100_000 + detailScore,
+    matchedTag,
+    bodySnippet: createBodySnippet(facility, keywords),
+  }
+}
+
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
@@ -274,14 +356,21 @@ export default function App() {
     return () => document.removeEventListener('pointerdown', closeSuggestions)
   }, [])
 
-  const filteredFacilities = useMemo(() => {
+  const rankedSearchMatches = useMemo(() => {
     const keywords = getSearchKeywords(query)
-    const searched = keywords.length
-      ? facilities.filter((facility) => {
-          const text = normalizeSearchText(searchableText(facility))
-          return keywords.every((keyword) => text.includes(keyword))
-        })
-      : facilities
+    return facilities
+      .map((facility) => createFacilitySearchMatch(facility, keywords))
+      .filter((match): match is FacilitySearchMatch => match !== null)
+      .sort((a, b) => keywords.length
+        ? b.score - a.score || a.facility.name.localeCompare(b.facility.name, 'ja')
+        : 0)
+  }, [facilities, query])
+  const searchMatchByFacilityId = useMemo(
+    () => new Map(rankedSearchMatches.map((match) => [match.facility.id, match])),
+    [rankedSearchMatches],
+  )
+  const filteredFacilities = useMemo(() => {
+    const searched = rankedSearchMatches.map((match) => match.facility)
     const parkFiltered = selectedPark
       ? searched.filter((facility) => facility.park === selectedPark)
       : searched
@@ -290,21 +379,14 @@ export default function App() {
       : parkFiltered
     const tagFiltered = selectedTag ? categoryFiltered.filter((facility) => facility.tags.includes(selectedTag)) : categoryFiltered
     return favoriteOnly ? tagFiltered.filter((facility) => facility.favorite) : tagFiltered
-  }, [facilities, query, favoriteOnly, selectedTag, selectedCategory, selectedPark])
+  }, [rankedSearchMatches, favoriteOnly, selectedTag, selectedCategory, selectedPark])
   const hasNoSearchResults = !loading && query.trim().length > 0 && filteredFacilities.length === 0
 
   const searchSuggestions = useMemo(() => {
-    const keyword = normalizeSearchText(query).trim()
-    if (!keyword) return []
-    return facilities
-      .filter((facility) => normalizeSearchText(facility.name).includes(keyword))
-      .map((facility) => {
-        const normalizedName = normalizeSearchText(facility.name)
-        return { facility, score: normalizedName.startsWith(keyword) ? 2 : 1 }
-      })
-      .sort((a, b) => b.score - a.score || a.facility.name.localeCompare(b.facility.name, 'ja'))
+    if (!query.trim()) return []
+    return rankedSearchMatches
       .slice(0, 5)
-  }, [facilities, query])
+  }, [query, rankedSearchMatches])
 
   useEffect(() => {
     setActiveSuggestionIndex(searchSuggestions.length > 0 ? 0 : -1)
@@ -969,7 +1051,9 @@ export default function App() {
                       <span>{areaGroup.facilities.length}件</span>
                     </div>
                     <div className="facility-list">
-                      {areaGroup.facilities.map((facility) => (
+                      {areaGroup.facilities.map((facility) => {
+                        const searchMatch = query.trim() ? searchMatchByFacilityId.get(facility.id) : undefined
+                        return (
                         <article className="facility-card" key={facility.id}>
                           <button className="facility-card-link" onClick={() => openFacility(facility, 'home')}>
                             {facility.photos[0] ? (
@@ -984,9 +1068,17 @@ export default function App() {
                             <span className="facility-card-body">
                               <strong><HighlightedText text={facility.name} query={query} /></strong>
                               <span className="facility-meta"><HighlightedText text={`${facility.park}・${areaGroup.area}`} query={query} /></span>
+                              {searchMatch?.bodySnippet && (
+                                <span className="facility-search-snippet">
+                                  <HighlightedText text={searchMatch.bodySnippet} query={query} />
+                                </span>
+                              )}
                               <span className="facility-card-bottom">
                                 <span className="category"><span aria-hidden="true">{getCategoryDefinition(facility.category).icon}</span><HighlightedText text={facility.category} query={query} /></span>
-                                {facility.tags.slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>)}
+                                {searchMatch?.matchedTag && (
+                                  <span className="search-hit-tag">#<HighlightedText text={searchMatch.matchedTag} query={query} /></span>
+                                )}
+                                {facility.tags.filter((tag) => tag !== searchMatch?.matchedTag).slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>)}
                               </span>
                             </span>
                             <i aria-hidden="true">›</i>
@@ -1000,7 +1092,8 @@ export default function App() {
                             {facility.favorite ? '★' : '☆'}
                           </button>
                         </article>
-                      ))}
+                        )
+                      })}
                     </div>
                   </section>
                 ))}
