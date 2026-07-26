@@ -648,8 +648,8 @@ export default function App() {
   }
 
   return (
-    <main className={`app-shell${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
-      <header className="hero">
+    <main className="app-shell">
+      <header className={`hero${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <button type="button" className="settings-menu-button" onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く" aria-expanded={settingsOpen}>
           <span></span><span></span><span></span>
         </button>
@@ -713,7 +713,7 @@ export default function App() {
           </aside>
         </div>
       )}
-      <section className="content">
+      <section className={`content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <div className="search-area" ref={searchAreaRef}>
           <label className="search">
             <span aria-hidden="true">⌕</span>
