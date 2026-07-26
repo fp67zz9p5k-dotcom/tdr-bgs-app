@@ -7,7 +7,7 @@
 }
 
 .screen-enter {
-  animation: screen-enter 210ms ease-out both;
+  animation: screen-enter 210ms ease-out backwards;
 }
 
 @keyframes screen-enter {
