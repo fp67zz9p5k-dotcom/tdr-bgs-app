@@ -414,7 +414,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 61;
+      --relationship-style-revision: 62;
       -webkit-appearance: none;
       appearance: none;
       overflow: hidden;
@@ -439,7 +439,7 @@
 
     .relationship-group-heading-shell {
       border-radius: 13px;
-      box-shadow: 0 3px 11px #19384a17;
+      box-shadow: 0 7px 11px -4px #19384a2a;
     }
 
     .relationship-card-list-shell:not(.collapsed) > .relationship-card-list {
