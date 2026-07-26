@@ -1637,6 +1637,19 @@ function LeafletCanvas({
         })
       })
     }
+    const closePopupIfMarkerIsOutside = () => {
+      const container = containerRef.current
+      if (!container || !activePin || !activePopup) return
+
+      const mapRect = container.getBoundingClientRect()
+      const markerRect = activePin.getBoundingClientRect()
+      const markerIsOutside = markerRect.right <= mapRect.left
+        || markerRect.left >= mapRect.right
+        || markerRect.bottom <= mapRect.top
+        || markerRect.top >= mapRect.bottom
+
+      if (markerIsOutside) activePopup.remove()
+    }
     facilities.forEach((facility) => {
       if (facility.latitude === null || facility.longitude === null) return
       const latitude = facility.latitude
@@ -1829,6 +1842,7 @@ function LeafletCanvas({
         }
       }
       recordDiagnostics()
+      closePopupIfMarkerIsOutside()
     })
     let resizeFrame = 0
     const resizeMap = () => {
