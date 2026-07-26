@@ -18,12 +18,18 @@
   grid-template-rows: 1fr;
   min-width: 0;
   opacity: 1;
-  transition: grid-template-rows 220ms ease, opacity 200ms ease;
+  visibility: visible;
+  transition:
+    grid-template-rows 200ms ease-in-out,
+    opacity 200ms ease-in-out,
+    visibility 0s linear 0s;
 }
 
 .relationship-card-list-shell.collapsed {
   grid-template-rows: 0fr;
   opacity: 0;
+  visibility: hidden;
+  transition-delay: 0s, 0s, 200ms;
 }
 
 .relationship-card-list-shell > .relationship-card-list {

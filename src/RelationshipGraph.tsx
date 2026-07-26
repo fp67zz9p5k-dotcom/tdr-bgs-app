@@ -281,6 +281,7 @@ function CenterRelationshipView({
                             return next
                           })}
                           aria-expanded={!isCollapsed}
+                          aria-controls={`relationship-category-content-${category.id}`}
                         >
                           <span className="relationship-category-title">
                             <span className="relationship-category-icon" aria-hidden="true">{category.icon}</span>
@@ -293,7 +294,11 @@ function CenterRelationshipView({
                         </button>
                       </div>
                     </div>
-                    <div className={`relationship-card-list-shell${isCollapsed ? ' collapsed' : ''}`} aria-hidden={isCollapsed}>
+                    <div
+                      id={`relationship-category-content-${category.id}`}
+                      className={`relationship-card-list-shell${isCollapsed ? ' collapsed' : ''}`}
+                      aria-hidden={isCollapsed}
+                    >
                       <div className="relationship-card-list">
                         {groupFacilities.map((facility) => (
                           <article className="related-facility-card" key={facility.id}>

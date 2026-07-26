@@ -14,6 +14,7 @@ import {
   saveRelationshipGraphSettings,
 } from './db'
 import { RelationshipGraph } from './RelationshipGraph'
+import { AnimatedCollapse } from './AnimatedCollapse'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
 import {
@@ -784,7 +785,13 @@ export default function App() {
             <button type="button" className={`primary-park-filter${selectedPark === '' ? ' active' : ''}`} onClick={() => setSelectedPark('')}>すべて</button>
             <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーランド' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーランド')}>ランド</button>
             <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーシー' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーシー')}>シー</button>
-            <button type="button" className="expand-chip" onClick={() => setCategoriesExpanded((current) => !current)} aria-expanded={categoriesExpanded}>
+            <button
+              type="button"
+              className="expand-chip"
+              onClick={() => setCategoriesExpanded((current) => !current)}
+              aria-expanded={categoriesExpanded}
+              aria-controls="home-category-options"
+            >
               {categoriesExpanded ? 'カテゴリ －' : 'カテゴリ ＋'}
             </button>
             {compactCategories.map((category) => (
@@ -801,7 +808,7 @@ export default function App() {
               <span aria-hidden="true">{favoriteOnly ? '★' : '☆'}</span>お気に入り
             </button>
           </div>
-          {categoriesExpanded && (
+          <AnimatedCollapse id="home-category-options" open={categoriesExpanded}>
             <div className="expanded-category-grid">
               <button type="button" className={selectedCategory === '' ? 'active' : ''} onClick={() => { setSelectedCategory(''); setCategoriesExpanded(false) }}>
                 カテゴリすべて
@@ -812,16 +819,26 @@ export default function App() {
                 </button>
               ))}
             </div>
-          )}
+          </AnimatedCollapse>
           {allTags.length > 0 && (
             <div className="tag-filter-block">
-              <div className="filter-chip-row tag-filter" aria-label="タグで絞り込み">
+              <div
+                id="home-tag-options"
+                className={`filter-chip-row tag-filter${tagsExpanded ? ' is-expanded' : ''}`}
+                aria-label="タグで絞り込み"
+              >
                 <button type="button" className={selectedTag === '' ? 'active' : ''} onClick={() => setSelectedTag('')}>タグすべて</button>
                 {visibleTags.map((tag) => (
                   <button type="button" className={selectedTag === tag ? 'active' : ''} key={tag} onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}>#{tag}</button>
                 ))}
                 {allTags.length > 5 && (
-                  <button type="button" className="expand-chip" onClick={() => setTagsExpanded((current) => !current)} aria-expanded={tagsExpanded}>
+                  <button
+                    type="button"
+                    className="expand-chip"
+                    onClick={() => setTagsExpanded((current) => !current)}
+                    aria-expanded={tagsExpanded}
+                    aria-controls="home-tag-options"
+                  >
                     {tagsExpanded ? 'タグを閉じる' : 'すべてのタグ'}
                   </button>
                 )}
@@ -1521,7 +1538,8 @@ function FacilityView({
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
-  const visibleTags = tagsExpanded ? facility.tags : facility.tags.slice(0, 5)
+  const primaryTags = facility.tags.slice(0, 5)
+  const additionalTags = facility.tags.slice(5)
   const tableOfContents = [
     { id: 'overview', label: '概要', visible: true },
     { id: 'bgs', label: 'BGS', visible: facility.bgs.length > 0 },
@@ -1559,10 +1577,21 @@ function FacilityView({
         {facility.tags.length > 0 && (
           <div className="detail-tags" aria-label="タグ">
             <div className="tag-list">
-              {visibleTags.map((tag) => <button type="button" key={tag} onClick={() => onSelectTag(tag)}>#{tag}</button>)}
+              {primaryTags.map((tag) => <button type="button" key={tag} onClick={() => onSelectTag(tag)}>#{tag}</button>)}
             </div>
+            <AnimatedCollapse id={`facility-extra-tags-${facility.id}`} open={tagsExpanded} className="detail-extra-tags">
+              <div className="tag-list">
+                {additionalTags.map((tag) => <button type="button" key={tag} onClick={() => onSelectTag(tag)}>#{tag}</button>)}
+              </div>
+            </AnimatedCollapse>
             {facility.tags.length > 5 && (
-              <button type="button" className="tags-expand-button" onClick={() => setTagsExpanded((current) => !current)}>
+              <button
+                type="button"
+                className="tags-expand-button"
+                onClick={() => setTagsExpanded((current) => !current)}
+                aria-expanded={tagsExpanded}
+                aria-controls={`facility-extra-tags-${facility.id}`}
+              >
                 {tagsExpanded ? '閉じる' : `すべて表示（${facility.tags.length}）`}
               </button>
             )}
