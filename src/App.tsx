@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
@@ -128,6 +128,47 @@ const searchableText = (facility: Facility) =>
     facility.notes,
   ].join(' ')
 
+const normalizeSearchText = (value: string) =>
+  value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ja')
+    .replace(/[\u30a1-\u30f6]/g, (character) =>
+      String.fromCharCode(character.charCodeAt(0) - 0x60),
+    )
+
+const getSearchKeywords = (value: string) =>
+  normalizeSearchText(value).trim().split(/\s+/).filter(Boolean)
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  const terms = Array.from(new Set(query.normalize('NFKC').trim().split(/\s+/).filter(Boolean)))
+    .flatMap((term) => {
+      const hiragana = term.replace(/[\u30a1-\u30f6]/g, (character) =>
+        String.fromCharCode(character.charCodeAt(0) - 0x60),
+      )
+      const katakana = hiragana.replace(/[\u3041-\u3096]/g, (character) =>
+        String.fromCharCode(character.charCodeAt(0) + 0x60),
+      )
+      return [term, hiragana, katakana]
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+
+  if (!terms.length) return <>{text}</>
+  const matcher = new RegExp(`(${terms.map(escapeRegExp).join('|')})`, 'giu')
+  const parts = text.split(matcher)
+  return (
+    <>
+      {parts.map((part, index) =>
+        terms.some((term) => normalizeSearchText(term) === normalizeSearchText(part))
+          ? <mark className="search-match" key={`${part}-${index}`}>{part}</mark>
+          : part,
+      )}
+    </>
+  )
+}
+
 type ThemePreference = 'light' | 'dark' | 'system'
 
 const THEME_STORAGE_KEY = 'tdr-bgs-theme'
@@ -155,6 +196,8 @@ export default function App() {
   const [facilities, setFacilities] = useState<Facility[]>([])
   const [screen, setScreen] = useState<Screen>({ page: 'home' })
   const [query, setQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<Park | ''>('')
   const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
@@ -169,6 +212,7 @@ export default function App() {
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
+  const searchAreaRef = useRef<HTMLDivElement>(null)
 
   const reload = async () => {
     setFacilities((await getFacilities()).sort((a, b) => a.name.localeCompare(b.name, 'ja')))
@@ -212,11 +256,22 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
+  useEffect(() => {
+    const closeSuggestions = (event: PointerEvent) => {
+      if (!searchAreaRef.current?.contains(event.target as Node)) {
+        setSearchFocused(false)
+        setActiveSuggestionIndex(-1)
+      }
+    }
+    document.addEventListener('pointerdown', closeSuggestions)
+    return () => document.removeEventListener('pointerdown', closeSuggestions)
+  }, [])
+
   const filteredFacilities = useMemo(() => {
-    const keywords = query.trim().toLocaleLowerCase('ja').split(/\s+/).filter(Boolean)
+    const keywords = getSearchKeywords(query)
     const searched = keywords.length
       ? facilities.filter((facility) => {
-          const text = searchableText(facility).toLocaleLowerCase('ja')
+          const text = normalizeSearchText(searchableText(facility))
           return keywords.every((keyword) => text.includes(keyword))
         })
       : facilities
@@ -229,6 +284,47 @@ export default function App() {
     const tagFiltered = selectedTag ? categoryFiltered.filter((facility) => facility.tags.includes(selectedTag)) : categoryFiltered
     return favoriteOnly ? tagFiltered.filter((facility) => facility.favorite) : tagFiltered
   }, [facilities, query, favoriteOnly, selectedTag, selectedCategory, selectedPark])
+
+  const searchSuggestions = useMemo(() => {
+    const keyword = normalizeSearchText(query).trim()
+    if (!keyword) return []
+    return facilities
+      .filter((facility) => normalizeSearchText(facility.name).includes(keyword))
+      .map((facility) => {
+        const normalizedName = normalizeSearchText(facility.name)
+        return { facility, score: normalizedName.startsWith(keyword) ? 2 : 1 }
+      })
+      .sort((a, b) => b.score - a.score || a.facility.name.localeCompare(b.facility.name, 'ja'))
+      .slice(0, 5)
+  }, [facilities, query])
+
+  useEffect(() => {
+    setActiveSuggestionIndex(searchSuggestions.length > 0 ? 0 : -1)
+  }, [query, searchSuggestions.length])
+
+  const recommendedFacilities = useMemo(() => {
+    if (!facilities.length) return []
+    const keywords = getSearchKeywords(query)
+    return [...facilities]
+      .map((facility) => {
+        const text = normalizeSearchText(searchableText(facility))
+        const relevance = keywords.reduce((score, keyword) => {
+          const partial = keyword.length > 1 ? keyword.slice(0, Math.max(1, keyword.length - 1)) : keyword
+          return score + (text.includes(partial) ? 2 : 0)
+        }, 0)
+        return {
+          facility,
+          score: relevance
+            + (selectedPark && facility.park === selectedPark ? 2 : 0)
+            + (selectedCategory && facility.category === selectedCategory ? 2 : 0)
+            + (selectedTag && facility.tags.includes(selectedTag) ? 2 : 0)
+            + (facility.favorite ? 1 : 0),
+        }
+      })
+      .sort((a, b) => b.score - a.score || b.facility.updatedAt.localeCompare(a.facility.updatedAt))
+      .slice(0, 4)
+      .map(({ facility }) => facility)
+  }, [facilities, query, selectedCategory, selectedPark, selectedTag])
 
   const allTags = useMemo(
     () => Array.from(new Set(facilities.flatMap((facility) => facility.tags))).sort((a, b) => a.localeCompare(b, 'ja')),
@@ -296,6 +392,33 @@ export default function App() {
     })
     setScreen({ page: 'view', facility, returnTo, mapReturnState: returnState })
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  }
+
+  const selectSearchSuggestion = (facility: Facility) => {
+    setQuery(facility.name)
+    setSearchFocused(false)
+    setActiveSuggestionIndex(-1)
+    openFacility(facility, 'home')
+  }
+
+  const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      setSearchFocused(false)
+      setActiveSuggestionIndex(-1)
+      event.currentTarget.blur()
+      return
+    }
+    if (!searchFocused || searchSuggestions.length === 0) return
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveSuggestionIndex((current) => (current + 1) % searchSuggestions.length)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveSuggestionIndex((current) => (current <= 0 ? searchSuggestions.length - 1 : current - 1))
+    } else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+      event.preventDefault()
+      selectSearchSuggestion(searchSuggestions[activeSuggestionIndex].facility)
+    }
   }
 
   const clearRecentFacilities = async () => {
@@ -568,11 +691,45 @@ export default function App() {
         </div>
       )}
       <section className="content">
-        <label className="search">
-          <span aria-hidden="true">⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="タイトル・タグ・BGSを検索" aria-label="項目を検索" />
-          {query && <button onClick={() => setQuery('')} aria-label="検索をクリア">×</button>}
-        </label>
+        <div className="search-area" ref={searchAreaRef}>
+          <label className="search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="タイトル・タグ・BGSを検索"
+              aria-label="項目を検索"
+              aria-autocomplete="list"
+              aria-expanded={searchFocused && searchSuggestions.length > 0}
+              aria-controls="search-suggestions"
+            />
+            {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア">×</button>}
+          </label>
+          {searchFocused && searchSuggestions.length > 0 && (
+            <div className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
+              {searchSuggestions.map(({ facility }, index) => (
+                <button
+                  type="button"
+                  className={`search-suggestion${activeSuggestionIndex === index ? ' active' : ''}`}
+                  role="option"
+                  aria-selected={activeSuggestionIndex === index}
+                  key={facility.id}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveSuggestionIndex(index)}
+                  onClick={() => selectSearchSuggestion(facility)}
+                >
+                  <span className="search-suggestion-icon" aria-hidden="true">⌕</span>
+                  <span className="search-suggestion-copy">
+                    <strong><HighlightedText text={facility.name} query={query} /></strong>
+                    <small><b>{facility.category}</b><span>{facility.area || 'エリア未設定'}</span></small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {recentFacilities.length > 0 && (
           <section className="recent-section" aria-label="最近見た施設">
             <div className="compact-heading"><h2>最近見た施設</h2><span>{recentFacilities.length}件</span></div>
@@ -657,14 +814,41 @@ export default function App() {
         {loading ? (
           <p className="empty">読み込み中です…</p>
         ) : filteredFacilities.length === 0 ? (
-          <div className="empty">
-            <span className="empty-icon">⌂</span>
-            <h3>{query || selectedPark || selectedCategory || selectedTag || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう'}</h3>
-            <p>{query || selectedPark || selectedCategory || selectedTag || favoriteOnly ? '検索語や絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
+          <div className="empty search-empty">
+            <span className="empty-icon" aria-hidden="true">⌕</span>
+            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedCategory || selectedTag || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
+            {query ? (
+              <div className="search-empty-copy">
+                <p>検索キーワードを変更してみてください</p>
+                <p>別の施設名でも検索できます</p>
+              </div>
+            ) : (
+              <p>{selectedPark || selectedCategory || selectedTag || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
+            )}
             <div className="empty-actions">
               {(query || selectedPark || selectedCategory || selectedTag || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
               <button type="button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>施設を追加</button>
             </div>
+            {query && recommendedFacilities.length > 0 && (
+              <section className="search-recommendations" aria-label="おすすめ施設">
+                <h4>おすすめ施設</h4>
+                <div className="search-recommendation-grid">
+                  {recommendedFacilities.map((facility) => {
+                    const category = getCategoryDefinition(facility.category)
+                    return (
+                      <button type="button" key={facility.id} onClick={() => openFacility(facility, 'home')}>
+                        {facility.photos[0] ? (
+                          <img src={facility.photos[0].dataUrl} alt="" />
+                        ) : (
+                          <span className="category-placeholder" aria-hidden="true">{category.icon}</span>
+                        )}
+                        <strong>{facility.name}</strong>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
           </div>
         ) : (
           <div className="park-facility-groups">
@@ -691,11 +875,11 @@ export default function App() {
                               <span className="facility-card-photo category-placeholder" aria-hidden="true">{getCategoryDefinition(facility.category).icon}</span>
                             )}
                             <span className="facility-card-body">
-                              <strong>{facility.name}</strong>
-                              <span className="facility-meta">{facility.park}・{areaGroup.area}</span>
+                              <strong><HighlightedText text={facility.name} query={query} /></strong>
+                              <span className="facility-meta"><HighlightedText text={`${facility.park}・${areaGroup.area}`} query={query} /></span>
                               <span className="facility-card-bottom">
-                                <span className="category"><span aria-hidden="true">{getCategoryDefinition(facility.category).icon}</span>{facility.category}</span>
-                                {facility.tags.slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#{tag}</span>)}
+                                <span className="category"><span aria-hidden="true">{getCategoryDefinition(facility.category).icon}</span><HighlightedText text={facility.category} query={query} /></span>
+                                {facility.tags.slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>)}
                               </span>
                             </span>
                             <i aria-hidden="true">›</i>
