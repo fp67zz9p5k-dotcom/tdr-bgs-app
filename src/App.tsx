@@ -291,6 +291,7 @@ export default function App() {
     const tagFiltered = selectedTag ? categoryFiltered.filter((facility) => facility.tags.includes(selectedTag)) : categoryFiltered
     return favoriteOnly ? tagFiltered.filter((facility) => facility.favorite) : tagFiltered
   }, [facilities, query, favoriteOnly, selectedTag, selectedCategory, selectedPark])
+  const hasNoSearchResults = !loading && query.trim().length > 0 && filteredFacilities.length === 0
 
   const searchSuggestions = useMemo(() => {
     const keyword = normalizeSearchText(query).trim()
@@ -753,6 +754,43 @@ export default function App() {
             </div>
           )}
         </div>
+        {hasNoSearchResults ? (
+          <div className="empty search-empty search-empty-exclusive">
+            <span className="empty-icon" aria-hidden="true">⌕</span>
+            <h3>検索結果が見つかりませんでした</h3>
+            <div className="search-empty-copy">
+              <p className="search-empty-query">入力した検索語：<strong>{query.trim()}</strong></p>
+              <p>検索キーワードを変更して、もう一度お試しください</p>
+            </div>
+            <div className="empty-actions">
+              <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
+            </div>
+            {recommendedFacilities.length > 0 && (
+              <section className="search-recommendations" aria-label="おすすめ施設">
+                <h4>おすすめ施設</h4>
+                <div className="search-recommendation-grid">
+                  {recommendedFacilities.map((facility) => {
+                    const category = getCategoryDefinition(facility.category)
+                    return (
+                      <button type="button" key={facility.id} onClick={() => openFacility(facility, 'home')}>
+                        {facility.photos[0] ? (
+                          <img src={facility.photos[0].dataUrl} alt="" />
+                        ) : (
+                          <span className="category-placeholder" aria-hidden="true">{category.icon}</span>
+                        )}
+                        <span className="search-recommendation-copy">
+                          <strong>{facility.name}</strong>
+                          <small><span aria-hidden="true">{category.icon}</span>{category.label}・{facility.area || 'エリア未設定'}</small>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+          </div>
+        ) : (
+          <>
         {recentFacilities.length > 0 && (
           <section className="recent-section" aria-label="最近見た施設">
             <div className="compact-heading"><h2>最近見た施設</h2><span>{recentFacilities.length}件</span></div>
@@ -945,6 +983,8 @@ export default function App() {
             ))}
           </div>
         )}
+          </>
+        )}
       </section>
       <nav className="home-bottom-nav" aria-label="メインメニュー">
         <button type="button" onClick={() => setScreen({ page: 'map' })}>
@@ -956,9 +996,11 @@ export default function App() {
           <strong>関係図</strong>
         </button>
       </nav>
-      <button className="add-button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>
-        <span>＋</span> 施設を追加
-      </button>
+      {!hasNoSearchResults && (
+        <button className="add-button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>
+          <span>＋</span> 施設を追加
+        </button>
+      )}
     </main>
   )
 }
