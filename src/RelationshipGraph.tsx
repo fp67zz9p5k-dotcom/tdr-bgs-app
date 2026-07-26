@@ -81,7 +81,10 @@ function CategoryHeadingFrame({ collapsed }: { collapsed: boolean }) {
       context.fillStyle = borderColor
       context.fill()
 
-      drawRoundedRect(context, 1, 1, Math.max(0, width - 2), Math.max(0, height - 2), 12)
+      // Keep the straight edges at exactly 1 CSS px. A slightly smaller inner
+      // corner radius compensates for WebKit's stronger antialiasing on curved
+      // edges without making the horizontal or vertical borders thicker.
+      drawRoundedRect(context, 1, 1, Math.max(0, width - 2), Math.max(0, height - 2), 11.5)
       context.fillStyle = backgroundColor
       context.fill()
     }

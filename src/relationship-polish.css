@@ -422,7 +422,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 71;
+      --relationship-style-revision: 72;
       position: relative;
       z-index: 1;
       -webkit-appearance: none;
@@ -481,6 +481,10 @@
       background: transparent;
       background-clip: padding-box;
       box-shadow: none;
+    }
+
+    .relationship-card-list-shell:not(.collapsed) {
+      margin-top: 8px;
     }
 
     .relationship-card-list-shell:not(.collapsed) > .relationship-card-list {
