@@ -411,6 +411,17 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 .facility-card-body { display: grid; min-width: 0; gap: 4px; }
 .facility-card-body > strong { display: -webkit-box; overflow: hidden; font-size: 15px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .facility-meta { overflow: hidden; color: #6c7b82; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.facility-search-match {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+.facility-search-match > b {
+  color: var(--accent-gold, #9a6928);
+  font-size: 8px;
+  line-height: 1.2;
+  letter-spacing: .06em;
+}
 .facility-search-snippet {
   display: -webkit-box;
   overflow: hidden;
@@ -421,8 +432,25 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   -webkit-line-clamp: 2;
 }
 .facility-card .category { display: flex; align-items: center; gap: 4px; width: max-content; color: #9a6928; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
-.facility-card-bottom { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; }
+.facility-card-bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 5px; min-width: 0; overflow: hidden; }
 .card-tag { max-width: 82px; padding: 2px 5px; overflow: hidden; border-radius: 8px; background: #f1ece1; color: #75644e; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.search-hit-tags {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.search-hit-tags > b {
+  flex: 0 0 auto;
+  color: var(--accent-gold, #9a6928);
+  font-size: 8px;
+  letter-spacing: .04em;
+}
+.search-hit-tags > small {
+  flex: 0 0 auto;
+  color: var(--text-muted, #75644e);
+  font-size: 8px;
+}
 .search-hit-tag {
   max-width: 126px;
   padding: 2px 6px;

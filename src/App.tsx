@@ -143,7 +143,7 @@ const getSearchKeywords = (value: string) =>
 type FacilitySearchMatch = {
   facility: Facility
   score: number
-  matchedTag: string | null
+  matchedTags: string[]
   bodySnippet: string | null
 }
 
@@ -183,7 +183,7 @@ const createBodySnippet = (facility: Facility, keywords: string[]) => {
 }
 
 const createFacilitySearchMatch = (facility: Facility, keywords: string[]): FacilitySearchMatch | null => {
-  if (!keywords.length) return { facility, score: 0, matchedTag: null, bodySnippet: null }
+  if (!keywords.length) return { facility, score: 0, matchedTags: [], bodySnippet: null }
 
   const aliases = getFacilityAliases(facility)
   const bodyTexts = getFacilityBodyTexts(facility)
@@ -210,14 +210,14 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
     }
   }
 
-  const matchedTag = facility.tags.find((tag) =>
+  const matchedTags = facility.tags.filter((tag) =>
     keywords.some((keyword) => normalizeSearchText(tag).includes(keyword)),
-  ) ?? null
+  )
 
   return {
     facility,
     score: highestPriority * 100_000 + detailScore,
-    matchedTag,
+    matchedTags,
     bodySnippet: createBodySnippet(facility, keywords),
   }
 }
@@ -492,7 +492,6 @@ export default function App() {
   }
 
   const selectSearchSuggestion = (facility: Facility) => {
-    setQuery(facility.name)
     setSearchFocused(false)
     setActiveSuggestionIndex(-1)
     openFacility(facility, 'home')
@@ -1069,16 +1068,27 @@ export default function App() {
                               <strong><HighlightedText text={facility.name} query={query} /></strong>
                               <span className="facility-meta"><HighlightedText text={`${facility.park}・${areaGroup.area}`} query={query} /></span>
                               {searchMatch?.bodySnippet && (
-                                <span className="facility-search-snippet">
-                                  <HighlightedText text={searchMatch.bodySnippet} query={query} />
+                                <span className="facility-search-match">
+                                  <b>本文一致</b>
+                                  <span className="facility-search-snippet">
+                                    <HighlightedText text={searchMatch.bodySnippet} query={query} />
+                                  </span>
                                 </span>
                               )}
                               <span className="facility-card-bottom">
                                 <span className="category"><span aria-hidden="true">{getCategoryDefinition(facility.category).icon}</span><HighlightedText text={facility.category} query={query} /></span>
-                                {searchMatch?.matchedTag && (
-                                  <span className="search-hit-tag">#<HighlightedText text={searchMatch.matchedTag} query={query} /></span>
+                                {searchMatch && searchMatch.matchedTags.length > 0 && (
+                                  <span className="search-hit-tags" aria-label="タグ一致">
+                                    <b>タグ一致</b>
+                                    {searchMatch.matchedTags.slice(0, 3).map((tag) => (
+                                      <span className="search-hit-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>
+                                    ))}
+                                    {searchMatch.matchedTags.length > 3 && (
+                                      <small>ほか{searchMatch.matchedTags.length - 3}件</small>
+                                    )}
+                                  </span>
                                 )}
-                                {facility.tags.filter((tag) => tag !== searchMatch?.matchedTag).slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>)}
+                                {facility.tags.filter((tag) => !searchMatch?.matchedTags.includes(tag)).slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>)}
                               </span>
                             </span>
                             <i aria-hidden="true">›</i>
