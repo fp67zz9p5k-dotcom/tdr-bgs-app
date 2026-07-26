@@ -50,6 +50,10 @@
   min-width: 0;
 }
 
+.relationship-group-heading-surface {
+  min-width: 0;
+}
+
 .relationship-category-group.is-open .relationship-group-heading {
   border-color: #a98a5a;
   background: #304853;
@@ -414,7 +418,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 66;
+      --relationship-style-revision: 67;
       position: relative;
       z-index: 1;
       -webkit-appearance: none;
@@ -452,20 +456,16 @@
       box-shadow: 0 7px 11px -4px #19384a2a;
     }
 
-    .relationship-group-heading-shell::before {
-      position: absolute;
-      z-index: 0;
-      inset: 0;
+    .relationship-group-heading-surface {
       box-sizing: border-box;
+      overflow: hidden;
       border: 1px solid var(--border-strong);
       border-radius: 13px;
       background: var(--relationship-heading-bg);
-      content: '';
-      pointer-events: none;
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      background-clip: padding-box;
     }
 
-    .relationship-category-group.is-collapsed .relationship-group-heading-shell::before {
+    .relationship-category-group.is-collapsed .relationship-group-heading-surface {
       background: var(--bg-card-strong);
     }
 

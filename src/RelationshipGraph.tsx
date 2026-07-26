@@ -186,27 +186,29 @@ function CenterRelationshipView({
                     key={category.id}
                   >
                     <div className="relationship-group-heading-shell">
-                      <button
-                        type="button"
-                        className="relationship-group-heading"
-                        onClick={() => setCollapsed((current) => {
-                          setActiveCategoryId(category.id)
-                          const next = new Set(current)
-                          if (next.has(category.value)) next.delete(category.value)
-                          else next.add(category.value)
-                          return next
-                        })}
-                        aria-expanded={!isCollapsed}
-                      >
-                        <span className="relationship-category-title">
-                          <span className="relationship-category-icon" aria-hidden="true">{category.icon}</span>
-                          <strong>{category.label}</strong>
-                        </span>
-                        <small className="relationship-category-count">{groupFacilities.length}件</small>
-                        <span className="relationship-collapse-icon" aria-hidden="true">
-                          {isCollapsed ? '＋' : '−'}
-                        </span>
-                      </button>
+                      <div className="relationship-group-heading-surface">
+                        <button
+                          type="button"
+                          className="relationship-group-heading"
+                          onClick={() => setCollapsed((current) => {
+                            setActiveCategoryId(category.id)
+                            const next = new Set(current)
+                            if (next.has(category.value)) next.delete(category.value)
+                            else next.add(category.value)
+                            return next
+                          })}
+                          aria-expanded={!isCollapsed}
+                        >
+                          <span className="relationship-category-title">
+                            <span className="relationship-category-icon" aria-hidden="true">{category.icon}</span>
+                            <strong>{category.label}</strong>
+                          </span>
+                          <small className="relationship-category-count">{groupFacilities.length}件</small>
+                          <span className="relationship-collapse-icon" aria-hidden="true">
+                            {isCollapsed ? '＋' : '−'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                     <div className={`relationship-card-list-shell${isCollapsed ? ' collapsed' : ''}`} aria-hidden={isCollapsed}>
                       <div className="relationship-card-list">
