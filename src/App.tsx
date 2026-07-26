@@ -1542,10 +1542,15 @@ function LeafletCanvas({
       zoom: position ? 18 : preservedView?.zoom ?? 16.5,
       bearing: preservedView?.bearing ?? parkBearings[park],
       pitch: preservedView?.pitch ?? 0,
+      dragPan: true,
       dragRotate: false,
-      touchZoomRotate: false,
+      touchZoomRotate: true,
+      doubleClickZoom: true,
+      scrollZoom: true,
       attributionControl: false,
     })
+    map.touchZoomRotate.enable()
+    map.touchZoomRotate.disableRotation()
     const diagnosticEntry: MapDiagnosticEntry = {
       instanceId,
       mode,

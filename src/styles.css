@@ -755,6 +755,12 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .park-switch button.active { border-color: #153e5c; background: #153e5c; color: white; }
 .park-map-canvas, .coordinate-canvas { position: relative; overflow: hidden; border: 2px solid #d5c8b3; border-radius: 24px; background-color: #dce8d4; touch-action: none; }
 .park-map-canvas { width: 100%; aspect-ratio: 4 / 5; max-height: 70vh; }
+@media (hover: none) and (pointer: coarse) {
+  .park-map-canvas .maplibregl-ctrl-group,
+  .coordinate-canvas .maplibregl-ctrl-group {
+    display: none;
+  }
+}
 .park-map-canvas.land, .coordinate-canvas.land {
   background:
     radial-gradient(circle at 50% 22%, #cad9ed 0 8%, transparent 8.5%),
