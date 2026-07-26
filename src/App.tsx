@@ -721,19 +721,6 @@ export default function App() {
             setSelectedTag(tag)
             setScreen({ page: 'home' })
           }}
-          onOpenRelationship={(facility) => {
-            resetMapExploration()
-            const nextSettings = {
-              ...relationshipSettings,
-              mode: 'center' as const,
-              selectedId: facility.id,
-              positions: {},
-              viewport: { x: 0, y: 0, zoom: 1 },
-            }
-            setRelationshipSettings(nextSettings)
-            void saveRelationshipGraphSettings(nextSettings)
-            setScreen({ page: 'relationships' })
-          }}
         />
         <PrimaryBottomNavigation
           active="home"
@@ -1818,7 +1805,6 @@ function FacilityView({
   onToggleFavorite,
   onOpenFacility,
   onSelectTag,
-  onOpenRelationship,
 }: {
   facility: Facility
   allFacilities: Facility[]
@@ -1827,7 +1813,6 @@ function FacilityView({
   onToggleFavorite: () => void
   onOpenFacility: (facility: Facility) => void
   onSelectTag: (tag: string) => void
-  onOpenRelationship: (facility: Facility) => void
 }) {
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const category = getCategoryDefinition(facility.category)
@@ -1953,7 +1938,6 @@ function FacilityView({
                       <span>{item.area || 'エリア未設定'} · {itemCategory.icon} {itemCategory.label}</span>
                     </div>
                     <div className="related-card-actions">
-                      <button type="button" onClick={() => onOpenRelationship(item)}>関係図</button>
                       <button type="button" onClick={() => onOpenFacility(item)}>詳細</button>
                     </div>
                   </article>
