@@ -506,7 +506,7 @@ function RelationshipGraphInner({
   }
 
   return (
-    <main className="relationship-page">
+    <main className="relationship-page screen-enter">
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>

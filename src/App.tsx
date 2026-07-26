@@ -214,6 +214,7 @@ export default function App() {
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const hasVisitedNonHomeScreenRef = useRef(false)
 
   const reload = async () => {
     setFacilities((await getFacilities()).sort((a, b) => a.name.localeCompare(b.name, 'ja')))
@@ -227,6 +228,10 @@ export default function App() {
       getRecentFacilityIds().then(setRecentFacilityIds),
     ]).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (screen.page !== 'home') hasVisitedNonHomeScreenRef.current = true
+  }, [screen.page])
 
   useEffect(() => {
     try {
@@ -546,6 +551,7 @@ export default function App() {
   if (screen.page === 'view') {
     return (
       <FacilityView
+        key={screen.facility.id}
         facility={screen.facility}
         allFacilities={facilities}
         onBack={() => {
@@ -640,7 +646,7 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
       <header className="hero">
         <button type="button" className="settings-menu-button" onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く" aria-expanded={settingsOpen}>
           <span></span><span></span><span></span>
@@ -1036,7 +1042,7 @@ function ParkMap({
   }, [onOpenFacility, park])
 
   return (
-    <main className="app-shell map-page">
+    <main className="app-shell map-page screen-enter">
       <header className="detail-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div><p className="eyebrow">PARK MAP</p><h1>園内マップ</h1></div>
@@ -1526,7 +1532,7 @@ function FacilityView({
   ].filter((item) => item.visible)
 
   return (
-    <main className="app-shell view-page">
+    <main className="app-shell view-page screen-enter">
       <header className="detail-header view-header">
         <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
         <div className="view-header-copy">
@@ -1791,7 +1797,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
   }
 
   return (
-    <main className="app-shell detail-page">
+    <main className="app-shell detail-page screen-enter">
       <header className="detail-header">
         <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
         <div><p className="eyebrow">{isNew ? 'NEW FACILITY' : 'FACILITY DETAIL'}</p><h1>{isNew ? '施設を追加' : facility.name}</h1></div>

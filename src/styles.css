@@ -6,6 +6,43 @@
   text-rendering: optimizeLegibility;
 }
 
+.screen-enter {
+  animation: screen-enter 170ms ease-out backwards;
+}
+
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * iOS Safari can keep rounded cards in a temporary compositing layer while an
+ * ancestor is transformed. Retain the transition without moving the page so
+ * the relationship-card clipping workarounds remain untouched.
+ */
+@supports (-webkit-touch-callout: none) {
+  .screen-enter {
+    animation-name: screen-enter-ios-safe;
+  }
+
+  @keyframes screen-enter-ios-safe {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-enter {
+    animation: none;
+  }
+}
+
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; }
 body { margin: 0; min-height: 100vh; }
