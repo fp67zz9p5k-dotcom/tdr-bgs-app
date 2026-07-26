@@ -213,6 +213,7 @@ export default function App() {
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
   const searchAreaRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const reload = async () => {
     setFacilities((await getFacilities()).sort((a, b) => a.name.localeCompare(b.name, 'ja')))
@@ -305,7 +306,14 @@ export default function App() {
   const recommendedFacilities = useMemo(() => {
     if (!facilities.length) return []
     const keywords = getSearchKeywords(query)
-    return [...facilities]
+    const validFacilities = Array.from(
+      new Map(
+        facilities
+          .filter((facility) => facility.id.trim() && facility.name.trim())
+          .map((facility) => [facility.id, facility]),
+      ).values(),
+    )
+    return validFacilities
       .map((facility) => {
         const text = normalizeSearchText(searchableText(facility))
         const relevance = keywords.reduce((score, keyword) => {
@@ -322,7 +330,7 @@ export default function App() {
         }
       })
       .sort((a, b) => b.score - a.score || b.facility.updatedAt.localeCompare(a.facility.updatedAt))
-      .slice(0, 4)
+      .slice(0, 3)
       .map(({ facility }) => facility)
   }, [facilities, query, selectedCategory, selectedPark, selectedTag])
 
@@ -433,6 +441,13 @@ export default function App() {
     setSelectedCategory('')
     setSelectedTag('')
     setFavoriteOnly(false)
+  }
+
+  const clearSearch = () => {
+    setQuery('')
+    setSearchFocused(false)
+    setActiveSuggestionIndex(-1)
+    searchInputRef.current?.blur()
   }
 
   const toggleFavorite = async (facility: Facility) => {
@@ -695,6 +710,7 @@ export default function App() {
           <label className="search">
             <span aria-hidden="true">⌕</span>
             <input
+              ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -819,14 +835,16 @@ export default function App() {
             <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedCategory || selectedTag || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
             {query ? (
               <div className="search-empty-copy">
-                <p>検索キーワードを変更してみてください</p>
-                <p>別の施設名でも検索できます</p>
+                <p>検索キーワードを変更して、もう一度お試しください</p>
+                <p className="search-empty-query">入力した検索語：<strong>{query}</strong></p>
               </div>
             ) : (
               <p>{selectedPark || selectedCategory || selectedTag || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
             )}
             <div className="empty-actions">
-              {(query || selectedPark || selectedCategory || selectedTag || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
+              {query
+                ? <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
+                : (selectedPark || selectedCategory || selectedTag || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
               <button type="button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>施設を追加</button>
             </div>
             {query && recommendedFacilities.length > 0 && (
@@ -842,7 +860,10 @@ export default function App() {
                         ) : (
                           <span className="category-placeholder" aria-hidden="true">{category.icon}</span>
                         )}
-                        <strong>{facility.name}</strong>
+                        <span className="search-recommendation-copy">
+                          <strong>{facility.name}</strong>
+                          <small><span aria-hidden="true">{category.icon}</span>{category.label}・{facility.area || 'エリア未設定'}</small>
+                        </span>
                       </button>
                     )
                   })}
