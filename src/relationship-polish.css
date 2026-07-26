@@ -410,19 +410,18 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 56;
+      --relationship-style-revision: 60;
+      -webkit-appearance: none;
+      appearance: none;
       overflow: hidden;
-      isolation: isolate;
+      isolation: auto;
       contain: none;
       transform: none !important;
       will-change: auto;
-      background-clip: border-box;
+      background-clip: padding-box;
       -webkit-clip-path: none;
       clip-path: none;
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
-      -webkit-mask-position: 0 0;
-      -webkit-mask-repeat: no-repeat;
-      -webkit-mask-size: 100% 100%;
+      -webkit-mask: none;
       mask: none;
       filter: none;
       -webkit-backdrop-filter: none;
