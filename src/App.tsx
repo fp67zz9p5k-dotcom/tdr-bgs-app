@@ -1561,7 +1561,11 @@ function LeafletCanvas({
     mapDiagnosticRegistry.set(instanceId, diagnosticEntry)
     containerRef.current.dataset.mapInstanceId = instanceId
     containerRef.current.dataset.mapMode = mode
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left')
+    const isTouchDevice = navigator.maxTouchPoints > 0
+      || window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    if (!isTouchDevice) {
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left')
+    }
     map.addControl(new maplibregl.AttributionControl({
       compact: true,
       customAttribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> · OpenFreeMap',
