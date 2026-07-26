@@ -192,12 +192,24 @@ const createBodySnippet = (facility: Facility, keywords: string[]) => {
       .filter((position) => position >= 0)
     if (!positions.length) continue
     const hitAt = Math.min(...positions)
-    const start = Math.max(0, hitAt - 24)
-    const end = Math.min(text.length, hitAt + 58)
+    const sentenceStart = Math.max(
+      text.lastIndexOf('。', Math.max(0, hitAt - 1)),
+      text.lastIndexOf('！', Math.max(0, hitAt - 1)),
+      text.lastIndexOf('？', Math.max(0, hitAt - 1)),
+      text.lastIndexOf('\n', Math.max(0, hitAt - 1)),
+    ) + 1
+    const sentenceEndCandidates = ['。', '！', '？', '\n']
+      .map((separator) => text.indexOf(separator, hitAt))
+      .filter((position) => position >= 0)
+    const sentenceEnd = sentenceEndCandidates.length
+      ? Math.min(...sentenceEndCandidates) + 1
+      : text.length
+    const start = Math.max(sentenceStart, hitAt - 32)
+    const end = Math.min(sentenceEnd, hitAt + 48)
     return {
       field,
       text,
-      snippet: `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`,
+      snippet: `${start > sentenceStart ? '…' : ''}${text.slice(start, end).trim()}${end < sentenceEnd ? '…' : ''}`,
     }
   }
   return null
