@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'tdr-archive-'
-const CACHE_NAME = `${CACHE_PREFIX}v70-ios-svg-heading-frame`
+const CACHE_NAME = `${CACHE_PREFIX}v71-ios-canvas-heading-frame`
 const scopeUrl = self.registration.scope
 const appUrl = (path) => new URL(path, scopeUrl).toString()
 const APP_SHELL = [

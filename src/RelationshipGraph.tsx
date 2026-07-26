@@ -25,6 +25,85 @@ const degreeOf = (facility: Facility, facilities: Facility[]) =>
 const isCategoryId = (value: string): value is CategoryId =>
   CATEGORY_DEFINITIONS.some((category) => category.id === value)
 
+const drawRoundedRect = (
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) => {
+  const safeRadius = Math.max(0, Math.min(radius, width / 2, height / 2))
+  context.beginPath()
+  context.moveTo(x + safeRadius, y)
+  context.lineTo(x + width - safeRadius, y)
+  context.arcTo(x + width, y, x + width, y + safeRadius, safeRadius)
+  context.lineTo(x + width, y + height - safeRadius)
+  context.arcTo(x + width, y + height, x + width - safeRadius, y + height, safeRadius)
+  context.lineTo(x + safeRadius, y + height)
+  context.arcTo(x, y + height, x, y + height - safeRadius, safeRadius)
+  context.lineTo(x, y + safeRadius)
+  context.arcTo(x, y, x + safeRadius, y, safeRadius)
+  context.closePath()
+}
+
+function CategoryHeadingFrame({ collapsed }: { collapsed: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const paint = () => {
+      const bounds = canvas.getBoundingClientRect()
+      if (bounds.width <= 0 || bounds.height <= 0) return
+
+      const pixelRatio = Math.max(1, window.devicePixelRatio || 1)
+      const pixelWidth = Math.max(1, Math.round(bounds.width * pixelRatio))
+      const pixelHeight = Math.max(1, Math.round(bounds.height * pixelRatio))
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight
+
+      const context = canvas.getContext('2d')
+      if (!context) return
+
+      const width = pixelWidth / pixelRatio
+      const height = pixelHeight / pixelRatio
+      const style = getComputedStyle(canvas)
+      const borderColor = style.getPropertyValue('--border-strong').trim() || '#c8b38f'
+      const backgroundVariable = collapsed ? '--bg-card-strong' : '--relationship-heading-bg'
+      const backgroundColor = style.getPropertyValue(backgroundVariable).trim() || '#f5efe4'
+
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+      context.clearRect(0, 0, width, height)
+
+      drawRoundedRect(context, 0, 0, width, height, 13)
+      context.fillStyle = borderColor
+      context.fill()
+
+      drawRoundedRect(context, 1, 1, Math.max(0, width - 2), Math.max(0, height - 2), 12)
+      context.fillStyle = backgroundColor
+      context.fill()
+    }
+
+    const resizeObserver = new ResizeObserver(paint)
+    const themeObserver = new MutationObserver(paint)
+    resizeObserver.observe(canvas)
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    paint()
+
+    return () => {
+      resizeObserver.disconnect()
+      themeObserver.disconnect()
+    }
+  }, [collapsed])
+
+  return <canvas ref={canvasRef} className="relationship-group-heading-frame" aria-hidden="true" />
+}
+
 const layoutPositions = (facilities: Facility[], centerId?: string | null) => {
   const ordered = [...facilities].sort((a, b) => degreeOf(b, facilities) - degreeOf(a, facilities))
   const center = ordered.find((facility) => facility.id === centerId) ?? ordered[0]
@@ -186,9 +265,7 @@ function CenterRelationshipView({
                     key={category.id}
                   >
                     <div className="relationship-group-heading-shell">
-                      <svg className="relationship-group-heading-frame" aria-hidden="true">
-                        <rect />
-                      </svg>
+                      <CategoryHeadingFrame collapsed={isCollapsed} />
                       <div className="relationship-group-heading-surface">
                         <button
                           type="button"
