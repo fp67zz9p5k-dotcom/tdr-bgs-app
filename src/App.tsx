@@ -589,6 +589,18 @@ export default function App() {
     searchInputRef.current?.blur()
   }
 
+  const resetMapExploration = () => {
+    const defaults = defaultMapFilterSettings()
+    setMapFilterSettings(defaults)
+    void saveMapFilterSettings(defaults)
+    mapReturnStateRef.current = null
+    sessionStorage.removeItem(MAP_RETURN_STATE_KEY)
+    if (typeof window.history.state === 'object' && window.history.state !== null) {
+      const { tdrMapReturnState: _discardedMapState, ...historyState } = window.history.state as Record<string, unknown>
+      window.history.replaceState(historyState, '')
+    }
+  }
+
   const toggleFavorite = async (facility: Facility) => {
     const updated = { ...facility, favorite: !facility.favorite, updatedAt: new Date().toISOString() }
     await saveFacility(updated)
@@ -701,6 +713,7 @@ export default function App() {
           onToggleFavorite={() => void toggleFavorite(screen.facility)}
           onOpenFacility={(facility) => openFacility(facility, screen.returnTo, screen.mapReturnState)}
           onSelectTag={(tag) => {
+            resetMapExploration()
             setQuery('')
             setSelectedPark('')
             setSelectedCategory('')
@@ -709,6 +722,7 @@ export default function App() {
             setScreen({ page: 'home' })
           }}
           onOpenRelationship={(facility) => {
+            resetMapExploration()
             const nextSettings = {
               ...relationshipSettings,
               mode: 'center' as const,
@@ -724,6 +738,7 @@ export default function App() {
         <PrimaryBottomNavigation
           active="home"
           onNavigate={(page) => {
+            resetMapExploration()
             if (page === 'relationships') {
               const nextSettings = {
                 ...relationshipSettings,
@@ -754,8 +769,7 @@ export default function App() {
             void saveMapFilterSettings(settings)
           }}
           onBack={() => {
-            mapReturnStateRef.current = null
-            sessionStorage.removeItem(MAP_RETURN_STATE_KEY)
+            resetMapExploration()
             setScreen({ page: 'home' })
           }}
           onOpenFacility={(facility, state) => {
@@ -766,7 +780,13 @@ export default function App() {
             openFacility(facility, 'map', state)
           }}
         />
-        <PrimaryBottomNavigation active="map" onNavigate={(page) => setScreen({ page })} />
+        <PrimaryBottomNavigation
+          active="map"
+          onNavigate={(page) => {
+            if (page !== 'map') resetMapExploration()
+            setScreen({ page })
+          }}
+        />
       </>
     )
   }
@@ -784,7 +804,13 @@ export default function App() {
           onBack={() => setScreen({ page: 'home' })}
           onOpenFacility={(facility) => openFacility(facility, 'relationships')}
         />
-        <PrimaryBottomNavigation active="relationships" onNavigate={(page) => setScreen({ page })} />
+        <PrimaryBottomNavigation
+          active="relationships"
+          onNavigate={(page) => {
+            if (page === 'map') resetMapExploration()
+            setScreen({ page })
+          }}
+        />
       </>
     )
   }
@@ -1182,7 +1208,13 @@ export default function App() {
           </>
         )}
       </section>
-      <PrimaryBottomNavigation active="home" onNavigate={(page) => setScreen({ page })} />
+      <PrimaryBottomNavigation
+        active="home"
+        onNavigate={(page) => {
+          if (page === 'map') resetMapExploration()
+          setScreen({ page })
+        }}
+      />
       {!hasNoSearchResults && (
         <button className="add-button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>
           <span>＋</span> 施設を追加
