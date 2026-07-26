@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fp67zz9p5k-dotcom.github.io/tdr-bgs-app/sitemap.xml
