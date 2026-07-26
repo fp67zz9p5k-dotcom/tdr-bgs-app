@@ -414,7 +414,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 63;
+      --relationship-style-revision: 64;
       -webkit-appearance: none;
       appearance: none;
       overflow: hidden;
@@ -441,8 +441,9 @@
     }
 
     .relationship-group-heading-shell {
+      box-sizing: border-box;
       overflow: hidden;
-      border: 1px solid var(--border-strong);
+      border: 2px solid var(--border-strong);
       border-radius: 13px;
       background: var(--relationship-heading-bg);
       background-clip: padding-box;
