@@ -552,83 +552,108 @@ export default function App() {
 
   if (screen.page === 'view') {
     return (
-      <FacilityView
-        key={screen.facility.id}
-        facility={screen.facility}
-        allFacilities={facilities}
-        onBack={() => {
-          if (screen.returnTo === 'map') {
-            mapReturnStateRef.current = screen.mapReturnState ?? mapReturnStateRef.current ?? readMapReturnState()
-            window.history.back()
-          } else {
-            setScreen({ page: screen.returnTo })
-          }
-        }}
-        onEdit={() => setScreen({ page: 'edit', facility: screen.facility, isNew: false, returnTo: screen.returnTo })}
-        onToggleFavorite={() => void toggleFavorite(screen.facility)}
-        onOpenFacility={(facility) => openFacility(facility, screen.returnTo, screen.mapReturnState)}
-        onSelectTag={(tag) => {
-          setQuery('')
-          setSelectedPark('')
-          setSelectedCategory('')
-          setFavoriteOnly(false)
-          setSelectedTag(tag)
-          setScreen({ page: 'home' })
-        }}
-        onOpenRelationship={(facility) => {
-          const nextSettings = {
-            ...relationshipSettings,
-            mode: 'center' as const,
-            selectedId: facility.id,
-            positions: {},
-            viewport: { x: 0, y: 0, zoom: 1 },
-          }
-          setRelationshipSettings(nextSettings)
-          void saveRelationshipGraphSettings(nextSettings)
-          setScreen({ page: 'relationships' })
-        }}
-      />
+      <>
+        <FacilityView
+          key={screen.facility.id}
+          facility={screen.facility}
+          allFacilities={facilities}
+          onBack={() => {
+            if (screen.returnTo === 'map') {
+              mapReturnStateRef.current = screen.mapReturnState ?? mapReturnStateRef.current ?? readMapReturnState()
+              window.history.back()
+            } else {
+              setScreen({ page: screen.returnTo })
+            }
+          }}
+          onEdit={() => setScreen({ page: 'edit', facility: screen.facility, isNew: false, returnTo: screen.returnTo })}
+          onToggleFavorite={() => void toggleFavorite(screen.facility)}
+          onOpenFacility={(facility) => openFacility(facility, screen.returnTo, screen.mapReturnState)}
+          onSelectTag={(tag) => {
+            setQuery('')
+            setSelectedPark('')
+            setSelectedCategory('')
+            setFavoriteOnly(false)
+            setSelectedTag(tag)
+            setScreen({ page: 'home' })
+          }}
+          onOpenRelationship={(facility) => {
+            const nextSettings = {
+              ...relationshipSettings,
+              mode: 'center' as const,
+              selectedId: facility.id,
+              positions: {},
+              viewport: { x: 0, y: 0, zoom: 1 },
+            }
+            setRelationshipSettings(nextSettings)
+            void saveRelationshipGraphSettings(nextSettings)
+            setScreen({ page: 'relationships' })
+          }}
+        />
+        <PrimaryBottomNavigation
+          active="home"
+          onNavigate={(page) => {
+            if (page === 'relationships') {
+              const nextSettings = {
+                ...relationshipSettings,
+                mode: 'center' as const,
+                selectedId: screen.facility.id,
+                positions: {},
+                viewport: { x: 0, y: 0, zoom: 1 },
+              }
+              setRelationshipSettings(nextSettings)
+              void saveRelationshipGraphSettings(nextSettings)
+            }
+            setScreen({ page })
+          }}
+        />
+      </>
     )
   }
 
   if (screen.page === 'map') {
     return (
-      <ParkMap
-        facilities={facilities}
-        filterSettings={mapFilterSettings}
-        initialState={mapReturnStateRef.current}
-        onFilterSettingsChange={(settings) => {
-          setMapFilterSettings(settings)
-          void saveMapFilterSettings(settings)
-        }}
-        onBack={() => {
-          mapReturnStateRef.current = null
-          sessionStorage.removeItem(MAP_RETURN_STATE_KEY)
-          setScreen({ page: 'home' })
-        }}
-        onOpenFacility={(facility, state) => {
-          mapReturnStateRef.current = state
-          sessionStorage.setItem(MAP_RETURN_STATE_KEY, JSON.stringify(state))
-          window.history.replaceState({ ...window.history.state, tdrMapReturnState: state }, '')
-          window.history.pushState({ tdrMapDetail: true }, '')
-          openFacility(facility, 'map', state)
-        }}
-      />
+      <>
+        <ParkMap
+          facilities={facilities}
+          filterSettings={mapFilterSettings}
+          initialState={mapReturnStateRef.current}
+          onFilterSettingsChange={(settings) => {
+            setMapFilterSettings(settings)
+            void saveMapFilterSettings(settings)
+          }}
+          onBack={() => {
+            mapReturnStateRef.current = null
+            sessionStorage.removeItem(MAP_RETURN_STATE_KEY)
+            setScreen({ page: 'home' })
+          }}
+          onOpenFacility={(facility, state) => {
+            mapReturnStateRef.current = state
+            sessionStorage.setItem(MAP_RETURN_STATE_KEY, JSON.stringify(state))
+            window.history.replaceState({ ...window.history.state, tdrMapReturnState: state }, '')
+            window.history.pushState({ tdrMapDetail: true }, '')
+            openFacility(facility, 'map', state)
+          }}
+        />
+        <PrimaryBottomNavigation active="map" onNavigate={(page) => setScreen({ page })} />
+      </>
     )
   }
 
   if (screen.page === 'relationships') {
     return (
-      <RelationshipGraph
-        facilities={facilities}
-        settings={relationshipSettings}
-        onSettingsChange={(settings) => {
-          setRelationshipSettings(settings)
-          void saveRelationshipGraphSettings(settings)
-        }}
-        onBack={() => setScreen({ page: 'home' })}
-        onOpenFacility={(facility) => openFacility(facility, 'relationships')}
-      />
+      <>
+        <RelationshipGraph
+          facilities={facilities}
+          settings={relationshipSettings}
+          onSettingsChange={(settings) => {
+            setRelationshipSettings(settings)
+            void saveRelationshipGraphSettings(settings)
+          }}
+          onBack={() => setScreen({ page: 'home' })}
+          onOpenFacility={(facility) => openFacility(facility, 'relationships')}
+        />
+        <PrimaryBottomNavigation active="relationships" onNavigate={(page) => setScreen({ page })} />
+      </>
     )
   }
 
@@ -1002,6 +1027,39 @@ export default function App() {
         </button>
       )}
     </main>
+  )
+}
+
+type PrimaryNavigationPage = 'home' | 'map' | 'relationships'
+
+function PrimaryBottomNavigation({
+  active,
+  onNavigate,
+}: {
+  active: PrimaryNavigationPage
+  onNavigate: (page: PrimaryNavigationPage) => void
+}) {
+  const items: Array<{ page: PrimaryNavigationPage; icon: string; label: string }> = [
+    { page: 'home', icon: '⌂', label: '一覧' },
+    { page: 'map', icon: '⌖', label: 'マップ' },
+    { page: 'relationships', icon: '◎', label: '関係図' },
+  ]
+
+  return (
+    <nav className="primary-bottom-nav" aria-label="主要画面">
+      {items.map((item) => (
+        <button
+          type="button"
+          key={item.page}
+          className={active === item.page ? 'active' : ''}
+          aria-current={active === item.page ? 'page' : undefined}
+          onClick={() => onNavigate(item.page)}
+        >
+          <span aria-hidden="true">{item.icon}</span>
+          <strong>{item.label}</strong>
+        </button>
+      ))}
+    </nav>
   )
 }
 

@@ -452,6 +452,25 @@
   color: var(--accent-gold);
 }
 
+:root[data-theme] .primary-bottom-nav {
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--header-bg) 96%, transparent);
+  box-shadow: 0 -7px 24px var(--shadow-color);
+}
+
+:root[data-theme] .primary-bottom-nav button {
+  color: color-mix(in srgb, var(--selected-text) 72%, var(--text-muted));
+}
+
+:root[data-theme] .primary-bottom-nav button.active {
+  background: color-mix(in srgb, var(--accent-gold) 16%, transparent);
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .primary-bottom-nav button:active {
+  background: color-mix(in srgb, var(--accent-gold) 22%, transparent);
+}
+
 :root[data-theme] .map-filter-sheet {
   background: var(--surface-1);
   color: var(--text-primary);
