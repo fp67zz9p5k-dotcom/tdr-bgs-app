@@ -437,21 +437,6 @@
   color: var(--text-secondary);
 }
 
-:root[data-theme] .home-bottom-nav {
-  border-color: var(--border-default);
-  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  box-shadow: 0 -7px 24px var(--shadow-color);
-}
-
-:root[data-theme] .home-bottom-nav button {
-  color: var(--text-secondary);
-}
-
-:root[data-theme] .home-bottom-nav button:active {
-  background: var(--surface-3);
-  color: var(--accent-gold);
-}
-
 :root[data-theme] .primary-bottom-nav {
   border-color: var(--border-default);
   background: color-mix(in srgb, var(--header-bg) 96%, transparent);

@@ -75,11 +75,6 @@ button { cursor: pointer; }
 .eyebrow { margin: 0 0 7px; font-size: 11px; letter-spacing: .2em; font-weight: 800; opacity: .72; }
 h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px, 7vw, 42px); letter-spacing: .04em; }
 .hero > p:last-of-type { margin: 14px 0 0; color: #dce8ed; font-size: 14px; }
-.home-bottom-nav { position: fixed; z-index: 6; left: 50%; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 760px); padding: 8px 14px calc(8px + env(safe-area-inset-bottom)); transform: translateX(-50%); border-top: 1px solid #d5c9b6; background: #fffdf9ee; box-shadow: 0 -7px 24px #172b3820; backdrop-filter: blur(15px); }
-.home-bottom-nav button { display: grid; place-items: center; gap: 2px; min-height: 49px; padding: 5px; border: 0; border-radius: 12px; background: transparent; color: #284a5a; }
-.home-bottom-nav button:active { background: #e9e2d6; }
-.home-bottom-nav span { font-size: 23px; line-height: 1; }
-.home-bottom-nav strong { font-size: 11px; }
 .primary-bottom-nav {
   position: fixed;
   z-index: 40;
@@ -875,9 +870,6 @@ fieldset { margin: 0; padding: 0; border: 0; }
   .settings-section-heading small, .settings-future-note { color: #a9b7bd; }
   .settings-future-note { border-color: #40535c; }
   .settings-clear-button { border-color: #4b626e; background: #223943; color: #f0a99d; }
-  .home-bottom-nav { border-color: #40535c; background: #162832ee; box-shadow: 0 -7px 24px #0007; }
-  .home-bottom-nav button { color: #eef6f8; }
-  .home-bottom-nav button:active { background: #29424e; }
   .hero, .detail-header { background: linear-gradient(145deg, #0b2536, #173e50); }
   .content, .view-content { color: #e2e9ec; }
   .search, .facility-card, .backup-actions button, .backup-actions label,

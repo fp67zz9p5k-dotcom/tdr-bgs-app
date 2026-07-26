@@ -1011,16 +1011,7 @@ export default function App() {
           </>
         )}
       </section>
-      <nav className="home-bottom-nav" aria-label="メインメニュー">
-        <button type="button" onClick={() => setScreen({ page: 'map' })}>
-          <span aria-hidden="true">⌖</span>
-          <strong>マップ</strong>
-        </button>
-        <button type="button" onClick={() => setScreen({ page: 'relationships' })}>
-          <span aria-hidden="true">◎</span>
-          <strong>関係図</strong>
-        </button>
-      </nav>
+      <PrimaryBottomNavigation active="home" onNavigate={(page) => setScreen({ page })} />
       {!hasNoSearchResults && (
         <button className="add-button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>
           <span>＋</span> 施設を追加
