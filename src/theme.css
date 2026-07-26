@@ -604,6 +604,99 @@
   border-bottom-color: var(--surface-2);
 }
 
+/* Detail view: keep explicit dark mode consistent with home and relationship
+   screens even when the device itself is using the light appearance. */
+:root[data-theme="dark"] .detail-photo-placeholder {
+  border-color: var(--border-default);
+  background:
+    radial-gradient(circle at 50% 42%, #d1a45d18, transparent 42%),
+    linear-gradient(145deg, var(--surface-3), var(--surface-2));
+  color: var(--accent-gold);
+  box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .detail-toc {
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  box-shadow: 0 5px 18px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .detail-toc a {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .view-section h2,
+:root[data-theme="dark"] .view-card h3,
+:root[data-theme="dark"] .prop-view-card h3,
+:root[data-theme="dark"] .related-view-card strong,
+:root[data-theme="dark"] .main-photo-caption strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .view-section-heading > span {
+  background: var(--surface-3);
+  color: var(--accent-gold);
+}
+
+:root[data-theme="dark"] .basic-info-card,
+:root[data-theme="dark"] .view-card,
+:root[data-theme="dark"] .prop-view-card,
+:root[data-theme="dark"] .related-view-card {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .basic-info-card div {
+  border-color: var(--border-default);
+}
+
+:root[data-theme="dark"] .basic-info-card dt,
+:root[data-theme="dark"] .related-view-card span {
+  color: var(--text-muted);
+}
+
+:root[data-theme="dark"] .basic-info-card dd,
+:root[data-theme="dark"] .view-card p,
+:root[data-theme="dark"] .prop-view-card p,
+:root[data-theme="dark"] .main-photo-caption p {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .text-entry-card h3 {
+  border-color: var(--border-default);
+  color: var(--accent-gold);
+}
+
+:root[data-theme="dark"] .view-card .prop-location,
+:root[data-theme="dark"] .main-photo-caption small {
+  color: var(--accent-gold);
+}
+
+:root[data-theme="dark"] .tag-list button {
+  background: var(--accent-gold-soft);
+  color: #f0c77f;
+}
+
+:root[data-theme="dark"] .tags-expand-button {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .related-card-actions button {
+  border-color: var(--border-default);
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .prop-placeholder,
+:root[data-theme="dark"] .related-view-card > .category-placeholder {
+  background: linear-gradient(145deg, var(--surface-3), var(--surface-2));
+  color: var(--accent-gold);
+}
+
 @media (max-width: 359px) {
   .theme-options {
     grid-template-columns: 1fr;
