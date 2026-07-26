@@ -143,8 +143,11 @@ const getSearchKeywords = (value: string) =>
 type FacilitySearchMatch = {
   facility: Facility
   score: number
+  matchType: 'title' | 'alias' | 'tag' | 'category' | 'area' | 'body' | 'park'
+  matchedField: string | null
+  matchedText: string | null
   matchedTags: string[]
-  bodySnippet: string | null
+  snippet: string | null
 }
 
 const getFacilityAliases = (facility: Facility) => {
@@ -155,20 +158,34 @@ const getFacilityAliases = (facility: Facility) => {
   ].filter(Boolean)
 }
 
-const getFacilityBodyTexts = (facility: Facility) => [
-  facility.notes,
-  ...facility.bgs.map((entry) => entry.text),
-  ...facility.trivia.map((entry) => entry.text),
-  ...facility.props.flatMap((prop) => [prop.title, prop.description, prop.location]),
-  ...facility.photos.flatMap((photo) => [photo.title, photo.description, photo.location]),
-  ...facility.props.flatMap((prop) => prop.photos.flatMap((photo) => [photo.title, photo.description, photo.location])),
-].filter((value) => value.trim().length > 0)
+type SearchableBodyText = { field: string; text: string }
+
+const getFacilityBodyTexts = (facility: Facility): SearchableBodyText[] => [
+  { field: 'overview', text: facility.notes },
+  ...facility.bgs.map((entry) => ({ field: 'bgs', text: entry.text })),
+  ...facility.trivia.map((entry) => ({ field: 'trivia', text: entry.text })),
+  ...facility.props.flatMap((prop) => [
+    { field: 'propTitle', text: prop.title },
+    { field: 'propDescription', text: prop.description },
+    { field: 'propLocation', text: prop.location },
+  ]),
+  ...facility.photos.flatMap((photo) => [
+    { field: 'photoTitle', text: photo.title },
+    { field: 'photoDescription', text: photo.description },
+    { field: 'photoLocation', text: photo.location },
+  ]),
+  ...facility.props.flatMap((prop) => prop.photos.flatMap((photo) => [
+    { field: 'propPhotoTitle', text: photo.title },
+    { field: 'propPhotoDescription', text: photo.description },
+    { field: 'propPhotoLocation', text: photo.location },
+  ])),
+].filter(({ text }) => text.trim().length > 0)
 
 const includesKeyword = (values: string[], keyword: string) =>
   values.some((value) => normalizeSearchText(value).includes(keyword))
 
 const createBodySnippet = (facility: Facility, keywords: string[]) => {
-  for (const text of getFacilityBodyTexts(facility)) {
+  for (const { field, text } of getFacilityBodyTexts(facility)) {
     const normalized = normalizeSearchText(text)
     const positions = keywords
       .map((keyword) => normalized.indexOf(keyword))
@@ -177,32 +194,50 @@ const createBodySnippet = (facility: Facility, keywords: string[]) => {
     const hitAt = Math.min(...positions)
     const start = Math.max(0, hitAt - 24)
     const end = Math.min(text.length, hitAt + 58)
-    return `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`
+    return {
+      field,
+      text,
+      snippet: `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`,
+    }
   }
   return null
 }
 
 const createFacilitySearchMatch = (facility: Facility, keywords: string[]): FacilitySearchMatch | null => {
-  if (!keywords.length) return { facility, score: 0, matchedTags: [], bodySnippet: null }
+  if (!keywords.length) {
+    return {
+      facility,
+      score: 0,
+      matchType: 'title',
+      matchedField: null,
+      matchedText: null,
+      matchedTags: [],
+      snippet: null,
+    }
+  }
 
   const aliases = getFacilityAliases(facility)
   const bodyTexts = getFacilityBodyTexts(facility)
   const fields = [
-    { priority: 6, values: [facility.name] },
-    { priority: 5, values: aliases },
-    { priority: 4, values: facility.tags },
-    { priority: 3, values: [facility.category] },
-    { priority: 2, values: [facility.area] },
-    { priority: 1, values: bodyTexts },
-    { priority: 1, values: [facility.park] },
+    { type: 'title' as const, priority: 6, values: [facility.name] },
+    { type: 'alias' as const, priority: 5, values: aliases },
+    { type: 'tag' as const, priority: 4, values: facility.tags },
+    { type: 'category' as const, priority: 3, values: [facility.category] },
+    { type: 'area' as const, priority: 2, values: [facility.area] },
+    { type: 'body' as const, priority: 1, values: bodyTexts.map(({ text }) => text) },
+    { type: 'park' as const, priority: 1, values: [facility.park] },
   ]
 
   let highestPriority = 0
   let detailScore = 0
+  let matchType: FacilitySearchMatch['matchType'] = 'body'
   for (const keyword of keywords) {
     const matchedField = fields.find((field) => includesKeyword(field.values, keyword))
     if (!matchedField) return null
-    highestPriority = Math.max(highestPriority, matchedField.priority)
+    if (matchedField.priority > highestPriority) {
+      highestPriority = matchedField.priority
+      matchType = matchedField.type
+    }
     detailScore += matchedField.priority * 100
     if (matchedField.priority === 6) {
       const normalizedName = normalizeSearchText(facility.name)
@@ -213,12 +248,16 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
   const matchedTags = facility.tags.filter((tag) =>
     keywords.some((keyword) => normalizeSearchText(tag).includes(keyword)),
   )
+  const bodyMatch = createBodySnippet(facility, keywords)
 
   return {
     facility,
     score: highestPriority * 100_000 + detailScore,
+    matchType,
+    matchedField: bodyMatch?.field ?? null,
+    matchedText: bodyMatch?.text ?? matchedTags[0] ?? null,
     matchedTags,
-    bodySnippet: createBodySnippet(facility, keywords),
+    snippet: bodyMatch?.snippet ?? null,
   }
 }
 
@@ -839,7 +878,9 @@ export default function App() {
           </label>
           {searchFocused && searchSuggestions.length > 0 && (
             <div className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
-              {searchSuggestions.map(({ facility }, index) => (
+              {searchSuggestions.map((match, index) => {
+                const { facility } = match
+                return (
                 <button
                   type="button"
                   className={`search-suggestion${activeSuggestionIndex === index ? ' active' : ''}`}
@@ -854,9 +895,24 @@ export default function App() {
                   <span className="search-suggestion-copy">
                     <strong><HighlightedText text={facility.name} query={query} /></strong>
                     <small><b>{facility.category}</b><span>{facility.area || 'エリア未設定'}</span></small>
+                    {match.snippet && (
+                      <span className="search-suggestion-match">
+                        <b>本文一致</b>
+                        <span><HighlightedText text={match.snippet} query={query} /></span>
+                      </span>
+                    )}
+                    {match.matchedTags.length > 0 && (
+                      <span className="search-suggestion-tags">
+                        <b>タグ一致</b>
+                        {match.matchedTags.slice(0, 3).map((tag) => (
+                          <span key={tag}>#<HighlightedText text={tag} query={query} /></span>
+                        ))}
+                      </span>
+                    )}
                   </span>
                 </button>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -1067,11 +1123,11 @@ export default function App() {
                             <span className="facility-card-body">
                               <strong><HighlightedText text={facility.name} query={query} /></strong>
                               <span className="facility-meta"><HighlightedText text={`${facility.park}・${areaGroup.area}`} query={query} /></span>
-                              {searchMatch?.bodySnippet && (
+                              {searchMatch?.snippet && (
                                 <span className="facility-search-match">
                                   <b>本文一致</b>
                                   <span className="facility-search-snippet">
-                                    <HighlightedText text={searchMatch.bodySnippet} query={query} />
+                                    <HighlightedText text={searchMatch.snippet} query={query} />
                                   </span>
                                 </span>
                               )}

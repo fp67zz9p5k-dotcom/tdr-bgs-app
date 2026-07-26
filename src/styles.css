@@ -190,6 +190,45 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 }
 .search-suggestion-copy small b { flex: 0 0 auto; color: var(--accent-gold, #9a6928); }
 .search-suggestion-copy small span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-suggestion-match {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+.search-suggestion-match > b,
+.search-suggestion-tags > b {
+  color: var(--accent-gold, #9a6928);
+  font-size: 8px;
+  line-height: 1.2;
+  letter-spacing: .05em;
+}
+.search-suggestion-match > span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary, #536b76);
+  font-size: 10px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.search-suggestion-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.search-suggestion-tags > span {
+  max-width: 120px;
+  padding: 2px 5px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-gold, #c88937) 13%, transparent);
+  color: var(--text-secondary, #536b76);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .search-match {
   padding: 0;
   border-radius: 2px;
