@@ -46,6 +46,10 @@
     transform 180ms ease;
 }
 
+.relationship-group-heading-shell {
+  min-width: 0;
+}
+
 .relationship-category-group.is-open .relationship-group-heading {
   border-color: #a98a5a;
   background: #304853;
@@ -410,7 +414,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
-      --relationship-style-revision: 60;
+      --relationship-style-revision: 61;
       -webkit-appearance: none;
       appearance: none;
       overflow: hidden;
@@ -419,17 +423,23 @@
       transform: none !important;
       will-change: auto;
       background-clip: padding-box;
-      -webkit-clip-path: none;
-      clip-path: none;
+      -webkit-clip-path: inset(0 round 13px);
+      clip-path: inset(0 round 13px);
       -webkit-mask: none;
       mask: none;
       filter: none;
+      box-shadow: none;
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
       transition:
         background-color 220ms ease,
         border-color 220ms ease,
         opacity 220ms ease;
+    }
+
+    .relationship-group-heading-shell {
+      border-radius: 13px;
+      box-shadow: 0 3px 11px #19384a17;
     }
 
     .relationship-card-list-shell:not(.collapsed) > .relationship-card-list {
