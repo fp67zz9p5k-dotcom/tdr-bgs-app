@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
-  Controls,
   ReactFlow,
   ReactFlowProvider,
   applyNodeChanges,
@@ -461,7 +460,6 @@ function OverviewRelationshipView({
           panOnDrag
         >
           <Background gap={22} size={1} />
-          <Controls showInteractive={false} />
         </ReactFlow>
       </div>
     </div>
