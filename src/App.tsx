@@ -332,10 +332,12 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [homeHeaderCompact, setHomeHeaderCompact] = useState(false)
   const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference)
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
+  const homeHeroRef = useRef<HTMLElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const hasVisitedNonHomeScreenRef = useRef(false)
@@ -355,6 +357,27 @@ export default function App() {
 
   useEffect(() => {
     if (screen.page !== 'home') hasVisitedNonHomeScreenRef.current = true
+  }, [screen.page])
+
+  useEffect(() => {
+    if (screen.page !== 'home') {
+      setHomeHeaderCompact(false)
+      return
+    }
+
+    const updateHeaderState = () => {
+      const hero = homeHeroRef.current
+      const shouldCompact = Boolean(hero && hero.getBoundingClientRect().bottom <= 0)
+      setHomeHeaderCompact((current) => current === shouldCompact ? current : shouldCompact)
+    }
+
+    updateHeaderState()
+    window.addEventListener('scroll', updateHeaderState, { passive: true })
+    window.addEventListener('resize', updateHeaderState)
+    return () => {
+      window.removeEventListener('scroll', updateHeaderState)
+      window.removeEventListener('resize', updateHeaderState)
+    }
   }, [screen.page])
 
   useEffect(() => {
@@ -783,7 +806,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header className={`hero${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
+      <header ref={homeHeroRef} className={`hero${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <button type="button" className="settings-menu-button" onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く" aria-expanded={settingsOpen}>
           <span></span><span></span><span></span>
         </button>
@@ -847,7 +870,14 @@ export default function App() {
           </aside>
         </div>
       )}
-      <section className={`content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
+      <section className={`content home-content${homeHeaderCompact ? ' is-compact' : ''}${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
+        <nav className="home-compact-title" aria-label="一覧画面ヘッダー" aria-hidden={!homeHeaderCompact}>
+          <button type="button" tabIndex={homeHeaderCompact ? 0 : -1} onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く">
+            <span></span><span></span><span></span>
+          </button>
+          <strong>TDR BGS図鑑</strong>
+          <span>{filteredFacilities.length}件</span>
+        </nav>
         <div className="search-area" ref={searchAreaRef}>
           <label className="search">
             <span aria-hidden="true">⌕</span>
