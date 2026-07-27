@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
@@ -332,7 +332,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [homeHeaderCompact, setHomeHeaderCompact] = useState(false)
+  const [homeHeaderProgress, setHomeHeaderProgress] = useState(0)
   const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference)
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
@@ -361,20 +361,27 @@ export default function App() {
 
   useEffect(() => {
     if (screen.page !== 'home') {
-      setHomeHeaderCompact(false)
+      setHomeHeaderProgress(0)
       return
     }
 
+    let animationFrame = 0
     const updateHeaderState = () => {
-      const hero = homeHeroRef.current
-      const shouldCompact = Boolean(hero && hero.getBoundingClientRect().bottom <= 0)
-      setHomeHeaderCompact((current) => current === shouldCompact ? current : shouldCompact)
+      cancelAnimationFrame(animationFrame)
+      animationFrame = requestAnimationFrame(() => {
+        const hero = homeHeroRef.current
+        if (!hero) return
+        const rect = hero.getBoundingClientRect()
+        const progress = Math.min(1, Math.max(0, -rect.top / Math.max(rect.height * .9, 1)))
+        setHomeHeaderProgress((current) => Math.abs(current - progress) < .005 ? current : progress)
+      })
     }
 
     updateHeaderState()
     window.addEventListener('scroll', updateHeaderState, { passive: true })
     window.addEventListener('resize', updateHeaderState)
     return () => {
+      cancelAnimationFrame(animationFrame)
       window.removeEventListener('scroll', updateHeaderState)
       window.removeEventListener('resize', updateHeaderState)
     }
@@ -488,6 +495,66 @@ export default function App() {
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility)), [recentFacilityIds, facilities])
   const compactCategories = CATEGORY_DEFINITIONS.filter((category) => category.value === selectedCategory)
+  const compactTitleProgress = Math.min(1, Math.max(0, (homeHeaderProgress - .7) / .3))
+  const homeHeaderStyle = {
+    '--home-hero-progress': homeHeaderProgress,
+    '--home-hero-opacity': 1 - (homeHeaderProgress * .28),
+    '--home-hero-translate': `${homeHeaderProgress * -10}px`,
+    '--home-hero-scale': 1 - (homeHeaderProgress * .012),
+    '--home-compact-progress': compactTitleProgress,
+    '--home-compact-height': `${compactTitleProgress * 50}px`,
+    '--home-compact-scale': .96 + (compactTitleProgress * .04),
+    '--home-search-padding': `${16 - (compactTitleProgress * 3)}px`,
+    '--home-filter-padding': `${11 - (compactTitleProgress * 3)}px`,
+    '--home-sticky-shadow': `0 10px 24px rgba(23, 43, 56, ${compactTitleProgress * .1})`,
+  } as CSSProperties
+  const homeFilterPanel = (
+    <section className="filter-panel" aria-label="絞り込み">
+      <div className="filter-summary">
+        <strong>絞り込み</strong>
+        <span>{selectedPark ? (selectedPark === '東京ディズニーランド' ? 'ランド' : 'シー') : 'すべて'}{selectedCategory ? `＋${selectedCategory}` : ''}・{filteredFacilities.length}件</span>
+      </div>
+      <div className="filter-chip-row category-filter" aria-label="カテゴリで絞り込み">
+        <button type="button" className={`primary-park-filter${selectedPark === '' ? ' active' : ''}`} onClick={() => setSelectedPark('')}>すべて</button>
+        <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーランド' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーランド')}>ランド</button>
+        <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーシー' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーシー')}>シー</button>
+        <button
+          type="button"
+          className="expand-chip"
+          onClick={() => setCategoriesExpanded((current) => !current)}
+          aria-expanded={categoriesExpanded}
+          aria-controls="home-category-options"
+        >
+          {categoriesExpanded ? 'カテゴリ －' : 'カテゴリ ＋'}
+        </button>
+        {compactCategories.map((category) => (
+          <button type="button" className={selectedCategory === category.value ? 'active' : ''} key={category.id} onClick={() => setSelectedCategory('')}>
+            <span aria-hidden="true">{category.icon}</span>{category.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`favorite-filter${favoriteOnly ? ' active' : ''}`}
+          onClick={() => setFavoriteOnly((current) => !current)}
+          aria-pressed={favoriteOnly}
+        >
+          <span aria-hidden="true">{favoriteOnly ? '★' : '☆'}</span>お気に入り
+        </button>
+      </div>
+      <AnimatedCollapse id="home-category-options" open={categoriesExpanded}>
+        <div className="expanded-category-grid">
+          <button type="button" className={selectedCategory === '' ? 'active' : ''} onClick={() => { setSelectedCategory(''); setCategoriesExpanded(false) }}>
+            カテゴリすべて
+          </button>
+          {CATEGORY_DEFINITIONS.map((category) => (
+            <button type="button" className={selectedCategory === category.value ? 'active' : ''} key={category.id} onClick={() => { setSelectedCategory(category.value); setCategoriesExpanded(false) }}>
+              <span aria-hidden="true">{category.icon}</span>{category.label}
+            </button>
+          ))}
+        </div>
+      </AnimatedCollapse>
+    </section>
+  )
 
   const groupedFacilities = useMemo(() => parks.map((park) => {
     const parkFacilities = filteredFacilities.filter((facility) => facility.park === park)
@@ -809,7 +876,7 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell home-page" style={homeHeaderStyle}>
       <header ref={homeHeroRef} className={`hero${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <button type="button" className="settings-menu-button" onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く" aria-expanded={settingsOpen}>
           <span></span><span></span><span></span>
@@ -874,9 +941,10 @@ export default function App() {
           </aside>
         </div>
       )}
-      <section className={`content home-content${homeHeaderCompact ? ' is-compact' : ''}${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
-        <nav className="home-compact-title" aria-label="一覧画面ヘッダー" aria-hidden={!homeHeaderCompact}>
-          <button type="button" tabIndex={homeHeaderCompact ? 0 : -1} onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く">
+      <section className={`content home-content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
+        <div className="sticky-header-group">
+        <nav className="home-compact-title" aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
+          <button type="button" tabIndex={compactTitleProgress > .8 ? 0 : -1} onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く">
             <span></span><span></span><span></span>
           </button>
           <strong>TDR BGS図鑑</strong>
@@ -930,6 +998,8 @@ export default function App() {
               })}
             </div>
           )}
+        </div>
+        {!hasNoSearchResults && homeFilterPanel}
         </div>
         {hasNoSearchResults ? (
           <div className="empty search-empty search-empty-exclusive">
@@ -991,51 +1061,6 @@ export default function App() {
             </div>
           </section>
         )}
-        <section className="filter-panel" aria-label="絞り込み">
-          <div className="filter-summary">
-            <strong>絞り込み</strong>
-            <span>{selectedPark ? (selectedPark === '東京ディズニーランド' ? 'ランド' : 'シー') : 'すべて'}{selectedCategory ? `＋${selectedCategory}` : ''}・{filteredFacilities.length}件</span>
-          </div>
-          <div className="filter-chip-row category-filter" aria-label="カテゴリで絞り込み">
-            <button type="button" className={`primary-park-filter${selectedPark === '' ? ' active' : ''}`} onClick={() => setSelectedPark('')}>すべて</button>
-            <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーランド' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーランド')}>ランド</button>
-            <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーシー' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーシー')}>シー</button>
-            <button
-              type="button"
-              className="expand-chip"
-              onClick={() => setCategoriesExpanded((current) => !current)}
-              aria-expanded={categoriesExpanded}
-              aria-controls="home-category-options"
-            >
-              {categoriesExpanded ? 'カテゴリ －' : 'カテゴリ ＋'}
-            </button>
-            {compactCategories.map((category) => (
-              <button type="button" className={selectedCategory === category.value ? 'active' : ''} key={category.id} onClick={() => setSelectedCategory('')}>
-                <span aria-hidden="true">{category.icon}</span>{category.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`favorite-filter${favoriteOnly ? ' active' : ''}`}
-              onClick={() => setFavoriteOnly((current) => !current)}
-              aria-pressed={favoriteOnly}
-            >
-              <span aria-hidden="true">{favoriteOnly ? '★' : '☆'}</span>お気に入り
-            </button>
-          </div>
-          <AnimatedCollapse id="home-category-options" open={categoriesExpanded}>
-            <div className="expanded-category-grid">
-              <button type="button" className={selectedCategory === '' ? 'active' : ''} onClick={() => { setSelectedCategory(''); setCategoriesExpanded(false) }}>
-                カテゴリすべて
-              </button>
-              {CATEGORY_DEFINITIONS.map((category) => (
-                <button type="button" className={selectedCategory === category.value ? 'active' : ''} key={category.id} onClick={() => { setSelectedCategory(category.value); setCategoriesExpanded(false) }}>
-                  <span aria-hidden="true">{category.icon}</span>{category.label}
-                </button>
-              ))}
-            </div>
-          </AnimatedCollapse>
-        </section>
         <div className="section-heading">
           <div><p className="eyebrow">ARCHIVE</p><h2>項目一覧</h2></div>
           <span className="count">{filteredFacilities.length}件</span>
