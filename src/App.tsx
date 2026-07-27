@@ -512,9 +512,10 @@ export default function App() {
   }).filter((group) => group.areas.length > 0), [filteredFacilities])
 
   const handleSave = async (facility: Facility) => {
-    await saveFacility({ ...facility, updatedAt: new Date().toISOString() })
+    const savedFacility = { ...facility, updatedAt: new Date().toISOString() }
+    await saveFacility(savedFacility)
     await reload()
-    setScreen({ page: 'home' })
+    return savedFacility
   }
 
   const handleDelete = async (facility: Facility) => {
@@ -798,7 +799,10 @@ export default function App() {
         onBack={() => setScreen(screen.isNew
           ? { page: screen.returnTo }
           : { page: 'view', facility: screen.facility, returnTo: screen.returnTo })}
-        onSave={handleSave}
+        onSave={async (facility) => {
+          const savedFacility = await handleSave(facility)
+          setScreen({ page: 'view', facility: savedFacility, returnTo: screen.returnTo })
+        }}
         onDelete={handleDelete}
       />
     )
@@ -2100,25 +2104,66 @@ type FacilityDetailProps = {
 function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave, onDelete }: FacilityDetailProps) {
   const [facility, setFacility] = useState(initialFacility)
   const [saving, setSaving] = useState(false)
+  const [compactHeader, setCompactHeader] = useState(false)
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
+  const initialFacilitySnapshot = useRef(JSON.stringify(initialFacility))
+  const savingRef = useRef(false)
+  const formTitle = isNew ? '施設を追加' : '施設を編集'
+  const hasChanges = useMemo(
+    () => JSON.stringify(facility) !== initialFacilitySnapshot.current,
+    [facility],
+  )
+  const canSave = Boolean(facility.name.trim()) && hasChanges && !saving
   const bidirectionalRelatedIds = new Set([
     ...getBidirectionalRelatedFacilityIds(allFacilities, facility.id),
     ...facility.relatedFacilityIds,
   ])
   const update = <K extends keyof Facility>(key: K, value: Facility[K]) => setFacility((current) => ({ ...current, [key]: value }))
 
+  useEffect(() => {
+    const updateHeader = () => setCompactHeader(window.scrollY > 34)
+    updateHeader()
+    window.addEventListener('scroll', updateHeader, { passive: true })
+    return () => window.removeEventListener('scroll', updateHeader)
+  }, [])
+
+  useEffect(() => {
+    if (!hasChanges) return
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warnBeforeUnload)
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [hasChanges])
+
+  const requestBack = () => {
+    if (hasChanges && !saving) {
+      setDiscardConfirmOpen(true)
+      return
+    }
+    onBack()
+  }
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!facility.name.trim()) return
+    if (!canSave || savingRef.current) return
     const validFacilityIds = new Set(allFacilities.map((item) => item.id))
     const relatedFacilityIds = [...new Set(facility.relatedFacilityIds)]
       .filter((id) => id !== facility.id && validFacilityIds.has(id))
+    savingRef.current = true
     setSaving(true)
-    await onSave({
-      ...facility,
-      name: facility.name.trim(),
-      area: facility.area.trim(),
-      relatedFacilityIds,
-    })
+    try {
+      await onSave({
+        ...facility,
+        name: facility.name.trim(),
+        area: facility.area.trim(),
+        relatedFacilityIds,
+      })
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
   }
 
   const toggleRelated = (id: string) => {
@@ -2131,12 +2176,15 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
   }
 
   return (
-    <main className="app-shell detail-page screen-enter">
-      <header className="detail-header">
-        <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
-        <div><p className="eyebrow">{isNew ? 'NEW FACILITY' : 'FACILITY DETAIL'}</p><h1>{isNew ? '施設を追加' : facility.name}</h1></div>
+    <main className="app-shell detail-page facility-edit-page screen-enter">
+      <header className={`detail-header facility-edit-header${compactHeader ? ' is-compact' : ''}`}>
+        <button className="back-button" type="button" onClick={requestBack} aria-label="施設一覧に戻る">‹</button>
+        <div className="facility-edit-heading">
+          <p className="eyebrow">{isNew ? 'NEW FACILITY' : 'EDIT FACILITY'}</p>
+          <h1>{formTitle}</h1>
+        </div>
       </header>
-      <form className="detail-form" onSubmit={submit}>
+      <form id="facility-detail-form" className="detail-form" onSubmit={submit}>
         <section className="form-section">
           <h2>基本情報</h2>
           <div className="field-grid">
@@ -2201,9 +2249,38 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
 
         <div className="form-actions">
           {!isNew && <button type="button" className="delete-button" onClick={() => onDelete(facility)}>削除</button>}
-          <button type="submit" className="save-button" disabled={saving || !facility.name.trim()}>{saving ? '保存中…' : '保存する'}</button>
         </div>
       </form>
+      <div className="facility-save-bar">
+        <button
+          type="submit"
+          form="facility-detail-form"
+          className="save-button"
+          disabled={!canSave}
+          aria-busy={saving}
+        >
+          {saving ? '保存中…' : '保存'}
+        </button>
+      </div>
+      {discardConfirmOpen && (
+        <div className="discard-confirm-backdrop" role="presentation" onMouseDown={() => setDiscardConfirmOpen(false)}>
+          <section
+            className="discard-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-confirm-title"
+            aria-describedby="discard-confirm-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="discard-confirm-title">変更内容を破棄しますか？</h2>
+            <p id="discard-confirm-description">入力した内容は保存されません。</p>
+            <div className="discard-confirm-actions">
+              <button type="button" onClick={() => setDiscardConfirmOpen(false)}>編集を続ける</button>
+              <button type="button" className="discard-confirm-delete" onClick={onBack}>破棄して戻る</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   )
 }

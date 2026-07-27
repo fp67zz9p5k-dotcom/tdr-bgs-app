@@ -607,6 +607,53 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 .detail-header h1 { font-size: clamp(24px, 6vw, 34px); }
 .back-button { width: 43px; height: 43px; flex: 0 0 auto; border: 1px solid #ffffff4a; border-radius: 50%; background: transparent; color: white; font-size: 34px; line-height: 1; }
 .detail-form { display: grid; gap: 23px; padding: 26px 24px; }
+.facility-edit-page { padding-bottom: 0; }
+.facility-edit-header {
+  position: sticky;
+  top: 0;
+  z-index: 55;
+  min-height: calc(106px + env(safe-area-inset-top));
+  transition: min-height 240ms ease-in-out, padding 240ms ease-in-out, gap 240ms ease-in-out;
+}
+.facility-edit-heading {
+  min-width: 0;
+}
+.facility-edit-heading .eyebrow {
+  max-height: 20px;
+  overflow: hidden;
+  transition: max-height 240ms ease-in-out, margin 240ms ease-in-out, letter-spacing 240ms ease-in-out;
+}
+.facility-edit-heading h1 {
+  transform-origin: left center;
+  transition: font-size 240ms ease-in-out, line-height 240ms ease-in-out;
+}
+.facility-edit-header.is-compact {
+  min-height: calc(54px + env(safe-area-inset-top));
+  gap: 12px;
+  padding: env(safe-area-inset-top) 18px 0;
+}
+.facility-edit-header.is-compact .back-button {
+  width: 38px;
+  height: 38px;
+  font-size: 30px;
+}
+.facility-edit-header.is-compact .facility-edit-heading {
+  flex: 1;
+  padding-right: 50px;
+  text-align: center;
+}
+.facility-edit-header.is-compact .eyebrow {
+  max-height: 0;
+  margin: 0;
+  letter-spacing: 0;
+}
+.facility-edit-header.is-compact h1 {
+  font-size: 18px;
+  line-height: 1.15;
+}
+.facility-edit-page .detail-form {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
 .field-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
 .detail-form label > span, .detail-form legend, .photo-placeholder > span, .field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 800; color: #39505a; }
 .detail-form b { margin-left: 5px; color: #a64937; font-size: 10px; }
@@ -635,6 +682,81 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .save-button { flex: 1; max-width: 260px; border: 0; background: #c88937; color: white; }
 .save-button:disabled { opacity: .5; cursor: default; }
 .delete-button { border: 1px solid #b55a4a; background: transparent; color: #a14334; }
+.facility-save-bar {
+  position: fixed;
+  z-index: 60;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid #d4cabb;
+  background: color-mix(in srgb, var(--app-bg, #f5f0e7) 94%, transparent);
+  box-shadow: 0 -10px 30px #263b4620;
+}
+.facility-save-bar .save-button {
+  width: min(100%, 680px);
+  max-width: 680px;
+  min-height: 52px;
+  border-radius: 27px;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 8px 24px #84571e42;
+}
+.discard-confirm-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #07131db8;
+}
+.discard-confirm-dialog {
+  width: min(100%, 420px);
+  padding: 24px;
+  border: 1px solid var(--border-color, #d4cabb);
+  border-radius: 20px;
+  background: var(--bg-card, #fffdf8);
+  color: var(--text-primary, #172b38);
+  box-shadow: 0 22px 70px #07131d66;
+}
+.discard-confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.discard-confirm-dialog p {
+  margin: 0;
+  color: var(--text-secondary, #5d6b70);
+}
+.discard-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 22px;
+}
+.discard-confirm-actions button {
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #d4cabb);
+  border-radius: 14px;
+  background: var(--bg-surface, #f5f0e7);
+  color: var(--text-primary, #172b38);
+  font-weight: 800;
+}
+.discard-confirm-actions .discard-confirm-delete {
+  border-color: #b55a4a;
+  color: #a14334;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .facility-edit-header,
+  .facility-edit-heading .eyebrow,
+  .facility-edit-heading h1 {
+    transition-duration: 1ms;
+  }
+}
 
 .form-section {
   display: grid;
