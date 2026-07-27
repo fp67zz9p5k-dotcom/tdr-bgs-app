@@ -87,7 +87,7 @@ const migrateFacility = (raw: Facility | LegacyFacility): Facility => {
   const value = raw as Facility & LegacyFacility
   const now = new Date().toISOString()
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     id: value.id,
     name: typeof value.name === 'string' ? value.name : '',
     area: typeof value.area === 'string' ? value.area : '',
@@ -99,7 +99,6 @@ const migrateFacility = (raw: Facility | LegacyFacility): Facility => {
     bgs: normalizeTextEntries(value.bgs),
     trivia: normalizeTextEntries(value.trivia),
     props: normalizeProps(value.props),
-    tags: Array.isArray(value.tags) ? value.tags.filter((tag): tag is string => typeof tag === 'string') : [],
     relatedFacilityIds: Array.isArray(value.relatedFacilityIds)
       ? value.relatedFacilityIds.filter((id): id is string => typeof id === 'string')
       : [],
@@ -120,7 +119,7 @@ export const getFacilities = async (): Promise<Facility[]> => {
 
   const facilities = rawFacilities.map(migrateFacility)
   const needsMigration = rawFacilities.some((facility, index) =>
-    (facility as Facility).schemaVersion !== 9
+    (facility as Facility).schemaVersion !== 10
     || (facility as LegacyFacility).category !== facilities[index].category)
   if (needsMigration) {
     const transaction = db.transaction(STORE_NAME, 'readwrite')
@@ -136,9 +135,11 @@ export const getFacilities = async (): Promise<Facility[]> => {
 
 export const saveFacility = async (facility: Facility): Promise<void> => {
   const db = await openDatabase()
+  const persistedFacility = { ...facility } as Facility & { tags?: unknown }
+  delete persistedFacility.tags
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite')
-    transaction.objectStore(STORE_NAME).put(facility)
+    transaction.objectStore(STORE_NAME).put(persistedFacility)
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)
   })
@@ -184,7 +185,16 @@ export const getRelationshipGraphSettings = async (): Promise<RelationshipGraphS
     const request = db.transaction(SETTINGS_STORE_NAME, 'readonly').objectStore(SETTINGS_STORE_NAME).get('relationshipGraph')
     request.onsuccess = () => {
       const value = request.result?.value as Partial<RelationshipGraphSettings> | undefined
-      resolve({ ...defaultRelationshipGraphSettings(), ...value })
+      const defaults = defaultRelationshipGraphSettings()
+      resolve({
+        mode: value?.mode === 'overview' ? 'overview' : defaults.mode,
+        park: value?.park ?? defaults.park,
+        category: value?.category ?? defaults.category,
+        area: typeof value?.area === 'string' ? value.area : defaults.area,
+        selectedId: typeof value?.selectedId === 'string' ? value.selectedId : null,
+        positions: value?.positions && typeof value.positions === 'object' ? value.positions : defaults.positions,
+        viewport: value?.viewport && typeof value.viewport === 'object' ? value.viewport : defaults.viewport,
+      })
     }
     request.onerror = () => reject(request.error)
   })

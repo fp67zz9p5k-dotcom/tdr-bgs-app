@@ -125,7 +125,6 @@ const searchableText = (facility: Facility) =>
     ...facility.props.flatMap((prop) => [prop.title, prop.description, prop.location]),
     ...facility.photos.flatMap((photo) => [photo.title, photo.description, photo.location]),
     ...facility.props.flatMap((prop) => prop.photos.flatMap((photo) => [photo.title, photo.description, photo.location])),
-    ...facility.tags,
     facility.notes,
   ].join(' ')
 
@@ -143,10 +142,9 @@ const getSearchKeywords = (value: string) =>
 type FacilitySearchMatch = {
   facility: Facility
   score: number
-  matchType: 'title' | 'alias' | 'tag' | 'category' | 'area' | 'body' | 'park'
+  matchType: 'title' | 'alias' | 'category' | 'area' | 'body' | 'park'
   matchedField: string | null
   matchedText: string | null
-  matchedTags: string[]
   snippet: string | null
 }
 
@@ -223,7 +221,6 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
       matchType: 'title',
       matchedField: null,
       matchedText: null,
-      matchedTags: [],
       snippet: null,
     }
   }
@@ -233,7 +230,6 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
   const fields = [
     { type: 'title' as const, priority: 6, values: [facility.name] },
     { type: 'alias' as const, priority: 5, values: aliases },
-    { type: 'tag' as const, priority: 4, values: facility.tags },
     { type: 'category' as const, priority: 3, values: [facility.category] },
     { type: 'area' as const, priority: 2, values: [facility.area] },
     { type: 'body' as const, priority: 1, values: bodyTexts.map(({ text }) => text) },
@@ -257,9 +253,6 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
     }
   }
 
-  const matchedTags = facility.tags.filter((tag) =>
-    keywords.some((keyword) => normalizeSearchText(tag).includes(keyword)),
-  )
   const bodyMatch = createBodySnippet(facility, keywords)
 
   return {
@@ -267,8 +260,7 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
     score: highestPriority * 100_000 + detailScore,
     matchType,
     matchedField: bodyMatch?.field ?? null,
-    matchedText: bodyMatch?.text ?? matchedTags[0] ?? null,
-    matchedTags,
+    matchedText: bodyMatch?.text ?? null,
     snippet: bodyMatch?.snippet ?? null,
   }
 }
@@ -335,9 +327,7 @@ export default function App() {
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<Park | ''>('')
   const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
-  const [selectedTag, setSelectedTag] = useState('')
   const [categoriesExpanded, setCategoriesExpanded] = useState(false)
-  const [tagsExpanded, setTagsExpanded] = useState(false)
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
@@ -428,9 +418,8 @@ export default function App() {
     const categoryFiltered = selectedCategory
       ? parkFiltered.filter((facility) => facility.category === selectedCategory)
       : parkFiltered
-    const tagFiltered = selectedTag ? categoryFiltered.filter((facility) => facility.tags.includes(selectedTag)) : categoryFiltered
-    return favoriteOnly ? tagFiltered.filter((facility) => facility.favorite) : tagFiltered
-  }, [rankedSearchMatches, favoriteOnly, selectedTag, selectedCategory, selectedPark])
+    return favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
+  }, [rankedSearchMatches, favoriteOnly, selectedCategory, selectedPark])
   const hasNoSearchResults = !loading && query.trim().length > 0 && filteredFacilities.length === 0
 
   const searchSuggestions = useMemo(() => {
@@ -465,28 +454,13 @@ export default function App() {
           score: relevance
             + (selectedPark && facility.park === selectedPark ? 2 : 0)
             + (selectedCategory && facility.category === selectedCategory ? 2 : 0)
-            + (selectedTag && facility.tags.includes(selectedTag) ? 2 : 0)
             + (facility.favorite ? 1 : 0),
         }
       })
       .sort((a, b) => b.score - a.score || b.facility.updatedAt.localeCompare(a.facility.updatedAt))
       .slice(0, 3)
       .map(({ facility }) => facility)
-  }, [facilities, query, selectedCategory, selectedPark, selectedTag])
-
-  const allTags = useMemo(
-    () => Array.from(new Set(facilities.flatMap((facility) => facility.tags))).sort((a, b) => a.localeCompare(b, 'ja')),
-    [facilities],
-  )
-  const popularTags = useMemo(() => {
-    const counts = new Map<string, number>()
-    facilities.forEach((facility) => facility.tags.forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1)))
-    return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja')).slice(0, 5).map(([tag]) => tag)
-  }, [facilities])
-  const visibleTags = useMemo(() => {
-    if (tagsExpanded) return allTags
-    return Array.from(new Set([...popularTags, ...(selectedTag ? [selectedTag] : [])]))
-  }, [allTags, popularTags, selectedTag, tagsExpanded])
+  }, [facilities, query, selectedCategory, selectedPark])
   const recentFacilities = useMemo(() => recentFacilityIds
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility)), [recentFacilityIds, facilities])
@@ -578,7 +552,6 @@ export default function App() {
     setQuery('')
     setSelectedPark('')
     setSelectedCategory('')
-    setSelectedTag('')
     setFavoriteOnly(false)
   }
 
@@ -712,15 +685,6 @@ export default function App() {
           onEdit={() => setScreen({ page: 'edit', facility: screen.facility, isNew: false, returnTo: screen.returnTo })}
           onToggleFavorite={() => void toggleFavorite(screen.facility)}
           onOpenFacility={(facility) => openFacility(facility, screen.returnTo, screen.mapReturnState)}
-          onSelectTag={(tag) => {
-            resetMapExploration()
-            setQuery('')
-            setSelectedPark('')
-            setSelectedCategory('')
-            setFavoriteOnly(false)
-            setSelectedTag(tag)
-            setScreen({ page: 'home' })
-          }}
         />
         <PrimaryBottomNavigation
           active="home"
@@ -893,7 +857,7 @@ export default function App() {
               onChange={(event) => setQuery(event.target.value)}
               onFocus={() => setSearchFocused(true)}
               onKeyDown={handleSearchKeyDown}
-              placeholder="タイトル・タグ・BGSを検索"
+              placeholder="タイトル・本文・カテゴリ・エリアを検索"
               aria-label="項目を検索"
               aria-autocomplete="list"
               aria-expanded={searchFocused && searchSuggestions.length > 0}
@@ -924,14 +888,6 @@ export default function App() {
                       <span className="search-suggestion-match">
                         <b>本文一致</b>
                         <span><HighlightedText text={match.snippet} query={query} /></span>
-                      </span>
-                    )}
-                    {match.matchedTags.length > 0 && (
-                      <span className="search-suggestion-tags">
-                        <b>タグ一致</b>
-                        {match.matchedTags.slice(0, 3).map((tag) => (
-                          <span key={tag}>#<HighlightedText text={tag} query={query} /></span>
-                        ))}
                       </span>
                     )}
                   </span>
@@ -1045,31 +1001,6 @@ export default function App() {
               ))}
             </div>
           </AnimatedCollapse>
-          {allTags.length > 0 && (
-            <div className="tag-filter-block">
-              <div
-                id="home-tag-options"
-                className={`filter-chip-row tag-filter${tagsExpanded ? ' is-expanded' : ''}`}
-                aria-label="タグで絞り込み"
-              >
-                <button type="button" className={selectedTag === '' ? 'active' : ''} onClick={() => setSelectedTag('')}>タグすべて</button>
-                {visibleTags.map((tag) => (
-                  <button type="button" className={selectedTag === tag ? 'active' : ''} key={tag} onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}>#{tag}</button>
-                ))}
-                {allTags.length > 5 && (
-                  <button
-                    type="button"
-                    className="expand-chip"
-                    onClick={() => setTagsExpanded((current) => !current)}
-                    aria-expanded={tagsExpanded}
-                    aria-controls="home-tag-options"
-                  >
-                    {tagsExpanded ? 'タグを閉じる' : 'すべてのタグ'}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </section>
         <div className="section-heading">
           <div><p className="eyebrow">ARCHIVE</p><h2>項目一覧</h2></div>
@@ -1080,19 +1011,19 @@ export default function App() {
         ) : filteredFacilities.length === 0 ? (
           <div className="empty search-empty">
             <span className="empty-icon" aria-hidden="true">⌕</span>
-            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedCategory || selectedTag || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
+            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedCategory || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
             {query ? (
               <div className="search-empty-copy">
                 <p>検索キーワードを変更して、もう一度お試しください</p>
                 <p className="search-empty-query">入力した検索語：<strong>{query}</strong></p>
               </div>
             ) : (
-              <p>{selectedPark || selectedCategory || selectedTag || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
+              <p>{selectedPark || selectedCategory || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
             )}
             <div className="empty-actions">
               {query
                 ? <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
-                : (selectedPark || selectedCategory || selectedTag || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
+                : (selectedPark || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
               <button type="button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>施設を追加</button>
             </div>
             {query && recommendedFacilities.length > 0 && (
@@ -1158,18 +1089,6 @@ export default function App() {
                               )}
                               <span className="facility-card-bottom">
                                 <span className="category"><span aria-hidden="true">{getCategoryDefinition(facility.category).icon}</span><HighlightedText text={facility.category} query={query} /></span>
-                                {searchMatch && searchMatch.matchedTags.length > 0 && (
-                                  <span className="search-hit-tags" aria-label="タグ一致">
-                                    <b>タグ一致</b>
-                                    {searchMatch.matchedTags.slice(0, 3).map((tag) => (
-                                      <span className="search-hit-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>
-                                    ))}
-                                    {searchMatch.matchedTags.length > 3 && (
-                                      <small>ほか{searchMatch.matchedTags.length - 3}件</small>
-                                    )}
-                                  </span>
-                                )}
-                                {facility.tags.filter((tag) => !searchMatch?.matchedTags.includes(tag)).slice(0, 2).map((tag) => <span className="card-tag" key={tag}>#<HighlightedText text={tag} query={query} /></span>)}
                               </span>
                             </span>
                             <i aria-hidden="true">›</i>
@@ -1900,7 +1819,6 @@ function FacilityView({
   onEdit,
   onToggleFavorite,
   onOpenFacility,
-  onSelectTag,
 }: {
   facility: Facility
   allFacilities: Facility[]
@@ -1908,13 +1826,9 @@ function FacilityView({
   onEdit: () => void
   onToggleFavorite: () => void
   onOpenFacility: (facility: Facility) => void
-  onSelectTag: (tag: string) => void
 }) {
-  const [tagsExpanded, setTagsExpanded] = useState(false)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
-  const primaryTags = facility.tags.slice(0, 5)
-  const additionalTags = facility.tags.slice(5)
   const tableOfContents = [
     { id: 'overview', label: '概要', visible: true },
     { id: 'bgs', label: 'BGS', visible: facility.bgs.length > 0 },
@@ -1948,30 +1862,6 @@ function FacilityView({
         <section id="photos" className="detail-gallery-section" aria-label="施設写真">
           <DetailPhotoGallery photos={facility.photos} facilityName={facility.name} categoryIcon={category.icon} />
         </section>
-
-        {facility.tags.length > 0 && (
-          <div className="detail-tags" aria-label="タグ">
-            <div className="tag-list">
-              {primaryTags.map((tag) => <button type="button" key={tag} onClick={() => onSelectTag(tag)}>#{tag}</button>)}
-            </div>
-            <AnimatedCollapse id={`facility-extra-tags-${facility.id}`} open={tagsExpanded} className="detail-extra-tags">
-              <div className="tag-list">
-                {additionalTags.map((tag) => <button type="button" key={tag} onClick={() => onSelectTag(tag)}>#{tag}</button>)}
-              </div>
-            </AnimatedCollapse>
-            {facility.tags.length > 5 && (
-              <button
-                type="button"
-                className="tags-expand-button"
-                onClick={() => setTagsExpanded((current) => !current)}
-                aria-expanded={tagsExpanded}
-                aria-controls={`facility-extra-tags-${facility.id}`}
-              >
-                {tagsExpanded ? '閉じる' : `すべて表示（${facility.tags.length}）`}
-              </button>
-            )}
-          </div>
-        )}
 
         <nav className="detail-toc" aria-label="ページ内目次">
           {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
@@ -2247,13 +2137,6 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
         <MultiTextEditor label="BGS" hint="背景にある物語や設定" entries={facility.bgs} onChange={(value) => update('bgs', value)} />
         <MultiTextEditor label="トリビア" hint="小ネタや豆知識" entries={facility.trivia} onChange={(value) => update('trivia', value)} />
         <PropsEditor props={facility.props} onChange={(value) => update('props', value)} />
-
-        <section className="form-section">
-          <h2>タグ</h2>
-          <label><span>複数のタグは読点またはカンマで区切ります</span>
-            <input value={facility.tags.join('、')} onChange={(event) => update('tags', event.target.value.split(/[、,]/).map((tag) => tag.trim()).filter(Boolean))} placeholder="例：隠れミッキー、看板、要再訪" />
-          </label>
-        </section>
 
         <section className="form-section">
           <h2>関連項目</h2>

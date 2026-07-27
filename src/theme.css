@@ -381,7 +381,6 @@
 
 :root[data-theme] .category-filter button,
 :root[data-theme] .expanded-category-grid button,
-:root[data-theme] .tag-filter button,
 :root[data-theme] .favorite-filter,
 :root[data-theme] .park-switch button,
 :root[data-theme] .map-filter-button,
@@ -395,7 +394,6 @@
 
 :root[data-theme] .category-filter button.active,
 :root[data-theme] .expanded-category-grid button.active,
-:root[data-theme] .tag-filter button.active,
 :root[data-theme] .favorite-filter.active,
 :root[data-theme] .park-switch button.active,
 :root[data-theme] .map-filter-button.active,
@@ -416,11 +414,6 @@
 :root[data-theme] .facility-card .category,
 :root[data-theme] .map-selected-info > span {
   color: var(--accent-gold);
-}
-
-:root[data-theme] .card-tag {
-  background: var(--surface-3);
-  color: var(--text-secondary);
 }
 
 :root[data-theme] .favorite-star {
@@ -575,8 +568,7 @@
 :root[data-theme="dark"] .map-content,
 :root[data-theme="dark"] .relationship-overview,
 :root[data-theme="dark"] .recent-list,
-:root[data-theme="dark"] .filter-chip-row,
-:root[data-theme="dark"] .tag-filter {
+:root[data-theme="dark"] .filter-chip-row {
   background-color: var(--app-bg);
 }
 
@@ -677,16 +669,6 @@
 :root[data-theme="dark"] .view-card .prop-location,
 :root[data-theme="dark"] .main-photo-caption small {
   color: var(--accent-gold);
-}
-
-:root[data-theme="dark"] .tag-list button {
-  background: var(--accent-gold-soft);
-  color: #f0c77f;
-}
-
-:root[data-theme="dark"] .tags-expand-button {
-  border-color: var(--border-default);
-  color: var(--text-secondary);
 }
 
 :root[data-theme="dark"] .related-card-actions button {

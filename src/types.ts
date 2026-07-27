@@ -31,7 +31,6 @@ export type RelationshipGraphSettings = {
   park: 'すべて' | Park
   category: '' | Category
   area: string
-  tag: string
   selectedId: string | null
   positions: Record<string, { x: number; y: number }>
   viewport: { x: number; y: number; zoom: number }
@@ -42,7 +41,6 @@ export const defaultRelationshipGraphSettings = (): RelationshipGraphSettings =>
   park: 'すべて',
   category: '',
   area: '',
-  tag: '',
   selectedId: null,
   positions: {},
   viewport: { x: 0, y: 0, zoom: 1 },
@@ -72,7 +70,7 @@ export type Prop = {
 }
 
 export type Facility = {
-  schemaVersion: 9
+  schemaVersion: 10
   id: string
   name: string
   area: string
@@ -84,7 +82,6 @@ export type Facility = {
   bgs: TextEntry[]
   trivia: TextEntry[]
   props: Prop[]
-  tags: string[]
   relatedFacilityIds: string[]
   photos: Photo[]
   notes: string
@@ -121,7 +118,7 @@ export const createProp = (): Prop => ({
 export const emptyFacility = (): Facility => {
   const now = new Date().toISOString()
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     id: crypto.randomUUID(),
     name: '',
     area: '',
@@ -133,7 +130,6 @@ export const emptyFacility = (): Facility => {
     bgs: [],
     trivia: [],
     props: [],
-    tags: [],
     relatedFacilityIds: [],
     photos: [],
     notes: '',

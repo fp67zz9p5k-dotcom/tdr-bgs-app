@@ -363,13 +363,11 @@ function OverviewRelationshipView({
   const areas = useMemo(() => Array.from(new Set(facilities
     .filter((facility) => settings.park === 'すべて' || facility.park === settings.park)
     .map((facility) => facility.area).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ja')), [facilities, settings.park])
-  const tags = useMemo(() => Array.from(new Set(facilities.flatMap((facility) => facility.tags))).sort((a, b) => a.localeCompare(b, 'ja')), [facilities])
   const visibleFacilities = useMemo(() => facilities.filter((facility) =>
     (settings.park === 'すべて' || facility.park === settings.park)
     && (!settings.category || facility.category === settings.category)
-    && (!settings.area || facility.area === settings.area)
-    && (!settings.tag || facility.tags.includes(settings.tag))),
-  [facilities, settings.park, settings.category, settings.area, settings.tag])
+    && (!settings.area || facility.area === settings.area)),
+  [facilities, settings.park, settings.category, settings.area])
   const visibleIds = useMemo(() => new Set(visibleFacilities.map((facility) => facility.id)), [visibleFacilities])
   const connectedIds = useMemo(() => new Set(settings.selectedId
     ? [settings.selectedId, ...getBidirectionalRelatedFacilityIds(facilities, settings.selectedId)]
@@ -432,9 +430,6 @@ function OverviewRelationshipView({
         </select>
         <select aria-label="エリア" value={settings.area} onChange={(event) => save({ area: event.target.value })}>
           <option value="">全エリア</option>{areas.map((area) => <option key={area}>{area}</option>)}
-        </select>
-        <select aria-label="タグ" value={settings.tag} onChange={(event) => save({ tag: event.target.value })}>
-          <option value="">全タグ</option>{tags.map((tag) => <option key={tag}>{tag}</option>)}
         </select>
       </div>
       <div className="overview-status"><span>{visibleFacilities.length}施設を表示</span><span>選択した施設と直接関係する項目を強調します</span></div>
