@@ -2156,23 +2156,34 @@ type FacilityDetailProps = {
 function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave, onDelete }: FacilityDetailProps) {
   const [facility, setFacility] = useState(initialFacility)
   const [saving, setSaving] = useState(false)
-  const bidirectionalRelatedIds = new Set(getBidirectionalRelatedFacilityIds(
-    allFacilities.map((item) => item.id === facility.id ? facility : item),
-    facility.id,
-  ))
+  const bidirectionalRelatedIds = new Set([
+    ...getBidirectionalRelatedFacilityIds(allFacilities, facility.id),
+    ...facility.relatedFacilityIds,
+  ])
   const update = <K extends keyof Facility>(key: K, value: Facility[K]) => setFacility((current) => ({ ...current, [key]: value }))
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!facility.name.trim()) return
+    const validFacilityIds = new Set(allFacilities.map((item) => item.id))
+    const relatedFacilityIds = [...new Set(facility.relatedFacilityIds)]
+      .filter((id) => id !== facility.id && validFacilityIds.has(id))
     setSaving(true)
-    await onSave({ ...facility, name: facility.name.trim(), area: facility.area.trim() })
+    await onSave({
+      ...facility,
+      name: facility.name.trim(),
+      area: facility.area.trim(),
+      relatedFacilityIds,
+    })
   }
 
   const toggleRelated = (id: string) => {
-    update('relatedFacilityIds', facility.relatedFacilityIds.includes(id)
-      ? facility.relatedFacilityIds.filter((value) => value !== id)
-      : [...facility.relatedFacilityIds, id])
+    setFacility((current) => ({
+      ...current,
+      relatedFacilityIds: current.relatedFacilityIds.includes(id)
+        ? current.relatedFacilityIds.filter((value) => value !== id)
+        : [...current.relatedFacilityIds, id],
+    }))
   }
 
   return (
