@@ -1220,10 +1220,10 @@ function PrimaryBottomNavigation({
   active: PrimaryNavigationPage
   onNavigate: (page: PrimaryNavigationPage) => void
 }) {
-  const items: Array<{ page: PrimaryNavigationPage; icon: string; label: string }> = [
-    { page: 'home', icon: '⌂', label: '一覧' },
-    { page: 'map', icon: '⌖', label: 'マップ' },
-    { page: 'relationships', icon: '◎', label: '関係図' },
+  const items: Array<{ page: PrimaryNavigationPage; label: string }> = [
+    { page: 'home', label: '一覧' },
+    { page: 'map', label: 'マップ' },
+    { page: 'relationships', label: '関係図' },
   ]
 
   return (
@@ -1236,11 +1236,35 @@ function PrimaryBottomNavigation({
           aria-current={active === item.page ? 'page' : undefined}
           onClick={() => onNavigate(item.page)}
         >
-          <span aria-hidden="true">{item.icon}</span>
+          <PrimaryNavigationIcon page={item.page} />
           <strong>{item.label}</strong>
         </button>
       ))}
     </nav>
+  )
+}
+
+function PrimaryNavigationIcon({ page }: { page: PrimaryNavigationPage }) {
+  if (page === 'relationships') {
+    return (
+      <svg
+        className="primary-nav-icon primary-nav-icon-relationships"
+        viewBox="0 0 24 24"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+      >
+        <path d="M12 5 5 18M12 5l7 13M5 18h14" />
+        <circle cx="12" cy="5" r="2.5" />
+        <circle cx="5" cy="18" r="2.5" />
+        <circle cx="19" cy="18" r="2.5" />
+      </svg>
+    )
+  }
+
+  return (
+    <span className={`primary-nav-icon primary-nav-icon-${page}`} aria-hidden="true">
+      {page === 'home' ? '⌂' : '⌖'}
+    </span>
   )
 }
 

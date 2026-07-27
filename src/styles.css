@@ -105,7 +105,29 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   color: #b8c6cc;
   transition: color 160ms ease-out, background-color 160ms ease-out;
 }
-.primary-bottom-nav button span { font-size: 22px; line-height: 1; }
+.primary-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  aspect-ratio: 1;
+  flex: 0 0 24px;
+  font-size: 22px;
+  line-height: 1;
+}
+.primary-nav-icon-home {
+  font-size: 21px;
+  font-family: Arial, sans-serif;
+}
+.primary-nav-icon-relationships {
+  overflow: visible;
+  fill: var(--header-bg, #142832);
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
 .primary-bottom-nav button strong { font-size: 11px; }
 .primary-bottom-nav button.active {
   background: #d1a45d1f;
