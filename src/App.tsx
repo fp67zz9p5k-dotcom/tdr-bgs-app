@@ -391,6 +391,7 @@ export default function App() {
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const settingsSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const hasVisitedNonHomeScreenRef = useRef(false)
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
@@ -422,6 +423,28 @@ export default function App() {
       openSettings()
     }
   }, [openSettings, settingsOpen])
+
+  const handleSettingsTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) {
+      settingsSwipeStartRef.current = null
+      return
+    }
+    const touch = event.touches[0]
+    settingsSwipeStartRef.current = { x: touch.clientX, y: touch.clientY, time: performance.now() }
+  }, [])
+
+  const handleSettingsTouchEnd = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    const start = settingsSwipeStartRef.current
+    settingsSwipeStartRef.current = null
+    if (!start || event.changedTouches.length !== 1) return
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+    const elapsed = performance.now() - start.time
+    if (deltaX <= -72 && Math.abs(deltaY) <= 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35 && elapsed <= 700) {
+      closeSettings()
+    }
+  }, [closeSettings])
 
   const reload = async () => {
     setFacilities((await getFacilities()).sort((a, b) => a.name.localeCompare(b.name, 'ja')))
@@ -1083,7 +1106,14 @@ export default function App() {
         <p>物語の手がかりを、ひとつずつ記録する。</p>
       </header>
       {settingsOpen && createPortal(
-        <div className="settings-overlay" role="presentation" onClick={closeSettings}>
+        <div
+          className="settings-overlay"
+          role="presentation"
+          onClick={closeSettings}
+          onTouchStart={handleSettingsTouchStart}
+          onTouchEnd={handleSettingsTouchEnd}
+          onTouchCancel={() => { settingsSwipeStartRef.current = null }}
+        >
           <aside className="settings-drawer" role="dialog" aria-modal="true" aria-label="設定" onClick={(event) => event.stopPropagation()}>
             <header>
               <div><p className="eyebrow">SETTINGS</p><h2>設定</h2></div>
