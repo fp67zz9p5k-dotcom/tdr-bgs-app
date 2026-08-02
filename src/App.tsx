@@ -648,16 +648,26 @@ export default function App() {
     }
   }).filter((group) => group.areas.length > 0), [filteredFacilities])
 
-  const handleSave = async (facility: Facility) => {
+  const handleSave = async (facility: Facility, initialRelatedIds: string[]) => {
     const updatedAt = new Date().toISOString()
-    const selectedRelatedIds = new Set(facility.relatedFacilityIds)
+    const persistedFacilities = await getFacilities()
+    const validFacilityIds = new Set(persistedFacilities.map((item) => item.id))
+    const selectedRelatedIds = new Set(
+      facility.relatedFacilityIds.filter((id) => id !== facility.id && validFacilityIds.has(id)),
+    )
+    const previousRelatedIds = new Set(
+      initialRelatedIds.filter((id) => id !== facility.id && validFacilityIds.has(id)),
+    )
+    const addedRelatedIds = new Set([...selectedRelatedIds].filter((id) => !previousRelatedIds.has(id)))
+    const removedRelatedIds = new Set([...previousRelatedIds].filter((id) => !selectedRelatedIds.has(id)))
     const savedFacility = { ...facility, relatedFacilityIds: [...selectedRelatedIds], updatedAt }
-    const synchronizedFacilities = facilities
+    const synchronizedFacilities = persistedFacilities
       .filter((item) => item.id !== facility.id)
       .map((item) => {
         const shouldBeRelated = selectedRelatedIds.has(item.id)
         const isRelated = item.relatedFacilityIds.includes(facility.id)
-        if (shouldBeRelated === isRelated) return null
+        const relationshipChanged = addedRelatedIds.has(item.id) || removedRelatedIds.has(item.id)
+        if (!relationshipChanged && shouldBeRelated === isRelated) return null
         return {
           ...item,
           relatedFacilityIds: shouldBeRelated
@@ -960,8 +970,8 @@ export default function App() {
         onBack={() => setScreen(screen.isNew
           ? { page: screen.returnTo }
           : { page: 'view', facility: screen.facility, returnTo: screen.returnTo })}
-        onSave={async (facility) => {
-          const savedFacility = await handleSave(facility)
+        onSave={async (facility, initialRelatedIds) => {
+          const savedFacility = await handleSave(facility, initialRelatedIds)
           setScreen({ page: 'view', facility: savedFacility, returnTo: screen.returnTo })
         }}
         onDelete={handleDelete}
@@ -2228,7 +2238,7 @@ type FacilityDetailProps = {
   allFacilities: Facility[]
   isNew: boolean
   onBack: () => void
-  onSave: (facility: Facility) => Promise<void>
+  onSave: (facility: Facility, initialRelatedIds: string[]) => Promise<void>
   onDelete: (facility: Facility) => Promise<void>
 }
 
@@ -2243,6 +2253,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
   const [compactHeader, setCompactHeader] = useState(false)
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
   const initialFacilitySnapshot = useRef(JSON.stringify(initialEditableFacility))
+  const initialRelatedIds = useRef([...initialEditableFacility.relatedFacilityIds])
   const savingRef = useRef(false)
   const formTitle = isNew ? '施設を追加' : '施設を編集'
   const hasChanges = useMemo(
@@ -2297,7 +2308,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
         name: facility.name.trim(),
         area: normalizeAreaName(facility.area, facility.park),
         relatedFacilityIds,
-      })
+      }, initialRelatedIds.current)
     } finally {
       savingRef.current = false
       setSaving(false)
