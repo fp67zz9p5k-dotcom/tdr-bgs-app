@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
+import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
@@ -383,10 +384,44 @@ export default function App() {
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
+  const homePageRef = useRef<HTMLElement>(null)
   const homeHeroRef = useRef<HTMLElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null)
+  const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const hasVisitedNonHomeScreenRef = useRef(false)
+
+  const openSettings = useCallback(() => setSettingsOpen(true), [])
+  const closeSettings = useCallback(() => setSettingsOpen(false), [])
+
+  const handleHomeTouchStart = useCallback((event: ReactTouchEvent<HTMLElement>) => {
+    if (settingsOpen || event.touches.length !== 1) {
+      homeSwipeStartRef.current = null
+      return
+    }
+    const touch = event.touches[0]
+    // Keep Safari's native back gesture available at the physical left edge.
+    if (touch.clientX <= 28) {
+      homeSwipeStartRef.current = null
+      return
+    }
+    homeSwipeStartRef.current = { x: touch.clientX, y: touch.clientY, time: performance.now() }
+  }, [settingsOpen])
+
+  const handleHomeTouchEnd = useCallback((event: ReactTouchEvent<HTMLElement>) => {
+    const start = homeSwipeStartRef.current
+    homeSwipeStartRef.current = null
+    if (!start || settingsOpen || event.changedTouches.length !== 1) return
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+    const elapsed = performance.now() - start.time
+    if (deltaX >= 72 && Math.abs(deltaY) <= 56 && deltaX > Math.abs(deltaY) * 1.35 && elapsed <= 700) {
+      openSettings()
+    }
+  }, [openSettings, settingsOpen])
 
   const reload = async () => {
     setFacilities((await getFacilities()).sort((a, b) => a.name.localeCompare(b.name, 'ja')))
@@ -404,6 +439,56 @@ export default function App() {
   useEffect(() => {
     if (screen.page !== 'home') hasVisitedNonHomeScreenRef.current = true
   }, [screen.page])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+
+    const homePage = homePageRef.current
+    const scrollY = window.scrollY
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const bodyStyle = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    }
+    const htmlOverflow = document.documentElement.style.overflow
+
+    homePage?.setAttribute('inert', '')
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    const focusFrame = requestAnimationFrame(() => settingsCloseButtonRef.current?.focus())
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeSettings()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      cancelAnimationFrame(focusFrame)
+      document.removeEventListener('keydown', handleKeyDown)
+      homePage?.removeAttribute('inert')
+      document.body.style.position = bodyStyle.position
+      document.body.style.top = bodyStyle.top
+      document.body.style.left = bodyStyle.left
+      document.body.style.right = bodyStyle.right
+      document.body.style.width = bodyStyle.width
+      document.body.style.overflow = bodyStyle.overflow
+      document.documentElement.style.overflow = htmlOverflow
+      window.scrollTo(0, scrollY)
+      requestAnimationFrame(() => {
+        if (activeElement?.isConnected) activeElement.focus({ preventScroll: true })
+        else settingsTriggerRef.current?.focus({ preventScroll: true })
+      })
+    }
+  }, [closeSettings, settingsOpen])
 
   useEffect(() => {
     if (screen.page !== 'home') {
@@ -980,21 +1065,29 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell home-page" style={homeHeaderStyle}>
+    <main
+      ref={homePageRef}
+      className="app-shell home-page"
+      style={homeHeaderStyle}
+      aria-hidden={settingsOpen || undefined}
+      onTouchStart={handleHomeTouchStart}
+      onTouchEnd={handleHomeTouchEnd}
+      onTouchCancel={() => { homeSwipeStartRef.current = null }}
+    >
       <header ref={homeHeroRef} className={`hero${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
-        <button type="button" className="settings-menu-button" onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く" aria-expanded={settingsOpen}>
+        <button ref={settingsTriggerRef} type="button" className="settings-menu-button" onClick={openSettings} aria-label="設定メニューを開く" aria-expanded={settingsOpen}>
           <span></span><span></span><span></span>
         </button>
         <p className="eyebrow">MY PRIVATE ARCHIVE</p>
         <h1>TDR BGS図鑑</h1>
         <p>物語の手がかりを、ひとつずつ記録する。</p>
       </header>
-      {settingsOpen && (
-        <div className="settings-overlay" role="presentation" onClick={() => setSettingsOpen(false)}>
+      {settingsOpen && createPortal(
+        <div className="settings-overlay" role="presentation" onClick={closeSettings}>
           <aside className="settings-drawer" role="dialog" aria-modal="true" aria-label="設定" onClick={(event) => event.stopPropagation()}>
             <header>
               <div><p className="eyebrow">SETTINGS</p><h2>設定</h2></div>
-              <button type="button" onClick={() => setSettingsOpen(false)} aria-label="設定を閉じる">×</button>
+              <button ref={settingsCloseButtonRef} type="button" onClick={closeSettings} aria-label="設定を閉じる">×</button>
             </header>
             <section className="settings-section">
               <div className="settings-section-heading">
@@ -1043,12 +1136,13 @@ export default function App() {
             </section>
             <p className="settings-future-note">今後の設定項目はここに追加されます。</p>
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
       <section className={`content home-content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <div className="sticky-header-group">
         <nav className={`home-compact-title${compactTitleProgress > 0 ? ' is-visible' : ''}`} aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
-          <button type="button" tabIndex={compactTitleProgress > .8 ? 0 : -1} onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く">
+          <button type="button" tabIndex={compactTitleProgress > .8 ? 0 : -1} onClick={openSettings} aria-label="設定メニューを開く">
             <span></span><span></span><span></span>
           </button>
           <strong>TDR BGS図鑑</strong>

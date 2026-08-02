@@ -59,8 +59,32 @@ button { cursor: pointer; }
 }
 .settings-menu-button { position: absolute; top: calc(12px + env(safe-area-inset-top)); left: 16px; display: grid; align-content: center; gap: 4px; width: 42px; height: 42px; padding: 10px; border: 1px solid #ffffff55; border-radius: 12px; background: #ffffff12; }
 .settings-menu-button span { display: block; width: 100%; height: 2px; border-radius: 2px; background: white; }
-.settings-overlay { position: fixed; z-index: 50; inset: 0; background: #09141bbb; backdrop-filter: blur(3px); }
-.settings-drawer { display: grid; align-content: start; gap: 18px; width: min(88vw, 390px); height: 100%; padding: calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; background: #f8f5ed; box-shadow: 10px 0 35px #0005; animation: settings-slide-in .2s ease-out; }
+.settings-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100svh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #f8f5ed;
+}
+.settings-drawer {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  width: min(100%, 760px);
+  height: 100%;
+  margin: 0 auto;
+  padding: calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: #f8f5ed;
+  animation: settings-slide-in .2s ease-out;
+}
 .settings-drawer > header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid #d7cdbd; }
 .settings-drawer h2 { margin: 0; color: #213e4c; font-family: Georgia, 'Yu Mincho', serif; }
 .settings-drawer > header > button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: #e9e2d6; color: #40535c; font-size: 24px; }

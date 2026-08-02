@@ -77,6 +77,10 @@
   color: var(--text-primary);
 }
 
+:root[data-theme] .settings-overlay {
+  background: var(--bg-surface);
+}
+
 :root[data-theme] .settings-drawer > header {
   border-color: var(--border-color);
 }
