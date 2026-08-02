@@ -988,6 +988,24 @@ export default function App() {
           onEdit={() => setScreen({ page: 'edit', facility: screen.facility, isNew: false, returnTo: screen.returnTo })}
           onToggleFavorite={() => void toggleFavorite(screen.facility)}
           onOpenFacility={(facility) => openFacility(facility, screen.returnTo, screen.mapReturnState)}
+          onOpenMap={(facility) => {
+            if (facility.latitude === null || facility.longitude === null) return
+            const state: MapReturnState = {
+              park: facility.park,
+              center: [facility.longitude, facility.latitude],
+              zoom: 17,
+              bearing: parkBearings[facility.park],
+              pitch: 0,
+              selectedFacilityId: facility.id,
+              scrollY: 0,
+            }
+            const nextFilters = defaultMapFilterSettings()
+            setMapFilterSettings(nextFilters)
+            void saveMapFilterSettings(nextFilters)
+            mapReturnStateRef.current = state
+            sessionStorage.setItem(MAP_RETURN_STATE_KEY, JSON.stringify(state))
+            setScreen({ page: 'map' })
+          }}
         />
         <PrimaryBottomNavigation
           active="home"
@@ -1754,6 +1772,7 @@ function LeafletCanvas({
   onPositionChange,
   mapViewRef: sharedMapViewRef,
   compact = false,
+  staticPreview = false,
 }: {
   park: Park
   facilities?: Facility[]
@@ -1764,6 +1783,7 @@ function LeafletCanvas({
   onPositionChange?: (latitude: number, longitude: number) => void
   mapViewRef?: { current: MapViewState | null }
   compact?: boolean
+  staticPreview?: boolean
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const internalMapViewRef = useRef<MapViewState | null>(null)
@@ -1781,18 +1801,24 @@ function LeafletCanvas({
       center: position
         ? [position.longitude, position.latitude]
         : preservedView?.center ?? [center[1], center[0]],
-      zoom: position ? 18 : preservedView?.zoom ?? 16.5,
-      bearing: preservedView?.bearing ?? parkBearings[park],
+      zoom: position ? (staticPreview ? 16.8 : 18) : preservedView?.zoom ?? 16.5,
+      bearing: staticPreview ? 0 : preservedView?.bearing ?? parkBearings[park],
       pitch: preservedView?.pitch ?? 0,
-      dragPan: true,
+      dragPan: !staticPreview,
       dragRotate: false,
-      touchZoomRotate: true,
-      doubleClickZoom: true,
-      scrollZoom: true,
+      touchZoomRotate: !staticPreview,
+      doubleClickZoom: !staticPreview,
+      scrollZoom: !staticPreview,
+      keyboard: !staticPreview,
+      boxZoom: !staticPreview,
       attributionControl: false,
     })
-    map.touchZoomRotate.enable()
-    map.touchZoomRotate.disableRotation()
+    if (staticPreview) {
+      map.touchZoomRotate.disable()
+    } else {
+      map.touchZoomRotate.enable()
+      map.touchZoomRotate.disableRotation()
+    }
     const diagnosticEntry: MapDiagnosticEntry = {
       instanceId,
       mode,
@@ -1805,7 +1831,7 @@ function LeafletCanvas({
     containerRef.current.dataset.mapMode = mode
     const isTouchDevice = navigator.maxTouchPoints > 0
       || window.matchMedia('(hover: none) and (pointer: coarse)').matches
-    if (!isTouchDevice) {
+    if (!isTouchDevice && !staticPreview) {
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left')
     }
     map.addControl(new maplibregl.AttributionControl({
@@ -2106,9 +2132,9 @@ function LeafletCanvas({
       window.visualViewport?.removeEventListener('resize', resizeMap)
       map.remove()
     }
-  }, [park, facilities, onSelect, onOpenFacility, position, onPositionChange])
+  }, [park, facilities, onSelect, onOpenFacility, position, onPositionChange, staticPreview])
 
-  return <div ref={containerRef} className={`leaflet-map${compact ? ' compact' : ''}`} />
+  return <div ref={containerRef} className={`leaflet-map${compact ? ' compact' : ''}${staticPreview ? ' static-preview' : ''}`} />
 }
 
 function FacilityView({
@@ -2118,6 +2144,7 @@ function FacilityView({
   onEdit,
   onToggleFavorite,
   onOpenFacility,
+  onOpenMap,
 }: {
   facility: Facility
   allFacilities: Facility[]
@@ -2125,6 +2152,7 @@ function FacilityView({
   onEdit: () => void
   onToggleFavorite: () => void
   onOpenFacility: (facility: Facility) => void
+  onOpenMap: (facility: Facility) => void
 }) {
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
@@ -2133,6 +2161,7 @@ function FacilityView({
     { id: 'bgs', label: 'BGS', visible: facility.bgs.length > 0 },
     { id: 'trivia', label: 'トリビア', visible: facility.trivia.length > 0 },
     { id: 'props', label: 'プロップス', visible: facility.props.length > 0 },
+    { id: 'location', label: '場所', visible: facility.latitude !== null && facility.longitude !== null },
     { id: 'related', label: '関連項目', visible: relatedFacilities.length > 0 },
     { id: 'photos', label: '写真', visible: facility.photos.length > 0 },
   ].filter((item) => item.visible)
@@ -2205,9 +2234,31 @@ function FacilityView({
           </section>
         )}
 
+        {facility.latitude !== null && facility.longitude !== null && (
+          <section id="location" className="view-section location-section">
+            <div className="view-section-heading"><span aria-hidden="true">05</span><h2>場所</h2></div>
+            <div className="facility-mini-map">
+              <LeafletCanvas
+                park={facility.park}
+                position={{ latitude: facility.latitude, longitude: facility.longitude }}
+                compact
+                staticPreview
+              />
+              <button
+                type="button"
+                className="facility-mini-map-link"
+                onClick={() => onOpenMap(facility)}
+                aria-label={`${facility.name}の場所を通常マップで開く`}
+              >
+                <span className="facility-mini-map-action">マップで詳しく見る <span aria-hidden="true">›</span></span>
+              </button>
+            </div>
+          </section>
+        )}
+
         {relatedFacilities.length > 0 && (
           <section id="related" className="view-section">
-            <div className="view-section-heading"><span aria-hidden="true">05</span><h2>関連項目</h2></div>
+            <div className="view-section-heading"><span aria-hidden="true">06</span><h2>関連項目</h2></div>
             <div className="related-view-list">
               {relatedFacilities.map((item) => {
                 const itemCategory = getCategoryDefinition(item.category)

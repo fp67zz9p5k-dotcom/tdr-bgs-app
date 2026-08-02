@@ -958,6 +958,13 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .map-count-status button { padding: 5px 7px; border: 0; background: transparent; color: #9b5f2b; font-size: 9px; font-weight: 800; text-decoration: underline; }
 .leaflet-map { z-index: 1; width: 100%; height: min(68vh, 620px); min-height: 430px; border: 0; border-radius: 18px; background: #dce8d4; box-shadow: inset 0 0 0 2px #d5c8b3; }
 .leaflet-map.compact { height: 320px; min-height: 260px; border-radius: 13px; }
+.facility-mini-map { position: relative; display: block; width: 100%; overflow: hidden; border: 1px solid #d5c8b3; border-radius: 16px; background: #dce8d4; box-shadow: 0 5px 18px #172b3814; }
+.facility-mini-map .leaflet-map.static-preview { height: 180px; min-height: 180px; border-radius: 15px; box-shadow: none; pointer-events: none; }
+.facility-mini-map-link { position: absolute; z-index: 3; inset: 0; width: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.facility-mini-map-action { position: absolute; z-index: 3; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border: 1px solid #ffffff66; border-radius: 16px; background: #153e5ce8; color: #fff; font-size: 10px; font-weight: 800; box-shadow: 0 4px 12px #172b3844; }
+.facility-mini-map-action > span { color: #f0c77c; font-size: 17px; line-height: .7; }
+.facility-mini-map-link:active .facility-mini-map-action { transform: translateY(1px); }
+.facility-mini-map .maplibregl-ctrl-attrib { z-index: 4; pointer-events: auto; }
 .map-coordinate-marker { width: 30px; height: 38px; }
 .map-coordinate-pin { --pin-color: #b74838; position: absolute; inset: 0; display: block; width: 30px; height: 38px; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 3px 4px #172b3866); }
 .map-coordinate-pin::before { position: absolute; top: 0; left: 0; width: 30px; height: 30px; border: 3px solid white; border-radius: 50%; background: var(--pin-color); content: ''; }

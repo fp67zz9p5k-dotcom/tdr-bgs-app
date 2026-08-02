@@ -649,6 +649,12 @@
   box-shadow: 0 4px 15px var(--shadow-color);
 }
 
+:root[data-theme="dark"] .facility-mini-map {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+  box-shadow: 0 5px 18px var(--shadow-color);
+}
+
 :root[data-theme="dark"] .basic-info-card div {
   border-color: var(--border-default);
 }
