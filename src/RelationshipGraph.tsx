@@ -477,27 +477,39 @@ function RelationshipGraphInner({
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const relationshipPageRef = useRef<HTMLElement>(null)
   const scrollFrameRef = useRef(0)
+  const relationshipPageTopRef = useRef(0)
   const [headerProgress, setHeaderProgress] = useState(0)
 
   useEffect(() => {
+    const measurePageTop = () => {
+      const page = relationshipPageRef.current
+      if (!page) return
+      relationshipPageTopRef.current = window.scrollY + page.getBoundingClientRect().top
+    }
+
     const updateHeaderProgress = () => {
       cancelAnimationFrame(scrollFrameRef.current)
       scrollFrameRef.current = requestAnimationFrame(() => {
-        const page = relationshipPageRef.current
-        if (!page) return
-        const pageTop = window.scrollY + page.getBoundingClientRect().top
-        const nextProgress = Math.min(1, Math.max(0, (window.scrollY - pageTop) / 170))
-        setHeaderProgress((current) => Math.abs(current - nextProgress) < .01 ? current : nextProgress)
+        const nextProgress = Math.min(
+          1,
+          Math.max(0, (window.scrollY - relationshipPageTopRef.current) / 170),
+        )
+        setHeaderProgress((current) => Math.abs(current - nextProgress) < .002 ? current : nextProgress)
       })
     }
 
+    measurePageTop()
     updateHeaderProgress()
     window.addEventListener('scroll', updateHeaderProgress, { passive: true })
-    window.addEventListener('resize', updateHeaderProgress)
+    const handleResize = () => {
+      measurePageTop()
+      updateHeaderProgress()
+    }
+    window.addEventListener('resize', handleResize)
     return () => {
       cancelAnimationFrame(scrollFrameRef.current)
       window.removeEventListener('scroll', updateHeaderProgress)
-      window.removeEventListener('resize', updateHeaderProgress)
+      window.removeEventListener('resize', handleResize)
     }
   }, [])
 

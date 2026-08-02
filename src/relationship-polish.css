@@ -483,7 +483,7 @@
 
   .relationship-mode-switch button {
     min-height: var(--relationship-mode-height, 42px);
-    transition: min-height 240ms ease-out, background-color 200ms ease, color 200ms ease;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   .center-summary {
@@ -511,11 +511,7 @@
     grid-template-columns: var(--relationship-center-image-width, 126px) minmax(0, 1fr);
     height: var(--relationship-center-card-height, 154px);
     min-height: 0;
-    transition:
-      height 240ms ease-out,
-      grid-template-columns 240ms ease-out,
-      transform 220ms ease,
-      box-shadow 220ms ease;
+    transition: transform 220ms ease, box-shadow 220ms ease;
   }
 
   .center-facility-card > img,
@@ -523,7 +519,6 @@
     width: var(--relationship-center-image-width, 126px);
     height: 100%;
     min-height: 0;
-    transition: width 240ms ease-out;
   }
 
   .center-card-copy {
@@ -539,7 +534,6 @@
     line-height: 1.25;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    transition: font-size 240ms ease-out;
   }
 
   .center-card-copy > small,
@@ -547,7 +541,6 @@
     overflow: hidden;
     max-height: var(--relationship-optional-line-height, 18px);
     opacity: var(--relationship-large-opacity, 1);
-    transition: max-height 240ms ease-out, opacity 200ms ease-out;
   }
 
   .center-card-category {
@@ -563,7 +556,6 @@
     color: #d9b77f !important;
     font-size: 10px !important;
     font-weight: 800;
-    transition: max-height 240ms ease-out, opacity 200ms ease-out;
   }
 
   .relationship-category-overview {
@@ -581,7 +573,6 @@
     min-height: 0;
     opacity: var(--relationship-large-opacity, 1);
     overflow: hidden;
-    transition: height 240ms ease-out, opacity 180ms ease-out;
   }
 
   .relationship-category-group {
