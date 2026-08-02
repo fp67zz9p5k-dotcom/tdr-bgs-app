@@ -422,6 +422,179 @@
   }
 }
 
+/* Mobile Large Title -> Compact Header. The existing header, center card and
+ * category overview remain the same DOM; only their dimensions change. */
+@media (max-width: 767px) {
+  .relationship-header {
+    position: sticky;
+    z-index: 100;
+    top: 0;
+    padding-top: calc(env(safe-area-inset-top) + var(--relationship-header-top-padding, 14px));
+    padding-bottom: var(--relationship-header-bottom-padding, 12px);
+    background-clip: padding-box;
+    box-shadow: 0 8px 22px rgba(8, 26, 38, var(--relationship-header-shadow-opacity, 0));
+  }
+
+  .relationship-header-copy {
+    position: relative;
+    height: var(--relationship-title-height, 48px);
+    min-width: 0;
+  }
+
+  .relationship-large-title,
+  .relationship-compact-title {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    transform-origin: left center;
+  }
+
+  .relationship-large-title {
+    opacity: var(--relationship-large-opacity, 1);
+    transform: var(--relationship-large-transform, translateY(0) scale(1));
+  }
+
+  .relationship-large-title h1,
+  .relationship-large-title p {
+    margin: 0;
+  }
+
+  .relationship-compact-title {
+    overflow: hidden;
+    padding-right: 6px;
+    opacity: var(--relationship-compact-opacity, 0);
+    color: #f7f3e8;
+    font-family: Georgia, "Yu Mincho", serif;
+    font-size: 15px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transform: var(--relationship-compact-transform, scale(.94));
+  }
+
+  .relationship-mode-switch {
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+  }
+
+  .relationship-mode-switch button {
+    min-height: var(--relationship-mode-height, 42px);
+    transition: min-height 240ms ease-out, background-color 200ms ease, color 200ms ease;
+  }
+
+  .center-summary {
+    min-height: 22px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .center-summary > span {
+    margin: 0;
+    color: var(--text-secondary, #657078);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .center-node-stage {
+    position: sticky;
+    z-index: 90;
+    top: calc(env(safe-area-inset-top) + 104px);
+    padding-top: 5px;
+    background: var(--app-bg, #f4f0e8);
+  }
+
+  .center-facility-card {
+    grid-template-columns: var(--relationship-center-image-width, 126px) minmax(0, 1fr);
+    height: var(--relationship-center-card-height, 154px);
+    min-height: 0;
+    transition:
+      height 240ms ease-out,
+      grid-template-columns 240ms ease-out,
+      transform 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .center-facility-card > img,
+  .center-facility-card > .relationship-placeholder {
+    width: var(--relationship-center-image-width, 126px);
+    height: 100%;
+    min-height: 0;
+    transition: width 240ms ease-out;
+  }
+
+  .center-card-copy {
+    min-width: 0;
+    gap: 3px;
+    padding: 8px 11px;
+  }
+
+  .center-card-copy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: var(--relationship-center-name-size, 17px);
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    transition: font-size 240ms ease-out;
+  }
+
+  .center-card-copy > small,
+  .center-card-area {
+    overflow: hidden;
+    max-height: var(--relationship-optional-line-height, 18px);
+    opacity: var(--relationship-large-opacity, 1);
+    transition: max-height 240ms ease-out, opacity 200ms ease-out;
+  }
+
+  .center-card-category {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .center-card-related-count {
+    overflow: hidden;
+    max-height: var(--relationship-related-line-height, 0px);
+    opacity: var(--relationship-compact-opacity, 0);
+    color: #d9b77f !important;
+    font-size: 10px !important;
+    font-weight: 800;
+    transition: max-height 240ms ease-out, opacity 200ms ease-out;
+  }
+
+  .relationship-category-overview {
+    margin-top: 5px;
+    padding: 6px;
+  }
+
+  .relationship-category-overview button {
+    min-height: 28px;
+    padding: 4px 7px;
+  }
+
+  .center-tree-trunk {
+    height: var(--relationship-tree-height, 30px);
+    min-height: 0;
+    opacity: var(--relationship-large-opacity, 1);
+    overflow: hidden;
+    transition: height 240ms ease-out, opacity 180ms ease-out;
+  }
+
+  .relationship-category-group {
+    scroll-margin-top: calc(env(safe-area-inset-top) + 252px);
+  }
+
+  .relationship-group-heading {
+    min-height: 44px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+}
+
 @media (max-width: 359px) {
   .relationship-center-view {
     --relationship-rail-x: 8px;
@@ -449,6 +622,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .center-facility-card,
+  .center-facility-card > img,
+  .center-facility-card > .relationship-placeholder,
+  .center-card-copy > small,
+  .center-card-area,
+  .center-card-related-count,
+  .center-tree-trunk,
+  .relationship-large-title,
+  .relationship-compact-title,
+  .relationship-mode-switch button,
   .relationship-card-list-shell,
   .relationship-group-heading,
   .relationship-category-overview button,

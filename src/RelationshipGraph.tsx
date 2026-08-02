@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   Background,
   ReactFlow,
@@ -191,7 +191,7 @@ function CenterRelationshipView({
         const categoryId = visible.target.id.replace('relationship-category-', '')
         if (isCategoryId(categoryId)) setActiveCategoryId(categoryId)
       }
-    }, { root: null, rootMargin: '-20% 0px -65% 0px', threshold: 0 })
+    }, { root: null, rootMargin: '-32% 0px -58% 0px', threshold: 0 })
     sections.forEach((section) => observer.observe(section))
     return () => observer.disconnect()
   }, [center.id, groups])
@@ -216,12 +216,8 @@ function CenterRelationshipView({
 
   return (
     <div className={`relationship-center-view density-${density}`}>
-      <section className="center-summary" aria-labelledby="center-facility-title">
-        <div>
-          <p>中心の施設</p>
-          <h2 id="center-facility-title">{center.name}</h2>
-          <span>直接の関連 {related.length}件</span>
-        </div>
+      <section className="center-summary" aria-label="直接の関連件数">
+        <span>直接の関連 {related.length}件</span>
       </section>
 
       <div className="relationship-center-layout">
@@ -231,8 +227,9 @@ function CenterRelationshipView({
             <span className="center-card-copy">
               <small>{getCategoryDefinition(center.category).englishLabel}</small>
               <strong>{center.name}</strong>
-              <span>{center.area || 'エリア未設定'}</span>
-              <span>{getCategoryDefinition(center.category).icon} {center.category}{center.favorite ? '　★ お気に入り' : ''}</span>
+              <span className="center-card-area">{center.area || 'エリア未設定'}</span>
+              <span className="center-card-category">{getCategoryDefinition(center.category).icon} {center.category}{center.favorite ? '　★ お気に入り' : ''}</span>
+              <span className="center-card-related-count">直接の関連 {related.length}件</span>
             </span>
           </button>
           {groups.length > 0 && (
@@ -286,7 +283,7 @@ function CenterRelationshipView({
                             <span className="relationship-category-icon" aria-hidden="true">{category.icon}</span>
                             <strong>{category.label}</strong>
                           </span>
-                          <small className="relationship-category-count">{groupFacilities.length}件</small>
+                          <small className="relationship-category-count">（{groupFacilities.length}）</small>
                           <span className="relationship-collapse-icon" aria-hidden="true">
                             {isCollapsed ? '＋' : '−'}
                           </span>
@@ -478,6 +475,31 @@ function RelationshipGraphInner({
     [facilities, normalizedSettings.selectedId],
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
+  const relationshipPageRef = useRef<HTMLElement>(null)
+  const scrollFrameRef = useRef(0)
+  const [headerProgress, setHeaderProgress] = useState(0)
+
+  useEffect(() => {
+    const updateHeaderProgress = () => {
+      cancelAnimationFrame(scrollFrameRef.current)
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        const page = relationshipPageRef.current
+        if (!page) return
+        const pageTop = window.scrollY + page.getBoundingClientRect().top
+        const nextProgress = Math.min(1, Math.max(0, (window.scrollY - pageTop) / 170))
+        setHeaderProgress((current) => Math.abs(current - nextProgress) < .01 ? current : nextProgress)
+      })
+    }
+
+    updateHeaderProgress()
+    window.addEventListener('scroll', updateHeaderProgress, { passive: true })
+    window.addEventListener('resize', updateHeaderProgress)
+    return () => {
+      cancelAnimationFrame(scrollFrameRef.current)
+      window.removeEventListener('scroll', updateHeaderProgress)
+      window.removeEventListener('resize', updateHeaderProgress)
+    }
+  }, [])
 
   useEffect(() => {
     if (!fallbackCenter) return
@@ -503,11 +525,33 @@ function RelationshipGraphInner({
     if (fallbackCenter) setHistory([fallbackCenter.id])
   }
 
+  const relationshipPageStyle = {
+    '--relationship-compact-progress': headerProgress,
+    '--relationship-large-opacity': 1 - headerProgress,
+    '--relationship-compact-opacity': headerProgress,
+    '--relationship-large-transform': `translateY(${-8 * headerProgress}px) scale(${1 - (.06 * headerProgress)})`,
+    '--relationship-compact-transform': `scale(${.94 + (.06 * headerProgress)})`,
+    '--relationship-header-shadow-opacity': headerProgress * .18,
+    '--relationship-header-top-padding': `${14 - (headerProgress * 8)}px`,
+    '--relationship-header-bottom-padding': `${12 - (headerProgress * 6)}px`,
+    '--relationship-title-height': `${48 - (headerProgress * 4)}px`,
+    '--relationship-mode-height': `${42 - (headerProgress * 6)}px`,
+    '--relationship-center-card-height': `${154 - (headerProgress * 66)}px`,
+    '--relationship-center-image-width': `${126 - (headerProgress * 54)}px`,
+    '--relationship-center-name-size': `${17 - (headerProgress * 3)}px`,
+    '--relationship-optional-line-height': `${18 * (1 - headerProgress)}px`,
+    '--relationship-related-line-height': `${18 * headerProgress}px`,
+    '--relationship-tree-height': `${30 * (1 - headerProgress)}px`,
+  } as CSSProperties
+
   return (
-    <main className="relationship-page screen-enter">
+    <main ref={relationshipPageRef} className="relationship-page screen-enter" style={relationshipPageStyle}>
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
-        <div className="relationship-header-copy"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
+        <div className="relationship-header-copy">
+          <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
+          <strong className="relationship-compact-title">{fallbackCenter?.name ?? '施設関係図'}</strong>
+        </div>
         <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
           <button type="button" className={normalizedSettings.mode === 'center' ? 'active' : ''} onClick={() => setMode('center')}>中心表示</button>
           <button type="button" className={normalizedSettings.mode === 'overview' ? 'active' : ''} onClick={() => setMode('overview')}>全体表示</button>
