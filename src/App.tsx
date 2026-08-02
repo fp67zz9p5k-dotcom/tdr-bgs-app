@@ -10,6 +10,7 @@ import {
   importFacilities,
   saveRecentFacilityIds,
   saveFacility,
+  saveFacilities,
   saveMapFilterSettings,
   saveRelationshipGraphSettings,
 } from './db'
@@ -650,8 +651,25 @@ export default function App() {
   }).filter((group) => group.areas.length > 0), [filteredFacilities])
 
   const handleSave = async (facility: Facility) => {
-    const savedFacility = { ...facility, updatedAt: new Date().toISOString() }
-    await saveFacility(savedFacility)
+    const updatedAt = new Date().toISOString()
+    const selectedRelatedIds = new Set(facility.relatedFacilityIds)
+    const savedFacility = { ...facility, relatedFacilityIds: [...selectedRelatedIds], updatedAt }
+    const synchronizedFacilities = facilities
+      .filter((item) => item.id !== facility.id)
+      .map((item) => {
+        const shouldBeRelated = selectedRelatedIds.has(item.id)
+        const isRelated = item.relatedFacilityIds.includes(facility.id)
+        if (shouldBeRelated === isRelated) return null
+        return {
+          ...item,
+          relatedFacilityIds: shouldBeRelated
+            ? [...new Set([...item.relatedFacilityIds, facility.id])]
+            : item.relatedFacilityIds.filter((id) => id !== facility.id),
+          updatedAt,
+        }
+      })
+      .filter((item): item is Facility => item !== null)
+    await saveFacilities([savedFacility, ...synchronizedFacilities])
     await reload()
     return savedFacility
   }
@@ -2217,12 +2235,16 @@ type FacilityDetailProps = {
 }
 
 function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave, onDelete }: FacilityDetailProps) {
-  const [facility, setFacility] = useState(initialFacility)
+  const initialEditableFacility = useMemo(() => ({
+    ...initialFacility,
+    relatedFacilityIds: getBidirectionalRelatedFacilityIds(allFacilities, initialFacility.id),
+  }), [allFacilities, initialFacility])
+  const [facility, setFacility] = useState(initialEditableFacility)
   const [parkSelected, setParkSelected] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [compactHeader, setCompactHeader] = useState(false)
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
-  const initialFacilitySnapshot = useRef(JSON.stringify(initialFacility))
+  const initialFacilitySnapshot = useRef(JSON.stringify(initialEditableFacility))
   const savingRef = useRef(false)
   const formTitle = isNew ? '施設を追加' : '施設を編集'
   const hasChanges = useMemo(
@@ -2232,10 +2254,6 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
   const canSave = Boolean(facility.name.trim() && facility.area.trim() && parkSelected) && hasChanges && !saving
   const areaOptions = PARK_AREAS[facility.park]
   const hasLegacyArea = Boolean(facility.area) && !isOfficialArea(facility.area, facility.park)
-  const bidirectionalRelatedIds = new Set([
-    ...getBidirectionalRelatedFacilityIds(allFacilities, facility.id),
-    ...facility.relatedFacilityIds,
-  ])
   const update = <K extends keyof Facility>(key: K, value: Facility[K]) => setFacility((current) => ({ ...current, [key]: value }))
   const changePark = (value: Park) => {
     setParkSelected(true)
@@ -2299,12 +2317,16 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
 
   return (
     <main className="app-shell detail-page facility-edit-page screen-enter">
-      <header className={`detail-header facility-edit-header${compactHeader ? ' is-compact' : ''}`}>
+      <header className="detail-header facility-edit-large-header">
         <button className="back-button" type="button" onClick={requestBack} aria-label="施設一覧に戻る">‹</button>
         <div className="facility-edit-heading">
           <p className="eyebrow">{isNew ? 'NEW FACILITY' : 'EDIT FACILITY'}</p>
           <h1>{formTitle}</h1>
         </div>
+      </header>
+      <header className={`detail-header facility-edit-compact-header${compactHeader ? ' is-visible' : ''}`} aria-hidden={!compactHeader}>
+        <button className="back-button" type="button" onClick={requestBack} aria-label="施設一覧に戻る" tabIndex={compactHeader ? 0 : -1}>‹</button>
+        <h1>{formTitle}</h1>
       </header>
       <form id="facility-detail-form" className="detail-form" onSubmit={submit}>
         <section className="form-section">
@@ -2369,13 +2391,12 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
               <label className="check-row" key={item.id}>
                 <input
                   type="checkbox"
-                  checked={bidirectionalRelatedIds.has(item.id)}
-                  disabled={bidirectionalRelatedIds.has(item.id) && !facility.relatedFacilityIds.includes(item.id)}
+                  checked={facility.relatedFacilityIds.includes(item.id)}
                   onChange={() => toggleRelated(item.id)}
                 />
                 <span>
                   <strong>{item.name}</strong>
-                  <small>{item.area}{bidirectionalRelatedIds.has(item.id) && !facility.relatedFacilityIds.includes(item.id) ? ' · 相手側から関連済み' : ''}</small>
+                  <small>{item.area}</small>
                 </span>
               </label>
             ))}

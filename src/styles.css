@@ -632,48 +632,46 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 .back-button { width: 43px; height: 43px; flex: 0 0 auto; border: 1px solid #ffffff4a; border-radius: 50%; background: transparent; color: white; font-size: 34px; line-height: 1; }
 .detail-form { display: grid; gap: 23px; padding: 26px 24px; }
 .facility-edit-page { padding-bottom: 0; }
-.facility-edit-header {
-  position: sticky;
-  top: 0;
-  z-index: 55;
-  min-height: calc(106px + env(safe-area-inset-top));
-  transition: min-height 240ms ease-in-out, padding 240ms ease-in-out, gap 240ms ease-in-out;
-}
+.facility-edit-large-header { position: relative; }
 .facility-edit-heading {
   min-width: 0;
 }
-.facility-edit-heading .eyebrow {
-  max-height: 20px;
-  overflow: hidden;
-  transition: max-height 240ms ease-in-out, margin 240ms ease-in-out, letter-spacing 240ms ease-in-out;
-}
-.facility-edit-heading h1 {
-  transform-origin: left center;
-  transition: font-size 240ms ease-in-out, line-height 240ms ease-in-out;
-}
-.facility-edit-header.is-compact {
+.facility-edit-compact-header {
+  position: fixed;
+  z-index: 65;
+  top: 0;
+  left: 50%;
+  width: min(100%, 760px);
   min-height: calc(54px + env(safe-area-inset-top));
   gap: 12px;
   padding: env(safe-area-inset-top) 18px 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -10px) scale(.985);
+  transform-origin: top center;
+  transition: opacity 220ms ease-out, transform 220ms ease-out, visibility 0s linear 220ms;
+  box-shadow: 0 8px 22px #07131d24;
 }
-.facility-edit-header.is-compact .back-button {
+.facility-edit-compact-header.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
+  transition-delay: 0s;
+}
+.facility-edit-compact-header .back-button {
   width: 38px;
   height: 38px;
   font-size: 30px;
 }
-.facility-edit-header.is-compact .facility-edit-heading {
+.facility-edit-compact-header h1 {
   flex: 1;
-  padding-right: 50px;
-  text-align: center;
-}
-.facility-edit-header.is-compact .eyebrow {
-  max-height: 0;
   margin: 0;
-  letter-spacing: 0;
-}
-.facility-edit-header.is-compact h1 {
+  padding-right: 50px;
   font-size: 18px;
   line-height: 1.15;
+  text-align: center;
 }
 .facility-edit-page .detail-form {
   padding-bottom: calc(112px + env(safe-area-inset-bottom));
@@ -785,9 +783,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .facility-edit-header,
-  .facility-edit-heading .eyebrow,
-  .facility-edit-heading h1 {
+  .facility-edit-compact-header {
     transition-duration: 1ms;
   }
 }
