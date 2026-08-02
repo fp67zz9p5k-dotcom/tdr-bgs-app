@@ -380,6 +380,46 @@
     min-width: 0;
     max-width: 100%;
   }
+
+  /*
+   * A legacy phone carousel rule assigns each card a fixed 228px width.
+   * The list is a grid again at this breakpoint, so reset that intrinsic
+   * width and let every item stretch inside its minmax(0, 1fr) track.
+   */
+  .relationship-card-list,
+  .density-many .relationship-card-list {
+    grid-auto-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .relationship-card-list > .related-facility-card,
+  .density-many .relationship-card-list > .related-facility-card {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    flex: initial;
+    justify-self: stretch;
+  }
+
+  .related-card-main,
+  .related-card-main > span:last-child,
+  .related-card-main strong,
+  .related-card-main small {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .related-card-main strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .related-detail-button {
+    z-index: 2;
+    max-width: calc(100% - 12px);
+  }
 }
 
 @media (max-width: 359px) {
