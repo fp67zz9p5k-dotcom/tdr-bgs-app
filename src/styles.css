@@ -394,6 +394,16 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 .filter-summary { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
 .filter-summary strong { color: #314852; font-size: 12px; }
 .filter-summary span { color: #728188; font-size: 10px; font-weight: 800; }
+.filter-section { display: grid; min-width: 0; gap: 6px; }
+.filter-section + .filter-section { padding-top: 7px; border-top: 1px solid color-mix(in srgb, #bda77f 32%, transparent); }
+.filter-subsection { margin-left: 5px; padding-left: 9px; border-left: 2px solid color-mix(in srgb, #b67c2e 45%, transparent); }
+.filter-section-label { color: #607078; font-size: 9px; font-weight: 900; letter-spacing: .06em; }
+.park-filter-options { flex-wrap: wrap; overflow: visible; }
+.area-filter-grid { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.area-filter-grid button { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; padding: 7px 9px; border: 1px solid #d6c9b5; border-radius: 15px; background: white; color: #6a7477; font-size: 9px; font-weight: 750; line-height: 1.25; overflow-wrap: anywhere; }
+.area-filter-grid button span { display: inline-block; width: 10px; color: currentColor; font-weight: 900; }
+.area-filter-grid button.active { border-color: #153e5c; background: #153e5c; color: white; }
+.area-filter-hint { margin: 0; color: #899397; font-size: 9px; }
 .filter-chip-row { display: flex !important; max-width: 100%; min-width: 0; gap: 6px; margin: 0 !important; padding: 0 0 2px; overflow-x: auto; scrollbar-width: thin; }
 .filter-chip-row button { flex: 0 0 auto; max-width: 100%; white-space: nowrap; }
 .favorite-filter { display: flex; align-items: center; justify-content: center; gap: 5px; width: auto; margin: 0; padding: 7px 10px; border: 1px solid #d6c9b5; border-radius: 16px; background: white; color: #6d7475; font-size: 10px; font-weight: 800; }
@@ -1340,6 +1350,12 @@ fieldset { margin: 0; padding: 0; border: 0; }
   .compact-heading h2, .filter-summary strong { color: #e2e9ec; }
   .compact-heading span, .filter-summary span { color: #a9b7bd; }
   .filter-panel { border-color: #40535c; background: #192a33; }
+  .filter-section + .filter-section { border-top-color: color-mix(in srgb, #d1ad69 25%, transparent); }
+  .filter-subsection { border-left-color: color-mix(in srgb, #d1ad69 55%, transparent); }
+  .filter-section-label { color: #a9b7bd; }
+  .area-filter-grid button { border-color: #40535c; background: #213640; color: #c4cfd3; }
+  .area-filter-grid button.active { border-color: #6b9bb0; background: #24556b; color: #fff; }
+  .area-filter-hint { color: #82949c; }
   .category-placeholder { background: linear-gradient(145deg, #354d57, #263b46); color: #ffd18a; }
   .recent-card-body small, .facility-card .category { color: #e0ad68; }
   .facility-card-link, .facility-card strong { color: #f3f8fa; }

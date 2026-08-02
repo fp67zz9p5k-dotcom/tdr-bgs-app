@@ -19,7 +19,7 @@ import { RelationshipGraph } from './RelationshipGraph'
 import { AnimatedCollapse } from './AnimatedCollapse'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
-import { isOfficialArea, normalizeAreaName, PARK_AREAS } from './areas'
+import { getAreaDefinitions, getAreaId, getAreaLabel, getParkById, getParkId, isOfficialArea, normalizeAreaName, PARK_AREAS, type AreaId, type ParkId } from './areas'
 import {
   createProp,
   createTextEntry,
@@ -372,7 +372,8 @@ export default function App() {
   const [searchFocused, setSearchFocused] = useState(false)
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
-  const [selectedPark, setSelectedPark] = useState<Park | ''>('')
+  const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
+  const [selectedAreaIds, setSelectedAreaIds] = useState<AreaId[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
   const [categoriesExpanded, setCategoriesExpanded] = useState(false)
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
@@ -623,13 +624,19 @@ export default function App() {
   const filteredFacilities = useMemo(() => {
     const searched = rankedSearchMatches.map((match) => match.facility)
     const parkFiltered = selectedPark
-      ? searched.filter((facility) => facility.park === selectedPark)
+      ? searched.filter((facility) => getParkId(facility.park) === selectedPark)
       : searched
-    const categoryFiltered = selectedCategory
-      ? parkFiltered.filter((facility) => facility.category === selectedCategory)
+    const areaFiltered = selectedAreaIds.length > 0
+      ? parkFiltered.filter((facility) => {
+        const areaId = getAreaId(facility.area, facility.park)
+        return areaId !== null && selectedAreaIds.includes(areaId)
+      })
       : parkFiltered
+    const categoryFiltered = selectedCategory
+      ? areaFiltered.filter((facility) => facility.category === selectedCategory)
+      : areaFiltered
     return favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
-  }, [rankedSearchMatches, favoriteOnly, selectedCategory, selectedPark])
+  }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategory, selectedPark])
   const hasNoSearchResults = !loading && query.trim().length > 0 && filteredFacilities.length === 0
 
   const searchSuggestions = useMemo(() => {
@@ -662,7 +669,7 @@ export default function App() {
         return {
           facility,
           score: relevance
-            + (selectedPark && facility.park === selectedPark ? 2 : 0)
+            + (selectedPark && getParkId(facility.park) === selectedPark ? 2 : 0)
             + (selectedCategory && facility.category === selectedCategory ? 2 : 0)
             + (facility.favorite ? 1 : 0),
         }
@@ -675,6 +682,36 @@ export default function App() {
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility)), [recentFacilityIds, facilities])
   const compactCategories = CATEGORY_DEFINITIONS.filter((category) => category.value === selectedCategory)
+  const availableAreaDefinitions = selectedPark ? getAreaDefinitions(getParkById(selectedPark)) : []
+  const toggleListPark = (park: ParkId | '') => {
+    setSelectedPark((current) => {
+      const nextPark = current === park ? '' : park
+      if (nextPark !== current) setSelectedAreaIds([])
+      return nextPark
+    })
+  }
+  const toggleListArea = (areaId: AreaId) => {
+    setSelectedAreaIds((current) => current.includes(areaId)
+      ? current.filter((id) => id !== areaId)
+      : [...current, areaId])
+  }
+  const filterResultLabel = (() => {
+    const conditionCount = Number(Boolean(query.trim()))
+      + Number(Boolean(selectedPark))
+      + selectedAreaIds.length
+      + Number(Boolean(selectedCategory))
+      + Number(favoriteOnly)
+    if (conditionCount === 0) return `すべて・${filteredFacilities.length}件`
+    if (selectedAreaIds.length === 1 && !query.trim() && !favoriteOnly) {
+      const areaLabel = getAreaLabel(selectedAreaIds[0])
+      const categoryLabel = selectedCategory ? getCategoryDefinition(selectedCategory).label : ''
+      return `${areaLabel}${categoryLabel ? `・${categoryLabel}` : ''}　${filteredFacilities.length}件`
+    }
+    if (conditionCount === 1 && selectedPark) {
+      return `${selectedPark === 'land' ? 'ランド' : 'シー'}　${filteredFacilities.length}件`
+    }
+    return `絞り込み結果　${filteredFacilities.length}件`
+  })()
   const compactTitleProgress = Math.min(1, Math.max(0, (homeHeaderProgress - .7) / .3))
   const homeHeaderStyle = {
     '--home-hero-progress': homeHeaderProgress,
@@ -690,12 +727,34 @@ export default function App() {
     <section className="filter-panel" aria-label="絞り込み">
       <div className="filter-summary">
         <strong>絞り込み</strong>
-        <span>{selectedPark ? (selectedPark === '東京ディズニーランド' ? 'ランド' : 'シー') : 'すべて'}{selectedCategory ? `＋${selectedCategory}` : ''}・{filteredFacilities.length}件</span>
+        <span>{filterResultLabel}</span>
       </div>
-      <div className="filter-chip-row category-filter" aria-label="カテゴリで絞り込み">
-        <button type="button" className={`primary-park-filter${selectedPark === '' ? ' active' : ''}`} onClick={() => setSelectedPark('')}>すべて</button>
-        <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーランド' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーランド')}>ランド</button>
-        <button type="button" className={`primary-park-filter${selectedPark === '東京ディズニーシー' ? ' active' : ''}`} onClick={() => setSelectedPark('東京ディズニーシー')}>シー</button>
+      <div className="filter-section">
+        <span className="filter-section-label">テーマパーク</span>
+        <div className="filter-chip-row category-filter park-filter-options" aria-label="テーマパークで絞り込み">
+          <button type="button" className={`primary-park-filter${selectedPark === '' ? ' active' : ''}`} onClick={() => toggleListPark('')}>すべて</button>
+          <button type="button" className={`primary-park-filter${selectedPark === 'land' ? ' active' : ''}`} onClick={() => toggleListPark('land')}>東京ディズニーランド</button>
+          <button type="button" className={`primary-park-filter${selectedPark === 'sea' ? ' active' : ''}`} onClick={() => toggleListPark('sea')}>東京ディズニーシー</button>
+        </div>
+      </div>
+      <div className="filter-section filter-subsection">
+        <span className="filter-section-label">テーマポート・テーマランド</span>
+        {selectedPark ? (
+          <div className="area-filter-grid" aria-label="テーマポート・テーマランドで絞り込み">
+            {availableAreaDefinitions.map((area) => {
+              const selected = selectedAreaIds.includes(area.id)
+              return (
+                <button type="button" className={selected ? 'active' : ''} aria-pressed={selected} key={area.id} onClick={() => toggleListArea(area.id)}>
+                  <span aria-hidden="true">{selected ? '✓' : ''}</span>{area.label}
+                </button>
+              )
+            })}
+          </div>
+        ) : <p className="area-filter-hint">テーマパークを選択するとエリアを選べます</p>}
+      </div>
+      <div className="filter-section">
+        <span className="filter-section-label">カテゴリ</span>
+        <div className="filter-chip-row category-filter" aria-label="カテゴリで絞り込み">
         <button
           type="button"
           className="expand-chip"
@@ -710,14 +769,7 @@ export default function App() {
             <span aria-hidden="true">{category.icon}</span>{category.label}
           </button>
         ))}
-        <button
-          type="button"
-          className={`favorite-filter${favoriteOnly ? ' active' : ''}`}
-          onClick={() => setFavoriteOnly((current) => !current)}
-          aria-pressed={favoriteOnly}
-        >
-          <span aria-hidden="true">{favoriteOnly ? '★' : '☆'}</span>お気に入り
-        </button>
+        </div>
       </div>
       <AnimatedCollapse id="home-category-options" open={categoriesExpanded}>
         <div className="expanded-category-grid">
@@ -731,6 +783,19 @@ export default function App() {
           ))}
         </div>
       </AnimatedCollapse>
+      <div className="filter-section">
+        <span className="filter-section-label">その他</span>
+        <div className="filter-chip-row category-filter">
+          <button
+            type="button"
+            className={`favorite-filter${favoriteOnly ? ' active' : ''}`}
+            onClick={() => setFavoriteOnly((current) => !current)}
+            aria-pressed={favoriteOnly}
+          >
+            <span aria-hidden="true">{favoriteOnly ? '★' : '☆'}</span>お気に入り
+          </button>
+        </div>
+      </div>
     </section>
   )
 
@@ -854,6 +919,7 @@ export default function App() {
   const clearFilters = () => {
     setQuery('')
     setSelectedPark('')
+    setSelectedAreaIds([])
     setSelectedCategory('')
     setFavoriteOnly(false)
   }
@@ -1328,19 +1394,19 @@ export default function App() {
         ) : filteredFacilities.length === 0 ? (
           <div className="empty search-empty">
             <span className="empty-icon" aria-hidden="true">⌕</span>
-            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedCategory || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
+            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
             {query ? (
               <div className="search-empty-copy">
                 <p>検索キーワードを変更して、もう一度お試しください</p>
                 <p className="search-empty-query">入力した検索語：<strong>{query}</strong></p>
               </div>
             ) : (
-              <p>{selectedPark || selectedCategory || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
+              <p>{selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
             )}
             <div className="empty-actions">
               {query
                 ? <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
-                : (selectedPark || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
+                : (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
               <button type="button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>施設を追加</button>
             </div>
             {query && recommendedFacilities.length > 0 && (
