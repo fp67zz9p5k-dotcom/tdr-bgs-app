@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
@@ -128,16 +128,63 @@ const searchableText = (facility: Facility) =>
     facility.notes,
   ].join(' ')
 
-const normalizeSearchText = (value: string) =>
+const normalizeSearchCharacter = (value: string) =>
   value
     .normalize('NFKC')
     .toLocaleLowerCase('ja')
     .replace(/[\u30a1-\u30f6]/g, (character) =>
       String.fromCharCode(character.charCodeAt(0) - 0x60),
     )
+    .replace(/[・.．。、,\s_\-‐‑‒–—―−]/gu, '')
+
+const normalizeSearchText = (value: string) =>
+  Array.from(value, normalizeSearchCharacter)
+    .join('')
+    .replace(/号$/u, '')
 
 const getSearchKeywords = (value: string) =>
-  normalizeSearchText(value).trim().split(/\s+/).filter(Boolean)
+  value
+    .normalize('NFKC')
+    .trim()
+    .split(/\s+/)
+    .map(normalizeSearchText)
+    .filter(Boolean)
+
+type NormalizedTextMap = {
+  normalized: string
+  sourceIndexes: number[]
+}
+
+const createNormalizedTextMap = (value: string): NormalizedTextMap => {
+  let normalized = ''
+  const sourceIndexes: number[] = []
+  let sourceIndex = 0
+
+  for (const character of value) {
+    const normalizedCharacter = normalizeSearchCharacter(character)
+    normalized += normalizedCharacter
+    sourceIndexes.push(...Array.from(normalizedCharacter, () => sourceIndex))
+    sourceIndex += character.length
+  }
+
+  if (normalized.endsWith('号')) {
+    normalized = normalized.slice(0, -1)
+    sourceIndexes.pop()
+  }
+
+  return { normalized, sourceIndexes }
+}
+
+const findNormalizedRange = (text: string, keyword: string) => {
+  if (!keyword) return null
+  const mapped = createNormalizedTextMap(text)
+  const normalizedIndex = mapped.normalized.indexOf(keyword)
+  if (normalizedIndex < 0) return null
+  const start = mapped.sourceIndexes[normalizedIndex] ?? 0
+  const lastSourceIndex = mapped.sourceIndexes[normalizedIndex + keyword.length - 1] ?? start
+  const lastCharacter = Array.from(text.slice(lastSourceIndex))[0] ?? ''
+  return { start, end: lastSourceIndex + lastCharacter.length }
+}
 
 type FacilitySearchMatch = {
   facility: Facility
@@ -184,12 +231,11 @@ const includesKeyword = (values: string[], keyword: string) =>
 
 const createBodySnippet = (facility: Facility, keywords: string[]) => {
   for (const { field, text } of getFacilityBodyTexts(facility)) {
-    const normalized = normalizeSearchText(text)
-    const positions = keywords
-      .map((keyword) => normalized.indexOf(keyword))
-      .filter((position) => position >= 0)
-    if (!positions.length) continue
-    const hitAt = Math.min(...positions)
+    const ranges = keywords
+      .map((keyword) => findNormalizedRange(text, keyword))
+      .filter((range): range is { start: number; end: number } => range !== null)
+    if (!ranges.length) continue
+    const hitAt = Math.min(...ranges.map(({ start }) => start))
     const sentenceStart = Math.max(
       text.lastIndexOf('。', Math.max(0, hitAt - 1)),
       text.lastIndexOf('！', Math.max(0, hitAt - 1)),
@@ -265,34 +311,55 @@ const createFacilitySearchMatch = (facility: Facility, keywords: string[]): Faci
   }
 }
 
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
 function HighlightedText({ text, query }: { text: string; query: string }) {
-  const terms = Array.from(new Set(query.normalize('NFKC').trim().split(/\s+/).filter(Boolean)))
-    .flatMap((term) => {
-      const hiragana = term.replace(/[\u30a1-\u30f6]/g, (character) =>
-        String.fromCharCode(character.charCodeAt(0) - 0x60),
-      )
-      const katakana = hiragana.replace(/[\u3041-\u3096]/g, (character) =>
-        String.fromCharCode(character.charCodeAt(0) + 0x60),
-      )
-      return [term, hiragana, katakana]
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length)
-
+  const terms = Array.from(new Set(getSearchKeywords(query)))
   if (!terms.length) return <>{text}</>
-  const matcher = new RegExp(`(${terms.map(escapeRegExp).join('|')})`, 'giu')
-  const parts = text.split(matcher)
+  const ranges = terms
+    .map((term) => findNormalizedRange(text, term))
+    .filter((range): range is { start: number; end: number } => range !== null)
+    .sort((a, b) => a.start - b.start)
+    .reduce<{ start: number; end: number }[]>((merged, range) => {
+      const previous = merged.at(-1)
+      if (previous && range.start <= previous.end) {
+        previous.end = Math.max(previous.end, range.end)
+      } else {
+        merged.push({ ...range })
+      }
+      return merged
+    }, [])
+
+  if (!ranges.length) return <>{text}</>
+  const parts: ReactNode[] = []
+  let cursor = 0
+  ranges.forEach((range, index) => {
+    if (range.start > cursor) parts.push(text.slice(cursor, range.start))
+    parts.push(
+      <mark className="search-match" key={`${range.start}-${range.end}-${index}`}>
+        {text.slice(range.start, range.end)}
+      </mark>,
+    )
+    cursor = range.end
+  })
+  if (cursor < text.length) parts.push(text.slice(cursor))
   return (
-    <>
-      {parts.map((part, index) =>
-        terms.some((term) => normalizeSearchText(term) === normalizeSearchText(part))
-          ? <mark className="search-match" key={`${part}-${index}`}>{part}</mark>
-          : part,
-      )}
-    </>
+    <>{parts}</>
   )
+}
+
+const getLevenshteinDistance = (left: string, right: string) => {
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index)
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    let diagonal = previous[0]
+    previous[0] = leftIndex
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const above = previous[rightIndex]
+      previous[rightIndex] = left[leftIndex - 1] === right[rightIndex - 1]
+        ? diagonal
+        : Math.min(diagonal, previous[rightIndex - 1], above) + 1
+      diagonal = above
+    }
+  }
+  return previous[right.length]
 }
 
 type ThemePreference = 'light' | 'dark' | 'system'
@@ -440,6 +507,32 @@ export default function App() {
     () => new Map(rankedSearchMatches.map((match) => [match.facility.id, match])),
     [rankedSearchMatches],
   )
+  const didYouMeanFacilities = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(query.trim())
+    if (normalizedQuery.length <= 1 || rankedSearchMatches.length > 0) return []
+
+    const uniqueFacilities = Array.from(
+      new Map(facilities.map((facility) => [normalizeSearchText(facility.name), facility])).entries(),
+    )
+    return uniqueFacilities
+      .map(([normalizedName, facility]) => {
+        const distance = getLevenshteinDistance(normalizedQuery, normalizedName)
+        const longestLength = Math.max(normalizedQuery.length, normalizedName.length)
+        const similarity = longestLength > 0 ? 1 - (distance / longestLength) : 0
+        return { facility, distance, similarity, normalizedName }
+      })
+      .filter(({ distance, similarity, normalizedName }) => {
+        const sharesFirstCharacter = normalizedName[0] === normalizedQuery[0]
+        if (normalizedQuery.length <= 3) return sharesFirstCharacter && distance <= 1 && similarity >= .72
+        if (normalizedQuery.length <= 5) return sharesFirstCharacter && distance <= 2 && similarity >= .6
+        return distance <= 3 && similarity >= .67
+      })
+      .sort((a, b) => a.distance - b.distance
+        || b.similarity - a.similarity
+        || a.facility.name.localeCompare(b.facility.name, 'ja'))
+      .slice(0, 3)
+      .map(({ facility }) => facility)
+  }, [facilities, query, rankedSearchMatches.length])
   const filteredFacilities = useMemo(() => {
     const searched = rankedSearchMatches.map((match) => match.facility)
     const parkFiltered = selectedPark
@@ -611,6 +704,13 @@ export default function App() {
     setSearchFocused(false)
     setActiveSuggestionIndex(-1)
     openFacility(facility, 'home')
+  }
+
+  const selectDidYouMean = (facility: Facility) => {
+    setQuery(facility.name)
+    setSearchFocused(false)
+    setActiveSuggestionIndex(-1)
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
   }
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -1009,6 +1109,18 @@ export default function App() {
               <p className="search-empty-query">入力した検索語：<strong>{query.trim()}</strong></p>
               <p>検索キーワードを変更して、もう一度お試しください</p>
             </div>
+            {didYouMeanFacilities.length > 0 && (
+              <div className="did-you-mean" aria-label="もしかして候補">
+                <span>もしかして：</span>
+                <div>
+                  {didYouMeanFacilities.map((facility) => (
+                    <button type="button" key={facility.id} onClick={() => selectDidYouMean(facility)}>
+                      {facility.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="empty-actions">
               <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
             </div>

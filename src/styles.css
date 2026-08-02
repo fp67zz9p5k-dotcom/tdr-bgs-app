@@ -453,6 +453,38 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   color: var(--text-secondary, #53666e);
 }
 .search-empty-query strong { color: var(--text-primary, #314852); font-weight: 900; }
+.did-you-mean {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  color: var(--text-secondary, #53666e);
+  font-size: 12px;
+  font-weight: 700;
+}
+.did-you-mean > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+.did-you-mean button {
+  max-width: 100%;
+  padding: 7px 11px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #b58b4c) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-gold, #b58b4c) 9%, var(--surface-2, #fff));
+  color: var(--text-primary, #314852);
+  font: inherit;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.did-you-mean button:active {
+  transform: scale(.97);
+  background: color-mix(in srgb, var(--accent-gold, #b58b4c) 17%, var(--surface-2, #fff));
+}
 .empty-actions .search-clear-button {
   border-color: var(--accent-gold, #b58b4c);
   background: var(--surface-2, #fff);
