@@ -16,7 +16,6 @@ import {
   saveRelationshipGraphSettings,
 } from './db'
 import { RelationshipGraph } from './RelationshipGraph'
-import { AnimatedCollapse } from './AnimatedCollapse'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
 import { getAreaDefinitions, getAreaId, getAreaLabel, getParkById, getParkId, isOfficialArea, normalizeAreaName, PARK_AREAS, type AreaId, type ParkId } from './areas'
@@ -375,7 +374,11 @@ export default function App() {
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
   const [selectedAreaIds, setSelectedAreaIds] = useState<AreaId[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
-  const [categoriesExpanded, setCategoriesExpanded] = useState(false)
+  const [draftPark, setDraftPark] = useState<ParkId | ''>('')
+  const [draftAreaIds, setDraftAreaIds] = useState<AreaId[]>([])
+  const [draftCategory, setDraftCategory] = useState<Category | ''>('')
+  const [draftFavoriteOnly, setDraftFavoriteOnly] = useState(false)
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
@@ -393,6 +396,7 @@ export default function App() {
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const settingsSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const filterSheetDragStartRef = useRef<{ x: number; y: number } | null>(null)
   const hasVisitedNonHomeScreenRef = useRef(false)
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
@@ -513,6 +517,44 @@ export default function App() {
       })
     }
   }, [closeSettings, settingsOpen])
+
+  useEffect(() => {
+    if (!filterSheetOpen) return
+    const scrollY = window.scrollY
+    const bodyStyle = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    }
+    const htmlOverflow = document.documentElement.style.overflow
+    homePageRef.current?.setAttribute('inert', '')
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFilterSheetOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      homePageRef.current?.removeAttribute('inert')
+      document.body.style.position = bodyStyle.position
+      document.body.style.top = bodyStyle.top
+      document.body.style.left = bodyStyle.left
+      document.body.style.right = bodyStyle.right
+      document.body.style.width = bodyStyle.width
+      document.body.style.overflow = bodyStyle.overflow
+      document.documentElement.style.overflow = htmlOverflow
+      window.scrollTo(0, scrollY)
+    }
+  }, [filterSheetOpen])
 
   useEffect(() => {
     if (screen.page !== 'home') {
@@ -681,19 +723,46 @@ export default function App() {
   const recentFacilities = useMemo(() => recentFacilityIds
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility)), [recentFacilityIds, facilities])
-  const compactCategories = CATEGORY_DEFINITIONS.filter((category) => category.value === selectedCategory)
-  const availableAreaDefinitions = selectedPark ? getAreaDefinitions(getParkById(selectedPark)) : []
-  const toggleListPark = (park: ParkId | '') => {
-    setSelectedPark((current) => {
+  const availableAreaDefinitions = draftPark ? getAreaDefinitions(getParkById(draftPark)) : []
+  const toggleDraftPark = (park: ParkId | '') => {
+    setDraftPark((current) => {
       const nextPark = current === park ? '' : park
-      if (nextPark !== current) setSelectedAreaIds([])
+      if (nextPark !== current) setDraftAreaIds([])
       return nextPark
     })
   }
-  const toggleListArea = (areaId: AreaId) => {
-    setSelectedAreaIds((current) => current.includes(areaId)
+  const toggleDraftArea = (areaId: AreaId) => {
+    setDraftAreaIds((current) => current.includes(areaId)
       ? current.filter((id) => id !== areaId)
       : [...current, areaId])
+  }
+  const resetDraftFilters = () => {
+    setQuery('')
+    setDraftPark('')
+    setDraftAreaIds([])
+    setDraftCategory('')
+    setDraftFavoriteOnly(false)
+  }
+  const applyDraftFilters = () => {
+    setSelectedPark(draftPark)
+    setSelectedAreaIds(draftAreaIds)
+    setSelectedCategory(draftCategory)
+    setFavoriteOnly(draftFavoriteOnly)
+    setFilterSheetOpen(false)
+  }
+  const handleFilterSheetTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
+    if (event.touches.length !== 1) return
+    const touch = event.touches[0]
+    filterSheetDragStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+  const handleFilterSheetTouchEnd = (event: ReactTouchEvent<HTMLElement>) => {
+    const start = filterSheetDragStartRef.current
+    filterSheetDragStartRef.current = null
+    if (!start || event.changedTouches.length !== 1) return
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+    if (deltaY > 72 && deltaY > Math.abs(deltaX) * 1.25) setFilterSheetOpen(false)
   }
   const filterResultLabel = (() => {
     const conditionCount = Number(Boolean(query.trim()))
@@ -723,8 +792,27 @@ export default function App() {
     '--home-search-padding': `${16 - (compactTitleProgress * 3)}px`,
     '--home-filter-padding': `${11 - (compactTitleProgress * 3)}px`,
   } as CSSProperties
+  const activeFilterChips = [
+    selectedPark ? (selectedPark === 'land' ? 'ランド' : 'シー') : '',
+    ...selectedAreaIds.map(getAreaLabel),
+    selectedCategory ? getCategoryDefinition(selectedCategory).label : '',
+    favoriteOnly ? 'お気に入り' : '',
+  ].filter(Boolean)
+  const homeFilterTrigger = (
+    <section className="filter-trigger-panel" aria-label="適用中の絞り込み">
+      <button type="button" className="open-filter-sheet" onClick={() => setFilterSheetOpen(true)} aria-haspopup="dialog" aria-expanded={filterSheetOpen}>
+        <span aria-hidden="true">≡</span>絞り込み
+        <small>{filteredFacilities.length}件</small>
+      </button>
+      {activeFilterChips.length > 0 && (
+        <div className="active-filter-chips" aria-label="適用中の条件">
+          {activeFilterChips.map((label) => <span key={label}>{label}</span>)}
+        </div>
+      )}
+    </section>
+  )
   const homeFilterPanel = (
-    <section className="filter-panel" aria-label="絞り込み">
+    <section className="filter-panel filter-sheet-panel" aria-label="絞り込み条件">
       <div className="filter-summary">
         <strong>絞り込み</strong>
         <span>{filterResultLabel}</span>
@@ -732,19 +820,19 @@ export default function App() {
       <div className="filter-section">
         <span className="filter-section-label">テーマパーク</span>
         <div className="filter-chip-row category-filter park-filter-options" aria-label="テーマパークで絞り込み">
-          <button type="button" className={`primary-park-filter${selectedPark === '' ? ' active' : ''}`} onClick={() => toggleListPark('')}>すべて</button>
-          <button type="button" className={`primary-park-filter${selectedPark === 'land' ? ' active' : ''}`} onClick={() => toggleListPark('land')}>東京ディズニーランド</button>
-          <button type="button" className={`primary-park-filter${selectedPark === 'sea' ? ' active' : ''}`} onClick={() => toggleListPark('sea')}>東京ディズニーシー</button>
+          <button type="button" className={`primary-park-filter${draftPark === '' ? ' active' : ''}`} onClick={() => toggleDraftPark('')}>すべて</button>
+          <button type="button" className={`primary-park-filter${draftPark === 'land' ? ' active' : ''}`} onClick={() => toggleDraftPark('land')}>東京ディズニーランド</button>
+          <button type="button" className={`primary-park-filter${draftPark === 'sea' ? ' active' : ''}`} onClick={() => toggleDraftPark('sea')}>東京ディズニーシー</button>
         </div>
       </div>
       <div className="filter-section filter-subsection">
         <span className="filter-section-label">テーマポート・テーマランド</span>
-        {selectedPark ? (
+        {draftPark ? (
           <div className="area-filter-grid" aria-label="テーマポート・テーマランドで絞り込み">
             {availableAreaDefinitions.map((area) => {
-              const selected = selectedAreaIds.includes(area.id)
+              const selected = draftAreaIds.includes(area.id)
               return (
-                <button type="button" className={selected ? 'active' : ''} aria-pressed={selected} key={area.id} onClick={() => toggleListArea(area.id)}>
+                <button type="button" className={selected ? 'active' : ''} aria-pressed={selected} key={area.id} onClick={() => toggleDraftArea(area.id)}>
                   <span aria-hidden="true">{selected ? '✓' : ''}</span>{area.label}
                 </button>
               )
@@ -754,45 +842,27 @@ export default function App() {
       </div>
       <div className="filter-section">
         <span className="filter-section-label">カテゴリ</span>
-        <div className="filter-chip-row category-filter" aria-label="カテゴリで絞り込み">
-        <button
-          type="button"
-          className="expand-chip"
-          onClick={() => setCategoriesExpanded((current) => !current)}
-          aria-expanded={categoriesExpanded}
-          aria-controls="home-category-options"
-        >
-          {categoriesExpanded ? 'カテゴリ －' : 'カテゴリ ＋'}
-        </button>
-        {compactCategories.map((category) => (
-          <button type="button" className={selectedCategory === category.value ? 'active' : ''} key={category.id} onClick={() => setSelectedCategory('')}>
-            <span aria-hidden="true">{category.icon}</span>{category.label}
-          </button>
-        ))}
-        </div>
-      </div>
-      <AnimatedCollapse id="home-category-options" open={categoriesExpanded}>
         <div className="expanded-category-grid">
-          <button type="button" className={selectedCategory === '' ? 'active' : ''} onClick={() => { setSelectedCategory(''); setCategoriesExpanded(false) }}>
+          <button type="button" className={draftCategory === '' ? 'active' : ''} onClick={() => setDraftCategory('')}>
             カテゴリすべて
           </button>
           {CATEGORY_DEFINITIONS.map((category) => (
-            <button type="button" className={selectedCategory === category.value ? 'active' : ''} key={category.id} onClick={() => { setSelectedCategory(category.value); setCategoriesExpanded(false) }}>
+            <button type="button" className={draftCategory === category.value ? 'active' : ''} key={category.id} onClick={() => setDraftCategory((current) => current === category.value ? '' : category.value)}>
               <span aria-hidden="true">{category.icon}</span>{category.label}
             </button>
           ))}
         </div>
-      </AnimatedCollapse>
+      </div>
       <div className="filter-section">
         <span className="filter-section-label">その他</span>
         <div className="filter-chip-row category-filter">
           <button
             type="button"
-            className={`favorite-filter${favoriteOnly ? ' active' : ''}`}
-            onClick={() => setFavoriteOnly((current) => !current)}
-            aria-pressed={favoriteOnly}
+            className={`favorite-filter${draftFavoriteOnly ? ' active' : ''}`}
+            onClick={() => setDraftFavoriteOnly((current) => !current)}
+            aria-pressed={draftFavoriteOnly}
           >
-            <span aria-hidden="true">{favoriteOnly ? '★' : '☆'}</span>お気に入り
+            <span aria-hidden="true">{draftFavoriteOnly ? '★' : '☆'}</span>お気に入り
           </button>
         </div>
       </div>
@@ -922,6 +992,10 @@ export default function App() {
     setSelectedAreaIds([])
     setSelectedCategory('')
     setFavoriteOnly(false)
+    setDraftPark('')
+    setDraftAreaIds([])
+    setDraftCategory('')
+    setDraftFavoriteOnly(false)
   }
 
   const clearSearch = () => {
@@ -1253,6 +1327,27 @@ export default function App() {
         </div>,
         document.body,
       )}
+      {createPortal(
+        <div className={`filter-sheet-layer${filterSheetOpen ? ' is-open' : ''}`} aria-hidden={!filterSheetOpen}>
+          <button type="button" className="filter-sheet-backdrop" aria-label="絞り込みを閉じる" tabIndex={filterSheetOpen ? 0 : -1} onClick={() => setFilterSheetOpen(false)} />
+          <div
+            className="filter-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="絞り込み"
+          >
+            <button type="button" className="filter-sheet-handle" aria-label="絞り込みを閉じる" tabIndex={filterSheetOpen ? 0 : -1} onClick={() => setFilterSheetOpen(false)} onTouchStart={handleFilterSheetTouchStart} onTouchEnd={handleFilterSheetTouchEnd}>
+              <span aria-hidden="true" />
+            </button>
+            <div className="filter-sheet-scroll">{homeFilterPanel}</div>
+            <footer className="filter-sheet-actions">
+              <button type="button" className="filter-sheet-reset" onClick={resetDraftFilters}>リセット</button>
+              <button type="button" className="filter-sheet-apply" onClick={applyDraftFilters}>適用</button>
+            </footer>
+          </div>
+        </div>,
+        document.body,
+      )}
       <section className={`content home-content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <div className="sticky-header-group">
         <nav className={`home-compact-title${compactTitleProgress > 0 ? ' is-visible' : ''}`} aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
@@ -1311,7 +1406,7 @@ export default function App() {
             </div>
           )}
         </div>
-        {!hasNoSearchResults && homeFilterPanel}
+        {!hasNoSearchResults && homeFilterTrigger}
         </div>
         {hasNoSearchResults ? (
           <div className="empty search-empty search-empty-exclusive">
