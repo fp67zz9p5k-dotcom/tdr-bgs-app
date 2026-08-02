@@ -17,6 +17,7 @@ import { RelationshipGraph } from './RelationshipGraph'
 import { AnimatedCollapse } from './AnimatedCollapse'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
+import { isOfficialArea, normalizeAreaName, PARK_AREAS } from './areas'
 import {
   createProp,
   createTextEntry,
@@ -89,30 +90,7 @@ const readMapReturnState = (): MapReturnState | null => {
     return null
   }
 }
-const officialAreaOrder: Record<Park, string[]> = {
-  東京ディズニーランド: [
-    'ワールドバザール',
-    'アドベンチャーランド',
-    'ウエスタンランド',
-    'クリッターカントリー',
-    'ファンタジーランド',
-    'トゥーンタウン',
-    'トゥモローランド',
-    'パーク外',
-  ],
-  東京ディズニーシー: [
-    'メディテレーニアンハーバー',
-    'アメリカンウォーターフロント',
-    'ポートディスカバリー',
-    'ロストリバーデルタ',
-    'ファンタジースプリングス',
-    'アラビアンコースト',
-    'マーメイドラグーン',
-    'ミステリアスアイランド',
-    'パークエントランス',
-    'パーク外',
-  ],
-}
+const officialAreaOrder = PARK_AREAS
 
 const searchableText = (facility: Facility) =>
   [
@@ -2240,6 +2218,7 @@ type FacilityDetailProps = {
 
 function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave, onDelete }: FacilityDetailProps) {
   const [facility, setFacility] = useState(initialFacility)
+  const [parkSelected, setParkSelected] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [compactHeader, setCompactHeader] = useState(false)
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
@@ -2250,12 +2229,18 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
     () => JSON.stringify(facility) !== initialFacilitySnapshot.current,
     [facility],
   )
-  const canSave = Boolean(facility.name.trim()) && hasChanges && !saving
+  const canSave = Boolean(facility.name.trim() && facility.area.trim() && parkSelected) && hasChanges && !saving
+  const areaOptions = PARK_AREAS[facility.park]
+  const hasLegacyArea = Boolean(facility.area) && !isOfficialArea(facility.area, facility.park)
   const bidirectionalRelatedIds = new Set([
     ...getBidirectionalRelatedFacilityIds(allFacilities, facility.id),
     ...facility.relatedFacilityIds,
   ])
   const update = <K extends keyof Facility>(key: K, value: Facility[K]) => setFacility((current) => ({ ...current, [key]: value }))
+  const changePark = (value: Park) => {
+    setParkSelected(true)
+    setFacility((current) => ({ ...current, park: value, area: '' }))
+  }
 
   useEffect(() => {
     const updateHeader = () => setCompactHeader(window.scrollY > 34)
@@ -2294,7 +2279,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
       await onSave({
         ...facility,
         name: facility.name.trim(),
-        area: facility.area.trim(),
+        area: normalizeAreaName(facility.area, facility.park),
         relatedFacilityIds,
       })
     } finally {
@@ -2326,7 +2311,31 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
           <h2>基本情報</h2>
           <div className="field-grid">
             <label><span>タイトル <b>必須</b></span><input value={facility.name} onChange={(e) => update('name', e.target.value)} required /></label>
-            <label><span>エリア</span><input value={facility.area} onChange={(e) => update('area', e.target.value)} placeholder="例：アドベンチャーランド" /></label>
+            <label>
+              <span>パーク <b>必須</b></span>
+              <select
+                value={parkSelected ? facility.park : ''}
+                onChange={(event) => changePark(event.target.value as Park)}
+                required
+              >
+                <option value="" disabled>パークを選択</option>
+                {parks.map((item) => <option value={item} key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>エリア <b>必須</b></span>
+              <select
+                value={facility.area}
+                onChange={(event) => update('area', event.target.value)}
+                disabled={!parkSelected}
+                required
+              >
+                <option value="">{parkSelected ? 'エリアを選択' : '先にパークを選択'}</option>
+                {hasLegacyArea && <option value={facility.area}>現在の値：{facility.area}</option>}
+                {areaOptions.map((area) => <option value={area} key={area}>{area}</option>)}
+              </select>
+              {hasLegacyArea && <small className="field-note">現在の値は候補外です。データは保持されていますが、必要に応じてエリアを選び直してください。</small>}
+            </label>
           </div>
           <fieldset>
             <legend>カテゴリ</legend>
@@ -2345,7 +2354,6 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
           park={facility.park}
           latitude={facility.latitude}
           longitude={facility.longitude}
-          onParkChange={(park) => update('park', park)}
           onChange={(latitude, longitude) => setFacility((current) => ({ ...current, latitude, longitude }))}
         />
 
@@ -2426,13 +2434,11 @@ function MapCoordinateEditor({
   park,
   latitude,
   longitude,
-  onParkChange,
   onChange,
 }: {
   park: Park
   latitude: number | null
   longitude: number | null
-  onParkChange: (park: Park) => void
   onChange: (latitude: number | null, longitude: number | null) => void
 }) {
   const updateNumber = (axis: 'latitude' | 'longitude', value: string) => {
@@ -2448,16 +2454,6 @@ function MapCoordinateEditor({
   return (
     <section className="form-section map-coordinate-section">
       <h2>マップ位置</h2>
-      <fieldset>
-        <legend>パーク</legend>
-        <div className="park-switch">
-          {parks.map((item) => (
-            <button type="button" className={park === item ? 'active' : ''} key={item} onClick={() => onParkChange(item)}>
-              {item === '東京ディズニーランド' ? 'ランド' : 'シー'}
-            </button>
-          ))}
-        </div>
-      </fieldset>
       <p className="field-note">実際の地図をタップして施設の位置を設定してください。地図の表示にはインターネット接続が必要です。</p>
       <LeafletCanvas
         park={park}

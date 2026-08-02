@@ -10,6 +10,7 @@ import {
   type RelationshipGraphSettings,
   type TextEntry,
 } from './types'
+import { normalizeAreaName } from './areas'
 import { normalizeCategory } from './categories'
 
 const DB_NAME = 'tdr-archive'
@@ -90,7 +91,9 @@ const migrateFacility = (raw: Facility | LegacyFacility): Facility => {
     schemaVersion: 10,
     id: value.id,
     name: typeof value.name === 'string' ? value.name : '',
-    area: typeof value.area === 'string' ? value.area : '',
+    area: typeof value.area === 'string'
+      ? normalizeAreaName(value.area, value.park === '東京ディズニーシー' ? '東京ディズニーシー' : '東京ディズニーランド')
+      : '',
     category: normalizeCategory(value.category),
     park: value.park === '東京ディズニーシー' ? '東京ディズニーシー' : '東京ディズニーランド',
     latitude: typeof value.latitude === 'number' && value.latitude >= -90 && value.latitude <= 90 ? value.latitude : null,
