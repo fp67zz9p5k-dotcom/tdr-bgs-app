@@ -478,7 +478,7 @@ function RelationshipGraphInner({
   const relationshipPageRef = useRef<HTMLElement>(null)
   const scrollFrameRef = useRef(0)
   const relationshipPageTopRef = useRef(0)
-  const [headerProgress, setHeaderProgress] = useState(0)
+  const [isCompactHeader, setIsCompactHeader] = useState(false)
 
   useEffect(() => {
     const measurePageTop = () => {
@@ -490,11 +490,10 @@ function RelationshipGraphInner({
     const updateHeaderProgress = () => {
       cancelAnimationFrame(scrollFrameRef.current)
       scrollFrameRef.current = requestAnimationFrame(() => {
-        const nextProgress = Math.min(
-          1,
-          Math.max(0, (window.scrollY - relationshipPageTopRef.current) / 170),
-        )
-        setHeaderProgress((current) => Math.abs(current - nextProgress) < .002 ? current : nextProgress)
+        const scrollOffset = window.scrollY - relationshipPageTopRef.current
+        // Use separate enter/exit thresholds so iOS scroll anchoring and elastic
+        // scrolling cannot repeatedly toggle the compact sticky state.
+        setIsCompactHeader((current) => current ? scrollOffset > 72 : scrollOffset > 104)
       })
     }
 
@@ -537,6 +536,7 @@ function RelationshipGraphInner({
     if (fallbackCenter) setHistory([fallbackCenter.id])
   }
 
+  const headerProgress = isCompactHeader ? 1 : 0
   const relationshipPageStyle = {
     '--relationship-compact-progress': headerProgress,
     '--relationship-large-opacity': 1 - headerProgress,

@@ -433,6 +433,7 @@
     padding-bottom: var(--relationship-header-bottom-padding, 12px);
     background-clip: padding-box;
     box-shadow: 0 8px 22px rgba(8, 26, 38, var(--relationship-header-shadow-opacity, 0));
+    overflow-anchor: none;
   }
 
   .relationship-header-copy {
@@ -505,6 +506,7 @@
     top: calc(env(safe-area-inset-top) + 104px);
     padding-top: 5px;
     background: var(--app-bg, #f4f0e8);
+    overflow-anchor: none;
   }
 
   .center-facility-card {
