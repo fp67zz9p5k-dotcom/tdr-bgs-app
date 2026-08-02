@@ -422,23 +422,118 @@
   }
 }
 
-/* Mobile Large Title -> Compact Header. The existing header, center card and
- * category overview remain the same DOM; only their dimensions change. */
+/* The compact relationship controls are portaled to body so their fixed
+ * position is independent from the scrolling relationship document. */
+.relationship-fixed-header {
+  display: none;
+}
+
 @media (max-width: 767px) {
-  .relationship-header {
-    position: sticky;
-    z-index: 100;
+  .relationship-fixed-header {
+    position: fixed;
+    z-index: 500;
     top: 0;
-    padding-top: calc(env(safe-area-inset-top) + var(--relationship-header-top-padding, 14px));
-    padding-bottom: var(--relationship-header-bottom-padding, 12px);
-    background-clip: padding-box;
-    box-shadow: 0 8px 22px rgba(8, 26, 38, var(--relationship-header-shadow-opacity, 0));
+    right: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: calc(env(safe-area-inset-top) + 4px) 12px 7px;
+    border-bottom: 1px solid var(--border-color, #d9b77f55);
+    background: var(--header-bg, #153e5c);
+    box-shadow: 0 8px 22px rgba(8, 26, 38, .2);
     overflow-anchor: none;
+  }
+
+  .relationship-fixed-titlebar {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  .relationship-fixed-titlebar .back-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .relationship-fixed-titlebar > strong {
+    grid-column: 2;
+    overflow: hidden;
+    color: #f7f3e8;
+    font-family: Georgia, "Yu Mincho", serif;
+    font-size: 15px;
+    line-height: 1.25;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .relationship-fixed-header .relationship-mode-switch {
+    width: 100%;
+    margin: 0;
+  }
+
+  .relationship-fixed-header .relationship-mode-switch button {
+    min-height: 34px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .relationship-fixed-center-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    height: 76px;
+    min-height: 76px;
+    animation: none;
+  }
+
+  .relationship-fixed-center-card > img,
+  .relationship-fixed-center-card > .relationship-placeholder {
+    width: 64px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .relationship-fixed-center-card .center-card-copy {
+    gap: 2px;
+    padding: 6px 9px;
+  }
+
+  .relationship-fixed-center-card .center-card-copy strong {
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .relationship-fixed-center-card .center-card-related-count {
+    max-height: 16px;
+    opacity: 1;
+  }
+
+  .relationship-fixed-header .relationship-category-overview {
+    margin: 0;
+    padding: 4px;
+  }
+
+  .relationship-fixed-header .relationship-category-overview button {
+    min-height: 27px;
+    padding: 3px 6px;
+  }
+
+  .relationship-header {
+    position: relative;
+    z-index: 1;
+    padding-top: calc(env(safe-area-inset-top) + 14px);
+    padding-bottom: 12px;
+    background-clip: padding-box;
+    box-shadow: none;
   }
 
   .relationship-header-copy {
     position: relative;
-    height: var(--relationship-title-height, 48px);
+    height: 48px;
     min-width: 0;
   }
 
@@ -454,8 +549,8 @@
   }
 
   .relationship-large-title {
-    opacity: var(--relationship-large-opacity, 1);
-    transform: var(--relationship-large-transform, translateY(0) scale(1));
+    opacity: 1;
+    transform: none;
   }
 
   .relationship-large-title h1,
@@ -483,7 +578,7 @@
   }
 
   .relationship-mode-switch button {
-    min-height: var(--relationship-mode-height, 42px);
+    min-height: 42px;
     transition: background-color 200ms ease, color 200ms ease;
   }
 
@@ -501,24 +596,22 @@
   }
 
   .center-node-stage {
-    position: sticky;
-    z-index: 90;
-    top: calc(env(safe-area-inset-top) + 104px);
+    position: relative;
+    z-index: 1;
     padding-top: 5px;
     background: var(--app-bg, #f4f0e8);
-    overflow-anchor: none;
   }
 
   .center-facility-card {
-    grid-template-columns: var(--relationship-center-image-width, 126px) minmax(0, 1fr);
-    height: var(--relationship-center-card-height, 154px);
+    grid-template-columns: 126px minmax(0, 1fr);
+    height: 154px;
     min-height: 0;
     transition: transform 220ms ease, box-shadow 220ms ease;
   }
 
   .center-facility-card > img,
   .center-facility-card > .relationship-placeholder {
-    width: var(--relationship-center-image-width, 126px);
+    width: 126px;
     height: 100%;
     min-height: 0;
   }
@@ -532,7 +625,7 @@
   .center-card-copy strong {
     display: -webkit-box;
     overflow: hidden;
-    font-size: var(--relationship-center-name-size, 17px);
+    font-size: 17px;
     line-height: 1.25;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -541,8 +634,8 @@
   .center-card-copy > small,
   .center-card-area {
     overflow: hidden;
-    max-height: var(--relationship-optional-line-height, 18px);
-    opacity: var(--relationship-large-opacity, 1);
+    max-height: 18px;
+    opacity: 1;
   }
 
   .center-card-category {
@@ -553,8 +646,8 @@
 
   .center-card-related-count {
     overflow: hidden;
-    max-height: var(--relationship-related-line-height, 0px);
-    opacity: var(--relationship-compact-opacity, 0);
+    max-height: 0;
+    opacity: 0;
     color: #d9b77f !important;
     font-size: 10px !important;
     font-weight: 800;
@@ -571,14 +664,14 @@
   }
 
   .center-tree-trunk {
-    height: var(--relationship-tree-height, 30px);
+    height: 30px;
     min-height: 0;
-    opacity: var(--relationship-large-opacity, 1);
+    opacity: 1;
     overflow: hidden;
   }
 
   .relationship-category-group {
-    scroll-margin-top: calc(env(safe-area-inset-top) + 252px);
+    scroll-margin-top: calc(env(safe-area-inset-top) + 224px);
   }
 
   .relationship-group-heading {
