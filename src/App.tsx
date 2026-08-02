@@ -574,11 +574,9 @@ export default function App() {
     '--home-hero-translate': `${homeHeaderProgress * -10}px`,
     '--home-hero-scale': 1 - (homeHeaderProgress * .012),
     '--home-compact-progress': compactTitleProgress,
-    '--home-compact-height': `${compactTitleProgress * 50}px`,
-    '--home-compact-scale': .96 + (compactTitleProgress * .04),
+    '--home-compact-translate': `${(1 - compactTitleProgress) * -6}px`,
     '--home-search-padding': `${16 - (compactTitleProgress * 3)}px`,
     '--home-filter-padding': `${11 - (compactTitleProgress * 3)}px`,
-    '--home-sticky-shadow': `0 10px 24px rgba(23, 43, 56, ${compactTitleProgress * .1})`,
   } as CSSProperties
   const homeFilterPanel = (
     <section className="filter-panel" aria-label="絞り込み">
@@ -1039,7 +1037,7 @@ export default function App() {
       )}
       <section className={`content home-content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
         <div className="sticky-header-group">
-        <nav className="home-compact-title" aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
+        <nav className={`home-compact-title${compactTitleProgress > 0 ? ' is-visible' : ''}`} aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
           <button type="button" tabIndex={compactTitleProgress > .8 ? 0 : -1} onClick={() => setSettingsOpen(true)} aria-label="設定メニューを開く">
             <span></span><span></span><span></span>
           </button>
