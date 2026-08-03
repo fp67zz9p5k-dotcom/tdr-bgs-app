@@ -517,3 +517,216 @@
   color: #465d66;
   opacity: 1;
 }
+
+/*
+ * Final micro-polish
+ * ------------------
+ * Small, CSS-only refinements for reading density, hierarchy and motion.
+ * Remove this block to roll back this pass without affecting earlier work.
+ */
+
+/* Detail copy: values lead, labels support, and long-form text gets more room. */
+:root[data-theme="light"] .view-page .basic-info-card dd {
+  color: #102f3e;
+}
+
+:root[data-theme="light"] .view-page .basic-info-card dt {
+  color: #4b626b;
+}
+
+:root[data-theme="light"] .view-page .related-view-card strong {
+  color: #0f3242;
+}
+
+:root[data-theme="light"] .view-page .related-view-card span {
+  color: #3d555f;
+}
+
+:root[data-theme="light"] .view-page .main-photo-caption p,
+:root[data-theme="light"] .view-page .prop-view-card p,
+:root[data-theme="light"] .view-page .view-card .prop-location {
+  color: #405861;
+}
+
+:root[data-theme] .view-content {
+  gap: 22px;
+  padding-inline: 22px;
+}
+
+:root[data-theme] .view-section {
+  gap: 11px;
+}
+
+:root[data-theme] .basic-info-card div {
+  padding: 11px;
+}
+
+:root[data-theme] .view-card {
+  padding: 15px;
+}
+
+:root[data-theme] .text-entry-card {
+  padding: 17px 15px 19px;
+}
+
+:root[data-theme] .bgs-section .text-entry-card p {
+  line-height: 1.84;
+}
+
+:root[data-theme] .related-view-list {
+  gap: 7px;
+}
+
+:root[data-theme] .related-view-card {
+  gap: 9px;
+  padding: 8px 9px;
+}
+
+/* Navigation within a detail page stays useful without competing with content. */
+:root[data-theme] .detail-toc {
+  gap: 5px;
+  padding: 6px 7px;
+  box-shadow: 0 3px 11px color-mix(in srgb, var(--shadow-color) 72%, transparent);
+}
+
+:root[data-theme] .detail-toc a {
+  padding: 6px 9px;
+  border-radius: 12px;
+  font-size: 9.5px;
+}
+
+:root[data-theme] .view-category,
+:root[data-theme] .facility-card .category {
+  gap: 3px;
+  font-size: 9.5px;
+}
+
+:root[data-theme] .view-category {
+  padding: 4px 8px;
+}
+
+/* Primary content remains visually ahead of secondary authoring actions. */
+:root[data-theme] .add-button {
+  min-width: 156px;
+  padding-inline: 17px;
+  background: color-mix(in srgb, var(--accent-gold) 60%, var(--header-bg));
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--header-bg) 16%, transparent);
+}
+
+:root[data-theme] .edit-fab {
+  min-width: 170px;
+  padding-inline: 17px;
+  border-width: 1px;
+  background: color-mix(in srgb, var(--header-bg) 84%, var(--surface-3));
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--header-bg) 16%, transparent);
+}
+
+/* Bottom navigation gains quiet depth and a clearer selected state. */
+:root[data-theme] .primary-bottom-nav {
+  border-top-color: color-mix(in srgb, var(--border-default) 82%, var(--accent-gold));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--header-bg) 97%, var(--surface-2)),
+    color-mix(in srgb, var(--header-bg) 99%, #000)
+  );
+  box-shadow: 0 -5px 18px color-mix(in srgb, var(--shadow-color) 82%, transparent);
+}
+
+:root[data-theme] .primary-bottom-nav button {
+  transition: color 180ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out, transform 140ms ease-out;
+}
+
+:root[data-theme] .primary-bottom-nav button.active {
+  background: color-mix(in srgb, var(--accent-gold) 14%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-gold) 28%, transparent);
+}
+
+/* Long lists get a slightly calmer rhythm while retaining the current cards. */
+:root[data-theme] .facility-card-link {
+  gap: 10px;
+  min-height: 84px;
+}
+
+:root[data-theme] .facility-card-body {
+  gap: 3px;
+}
+
+:root[data-theme] .facility-card-body > strong {
+  line-height: 1.32;
+}
+
+:root[data-theme="light"] .facility-meta,
+:root[data-theme="light"] .area-heading span,
+:root[data-theme="light"] .compact-heading span,
+:root[data-theme="light"] .count {
+  color: #4b626a;
+}
+
+:root[data-theme="dark"] .facility-meta,
+:root[data-theme="dark"] .area-heading span,
+:root[data-theme="dark"] .compact-heading span,
+:root[data-theme="dark"] .count,
+:root[data-theme="dark"] .primary-bottom-nav button:not(.active) {
+  color: #c1ccd0;
+}
+
+/* Relationship lines recede slightly so facilities remain the visual anchors. */
+:root[data-theme] .relationship-category-group::before,
+:root[data-theme] .group-connector,
+:root[data-theme] .group-connector::after {
+  background: color-mix(in srgb, var(--relationship-line, var(--accent-gold)) 76%, var(--app-bg));
+}
+
+:root[data-theme] .relationship-canvas .react-flow__edge-path {
+  stroke: color-mix(in srgb, var(--border-default) 78%, var(--app-bg));
+}
+
+:root[data-theme] .relationship-canvas .relation-edge.active .react-flow__edge-path {
+  stroke: color-mix(in srgb, var(--accent-gold) 84%, var(--app-bg));
+}
+
+/* Icon boxes share one optical baseline without changing individual artwork. */
+:root[data-theme] .primary-bottom-nav button > span,
+:root[data-theme] .view-category,
+:root[data-theme] .facility-card .category,
+:root[data-theme] .related-view-card > .category-placeholder {
+  line-height: 1;
+}
+
+/* Responsive feedback remains subtle and avoids relationship-card transforms. */
+:root[data-theme] .add-button,
+:root[data-theme] .edit-fab,
+:root[data-theme] .detail-toc a,
+:root[data-theme] .open-filter-sheet,
+:root[data-theme] .related-card-actions button {
+  transition: color 180ms ease-out, background-color 180ms ease-out, border-color 180ms ease-out, box-shadow 180ms ease-out, transform 140ms ease-out;
+}
+
+:root[data-theme] .detail-toc a:active,
+:root[data-theme] .open-filter-sheet:active,
+:root[data-theme] .related-card-actions button:active,
+:root[data-theme] .primary-bottom-nav button:active {
+  transform: translateY(1px);
+}
+
+:root[data-theme] .add-button:active,
+:root[data-theme] .edit-fab:active {
+  transform: translate(-50%, 1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme] .add-button,
+  :root[data-theme] .edit-fab,
+  :root[data-theme] .detail-toc a,
+  :root[data-theme] .open-filter-sheet,
+  :root[data-theme] .related-card-actions button,
+  :root[data-theme] .primary-bottom-nav button {
+    transition-duration: 0.01ms;
+  }
+}
+
+@media (max-width: 360px) {
+  :root[data-theme] .view-content {
+    padding-inline: 18px;
+  }
+}
