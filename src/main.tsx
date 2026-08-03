@@ -4,6 +4,7 @@ import App from './App'
 import './styles.css'
 import './relationship-polish.css'
 import './theme.css'
+import './museum-polish.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

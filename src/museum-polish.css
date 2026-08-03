@@ -1,0 +1,231 @@
+/*
+ * Museum polish layer
+ * -------------------
+ * A deliberately isolated visual refinement layer. It keeps the existing DOM,
+ * layout and interaction model intact, while moving the finish toward a calm
+ * museum guide / reference-book aesthetic. Remove this import from main.tsx to
+ * restore the previous visual treatment.
+ */
+
+:root[data-theme="light"] {
+  --app-bg: #f3f1ec;
+  --surface-1: #f8f6f1;
+  --surface-2: #fffefa;
+  --surface-3: #eeebe4;
+  --card-bg: #fffefa;
+  --card-bg-hover: #f5f2eb;
+  --bg-app: #f3f1ec;
+  --bg-surface: #f8f6f1;
+  --bg-card: #fffefa;
+  --bg-card-strong: #eeebe4;
+  --text-primary: #203641;
+  --text-secondary: #52646c;
+  --text-muted: #748086;
+  --border-default: #d7d1c7;
+  --border-color: #d7d1c7;
+  --border-strong: #b7a98e;
+  --border-accent: #b7a98e;
+  --accent-gold: #98733c;
+  --accent-gold-soft: #e9dfcd;
+  --header-bg: #16384c;
+  --shadow-color: #17384b14;
+}
+
+:root[data-theme="dark"] {
+  --app-bg: #101b22;
+  --surface-1: #15232b;
+  --surface-2: #1b2a32;
+  --surface-3: #23343d;
+  --card-bg: #1b2a32;
+  --card-bg-hover: #23343d;
+  --bg-app: #101b22;
+  --bg-surface: #15232b;
+  --bg-card: #1b2a32;
+  --bg-card-strong: #23343d;
+  --text-primary: #edf2f3;
+  --text-secondary: #bec9cd;
+  --text-muted: #96a4aa;
+  --border-default: #3a4b53;
+  --border-color: #3a4b53;
+  --border-strong: #76664c;
+  --border-accent: #76664c;
+  --accent-gold: #c7a367;
+  --accent-gold-soft: #443721;
+  --header-bg: #102d3e;
+  --shadow-color: #0000003d;
+}
+
+:root[data-theme] body {
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+/* World-building stays in the restrained navy/gold palette, not decoration. */
+:root[data-theme] .hero,
+:root[data-theme] .detail-header,
+:root[data-theme] .map-header,
+:root[data-theme] .relationship-header,
+:root[data-theme] .home-compact-title {
+  background: linear-gradient(145deg, var(--header-bg), color-mix(in srgb, var(--header-bg) 86%, #29566b));
+}
+
+:root[data-theme] .hero {
+  background-image: linear-gradient(145deg, var(--header-bg), color-mix(in srgb, var(--header-bg) 86%, #29566b));
+}
+
+:root[data-theme] .hero > p:last-of-type,
+:root[data-theme] .detail-subtitle {
+  color: color-mix(in srgb, #fff 82%, var(--header-bg));
+}
+
+/* Quiet surfaces: fine borders establish hierarchy; shadows only separate layers. */
+:root[data-theme] .search,
+:root[data-theme] .filter-panel,
+:root[data-theme] .open-filter-sheet,
+:root[data-theme] .recent-card,
+:root[data-theme] .facility-card,
+:root[data-theme] .settings-section,
+:root[data-theme] .basic-info-card,
+:root[data-theme] .view-card,
+:root[data-theme] .prop-view-card,
+:root[data-theme] .related-view-card,
+:root[data-theme] .facility-mini-map,
+:root[data-theme] .map-selected-card,
+:root[data-theme] .overview-status,
+:root[data-theme] .relationship-filters,
+:root[data-theme] .relationship-category-group,
+:root[data-theme] .search-recommendation-grid button {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+:root[data-theme] .filter-panel {
+  background: var(--surface-1);
+}
+
+:root[data-theme] .open-filter-sheet,
+:root[data-theme] .category-filter button,
+:root[data-theme] .expanded-category-grid button,
+:root[data-theme] .favorite-filter,
+:root[data-theme] .detail-toc a,
+:root[data-theme] .related-card-actions button {
+  box-shadow: none;
+}
+
+:root[data-theme] .facility-card,
+:root[data-theme] .recent-card,
+:root[data-theme] .view-card,
+:root[data-theme] .prop-view-card,
+:root[data-theme] .related-view-card {
+  color: var(--text-primary);
+}
+
+:root[data-theme] .facility-meta,
+:root[data-theme] .facility-search-snippet,
+:root[data-theme] .view-card p,
+:root[data-theme] .prop-view-card p,
+:root[data-theme] .main-photo-caption p {
+  color: var(--text-secondary);
+}
+
+/* Reading pages: the prose and photography receive the visual emphasis. */
+:root[data-theme] .view-card p,
+:root[data-theme] .main-photo-caption p {
+  font-size: 14px;
+  line-height: 1.85;
+  letter-spacing: .01em;
+}
+
+:root[data-theme] .view-card h3,
+:root[data-theme] .prop-view-card h3,
+:root[data-theme] .view-section h2 {
+  color: var(--text-primary);
+  letter-spacing: .015em;
+}
+
+:root[data-theme] .detail-main-photo {
+  box-shadow: 0 3px 12px var(--shadow-color);
+}
+
+:root[data-theme] .detail-photo-placeholder,
+:root[data-theme] .prop-placeholder,
+:root[data-theme] .category-placeholder,
+:root[data-theme] .relationship-placeholder {
+  background: var(--surface-3);
+  color: var(--accent-gold);
+}
+
+:root[data-theme] .detail-photo-placeholder::before,
+:root[data-theme] .prop-placeholder::before,
+:root[data-theme] .category-placeholder::before,
+:root[data-theme] .relationship-placeholder::before {
+  opacity: .2;
+}
+
+:root[data-theme] .detail-toc {
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--surface-1) 96%, transparent);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  backdrop-filter: blur(8px);
+}
+
+/* Gold identifies actions and selection; it is no longer a broad light source. */
+:root[data-theme] .add-button,
+:root[data-theme] .edit-fab,
+:root[data-theme] .facility-edit-save-button,
+:root[data-theme] .filter-sheet-apply {
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-gold) 24%, transparent);
+}
+
+:root[data-theme] .primary-bottom-nav {
+  box-shadow: 0 -2px 10px var(--shadow-color);
+  backdrop-filter: blur(10px);
+}
+
+/* Relationship view retains its identity with a calmer, flatter presentation. */
+:root[data-theme] .center-facility-card {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--header-bg) 88%, #27566f), var(--header-bg));
+  box-shadow: 0 4px 14px var(--shadow-color), 0 0 0 1px color-mix(in srgb, var(--accent-gold) 58%, transparent);
+}
+
+:root[data-theme] .center-card-copy {
+  background: transparent;
+}
+
+:root[data-theme] .relationship-group-heading {
+  box-shadow: 0 2px 7px var(--shadow-color);
+}
+
+:root[data-theme] .relationship-card {
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+:root[data-theme] .relationship-placeholder::after {
+  opacity: .16;
+}
+
+/* Inputs should feel like reference tools rather than decorative objects. */
+:root[data-theme] .detail-form input[type="text"],
+:root[data-theme] .detail-form label > input:not([type]),
+:root[data-theme] .detail-form textarea,
+:root[data-theme] .detail-form select {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+:root[data-theme] .detail-form input:focus,
+:root[data-theme] .detail-form textarea:focus,
+:root[data-theme] .detail-form select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 18%, transparent);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-theme] .detail-toc,
+  :root[data-theme] .primary-bottom-nav {
+    backdrop-filter: none;
+  }
+}
