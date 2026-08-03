@@ -341,6 +341,48 @@ const getLevenshteinDistance = (left: string, right: string) => {
   return previous[right.length]
 }
 
+const normalizeFuzzySearchText = (value: string) => normalizeSearchText(value)
+  // Small tsu and prolonged-sound marks are frequent input omissions in Japanese names.
+  // They are ignored only for fuzzy suggestions; exact/normalized search remains unchanged.
+  .replace(/[っッー]/gu, '')
+
+const getFuzzyNameScore = (query: string, name: string) => {
+  const normalizedQuery = normalizeFuzzySearchText(query)
+  const normalizedName = normalizeFuzzySearchText(name)
+  if (normalizedQuery.length <= 1 || !normalizedName) return null
+
+  const candidateLengths = Array.from(new Set([
+    Math.max(2, normalizedQuery.length - 1),
+    normalizedQuery.length,
+    normalizedQuery.length + 1,
+  ])).filter((length) => length <= normalizedName.length)
+  if (candidateLengths.length === 0) candidateLengths.push(normalizedName.length)
+
+  let bestDistance = Number.POSITIVE_INFINITY
+  let bestRatio = Number.POSITIVE_INFINITY
+  let bestStartsAt = 0
+  for (const length of candidateLengths) {
+    for (let start = 0; start <= normalizedName.length - length; start += 1) {
+      const fragment = normalizedName.slice(start, start + length)
+      const distance = getLevenshteinDistance(normalizedQuery, fragment)
+      const ratio = distance / Math.max(normalizedQuery.length, fragment.length)
+      if (ratio < bestRatio || (ratio === bestRatio && distance < bestDistance)) {
+        bestDistance = distance
+        bestRatio = ratio
+        bestStartsAt = start
+      }
+    }
+  }
+
+  if (!Number.isFinite(bestRatio) || bestRatio > .3) return null
+  return {
+    distance: bestDistance,
+    ratio: bestRatio,
+    startsAt: bestStartsAt,
+    score: bestRatio + Math.min(bestStartsAt, 8) * .002,
+  }
+}
+
 type ThemePreference = 'light' | 'dark' | 'system'
 
 const THEME_STORAGE_KEY = 'tdr-bgs-theme'
@@ -638,27 +680,17 @@ export default function App() {
     [rankedSearchMatches],
   )
   const didYouMeanFacilities = useMemo(() => {
-    const normalizedQuery = normalizeSearchText(query.trim())
+    const normalizedQuery = normalizeFuzzySearchText(query.trim())
     if (normalizedQuery.length <= 1 || rankedSearchMatches.length > 0) return []
 
     const uniqueFacilities = Array.from(
-      new Map(facilities.map((facility) => [normalizeSearchText(facility.name), facility])).entries(),
+      new Map(facilities.map((facility) => [normalizeFuzzySearchText(facility.name), facility])).values(),
     )
     return uniqueFacilities
-      .map(([normalizedName, facility]) => {
-        const distance = getLevenshteinDistance(normalizedQuery, normalizedName)
-        const longestLength = Math.max(normalizedQuery.length, normalizedName.length)
-        const similarity = longestLength > 0 ? 1 - (distance / longestLength) : 0
-        return { facility, distance, similarity, normalizedName }
-      })
-      .filter(({ distance, similarity, normalizedName }) => {
-        const sharesFirstCharacter = normalizedName[0] === normalizedQuery[0]
-        if (normalizedQuery.length <= 3) return sharesFirstCharacter && distance <= 1 && similarity >= .72
-        if (normalizedQuery.length <= 5) return sharesFirstCharacter && distance <= 2 && similarity >= .6
-        return distance <= 3 && similarity >= .67
-      })
-      .sort((a, b) => a.distance - b.distance
-        || b.similarity - a.similarity
+      .map((facility) => ({ facility, match: getFuzzyNameScore(normalizedQuery, facility.name) }))
+      .filter((candidate): candidate is { facility: Facility; match: NonNullable<ReturnType<typeof getFuzzyNameScore>> } => candidate.match !== null)
+      .sort((a, b) => a.match.score - b.match.score
+        || a.match.distance - b.match.distance
         || a.facility.name.localeCompare(b.facility.name, 'ja'))
       .slice(0, 3)
       .map(({ facility }) => facility)
