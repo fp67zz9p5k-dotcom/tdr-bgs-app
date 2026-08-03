@@ -343,3 +343,151 @@
 :root[data-theme] .section-heading h2 {
   color: var(--text-primary);
 }
+
+/*
+ * Final readability pass
+ * ----------------------
+ * Contrast, density and action hierarchy only. Kept separate from the base
+ * polish so this last pass can be rolled back without touching prior work.
+ */
+:root[data-theme="light"] {
+  --text-secondary: #405760;
+  --text-muted: #596c74;
+}
+
+:root[data-theme="dark"] {
+  --text-secondary: #d0dadd;
+  --text-muted: #b4c0c4;
+}
+
+/* Light-mode labels must read as supporting information, not disabled UI. */
+:root[data-theme="light"] .park-facility-group > h3 {
+  color: #173e50;
+  border-bottom-color: #365c6c;
+}
+
+:root[data-theme="light"] .area-heading h4,
+:root[data-theme="light"] .facility-meta,
+:root[data-theme="light"] .facility-search-snippet,
+:root[data-theme="light"] .search-recommendation-copy small,
+:root[data-theme="light"] .basic-info-card dt,
+:root[data-theme="light"] .related-view-card span {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .compact-heading span,
+:root[data-theme="light"] .area-heading span,
+:root[data-theme="light"] .count,
+:root[data-theme="light"] .filter-summary span,
+:root[data-theme="light"] .open-filter-sheet > small,
+:root[data-theme="light"] .area-filter-hint,
+:root[data-theme="light"] .field-note,
+:root[data-theme="light"] .settings-future-note {
+  color: var(--text-muted);
+}
+
+:root[data-theme="light"] .search input::placeholder {
+  color: #64767d;
+  opacity: 1;
+}
+
+/* Dark-mode inactive controls remain clearly available without competing. */
+:root[data-theme="dark"] .primary-bottom-nav button:not(.active) {
+  color: #b8c4c8;
+}
+
+:root[data-theme="dark"] .favorite-star:not(.active),
+:root[data-theme="dark"] .facility-card i {
+  color: #aab8bd;
+}
+
+:root[data-theme="dark"] .compact-heading span,
+:root[data-theme="dark"] .area-heading span,
+:root[data-theme="dark"] .count,
+:root[data-theme="dark"] .filter-summary span,
+:root[data-theme="dark"] .open-filter-sheet > small {
+  color: var(--text-muted);
+}
+
+/* Form surfaces use the same fine-border language as editorial cards. */
+:root[data-theme] .search {
+  padding-inline: 15px;
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--border-default) 70%, var(--text-muted));
+  background: color-mix(in srgb, var(--surface-2) 98%, var(--surface-3));
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--shadow-color) 72%, transparent);
+}
+
+:root[data-theme] .open-filter-sheet {
+  padding-inline: 13px;
+  border-color: color-mix(in srgb, var(--border-default) 72%, var(--text-muted));
+  background: color-mix(in srgb, var(--surface-1) 58%, var(--surface-2));
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--shadow-color) 68%, transparent);
+}
+
+:root[data-theme] .filter-trigger-panel {
+  gap: 6px;
+}
+
+/* Actions remain discoverable while yielding priority to imagery and prose. */
+:root[data-theme] .add-button {
+  min-width: 164px;
+  min-height: 44px;
+  padding: 10px 19px;
+  background: color-mix(in srgb, var(--accent-gold) 68%, var(--header-bg));
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--accent-gold) 12%, transparent);
+  font-size: 12px;
+}
+
+:root[data-theme] .add-button span {
+  font-size: 17px;
+}
+
+:root[data-theme] .edit-fab {
+  min-width: 180px;
+  min-height: 44px;
+  padding: 9px 19px;
+  background: color-mix(in srgb, var(--header-bg) 88%, var(--surface-3));
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--header-bg) 18%, transparent);
+  font-size: 12px;
+}
+
+/* Compact headers keep breathing room at both short and long titles. */
+:root[data-theme] .home-compact-title {
+  column-gap: 8px;
+  padding-right: 14px;
+  padding-left: 14px;
+}
+
+:root[data-theme] .home-compact-title > strong {
+  min-width: 0;
+  line-height: 1.25;
+  letter-spacing: .025em;
+}
+
+:root[data-theme] .home-compact-title > span {
+  line-height: 1.25;
+}
+
+/* Editorial spacing: slightly tighter groups, consistent card rhythm. */
+:root[data-theme] .recent-section {
+  margin-top: 17px;
+}
+
+:root[data-theme] .section-heading {
+  margin-top: 19px;
+  margin-bottom: 12px;
+}
+
+:root[data-theme] .park-facility-groups {
+  gap: 23px;
+}
+
+:root[data-theme] .park-facility-group {
+  gap: 13px;
+}
+
+:root[data-theme] .area-facility-group,
+:root[data-theme] .facility-list {
+  gap: 9px;
+}
