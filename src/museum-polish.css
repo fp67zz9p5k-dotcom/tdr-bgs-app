@@ -229,3 +229,117 @@
     backdrop-filter: none;
   }
 }
+
+/*
+ * Final-detail pass
+ * -----------------
+ * Small, reversible adjustments to hierarchy and rhythm. These rules are kept
+ * in this isolated layer so the original component styles remain untouched.
+ */
+:root[data-theme="light"] {
+  --text-secondary: #485d66;
+  --text-muted: #64757c;
+}
+
+:root[data-theme="dark"] {
+  --text-secondary: #c9d3d6;
+  --text-muted: #aab7bc;
+}
+
+/* Secondary information remains quiet without becoming faint. */
+:root[data-theme] .facility-meta,
+:root[data-theme] .detail-subtitle,
+:root[data-theme] .compact-heading span,
+:root[data-theme] .count,
+:root[data-theme] .open-filter-sheet > small,
+:root[data-theme] .filter-summary span,
+:root[data-theme] .area-heading span,
+:root[data-theme] .field-note,
+:root[data-theme] .check-row small,
+:root[data-theme] .settings-section-heading small,
+:root[data-theme] .backup-heading span,
+:root[data-theme] .photo-placeholder p,
+:root[data-theme] .photo-order-actions span {
+  color: var(--text-muted);
+}
+
+/* Creation and editing remain easy to find, but reading stays visually first. */
+:root[data-theme] .add-button {
+  min-width: 172px;
+  min-height: 46px;
+  padding: 12px 21px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 72%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-gold) 88%, var(--header-bg));
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent-gold) 20%, transparent);
+  font-size: 13px;
+}
+
+:root[data-theme] .add-button span {
+  margin-right: 6px;
+  font-size: 18px;
+}
+
+:root[data-theme] .edit-fab {
+  min-width: 188px;
+  min-height: 48px;
+  padding: 11px 21px;
+  border-width: 1px;
+  box-shadow: 0 3px 11px color-mix(in srgb, var(--header-bg) 30%, transparent);
+  font-size: 13px;
+}
+
+:root[data-theme] .edit-fab span {
+  font-size: 16px;
+}
+
+/* Search and filtering share the same calm, precise material language. */
+:root[data-theme] .search {
+  border-color: color-mix(in srgb, var(--border-default) 78%, var(--text-muted));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-2) 97%, var(--surface-3));
+  box-shadow: 0 1px 5px var(--shadow-color);
+}
+
+:root[data-theme] .search:focus-within {
+  border-color: color-mix(in srgb, var(--accent-gold) 62%, var(--border-default));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-gold) 12%, transparent);
+}
+
+:root[data-theme] .search input::placeholder {
+  color: var(--text-muted);
+  opacity: .9;
+}
+
+:root[data-theme] .open-filter-sheet {
+  min-height: 42px;
+  border-color: color-mix(in srgb, var(--border-default) 82%, var(--text-muted));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1) 72%, var(--surface-2));
+  box-shadow: 0 1px 5px var(--shadow-color);
+}
+
+:root[data-theme] .active-filter-chips span {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+  color: color-mix(in srgb, var(--accent-gold) 72%, var(--text-primary));
+}
+
+/* A slightly tighter editorial rhythm groups headings with their content. */
+:root[data-theme] .recent-section {
+  gap: 8px;
+  margin-top: 18px;
+}
+
+:root[data-theme] .section-heading {
+  margin-top: 20px;
+  margin-bottom: 11px;
+}
+
+:root[data-theme] .section-heading .eyebrow {
+  margin-bottom: 5px;
+}
+
+:root[data-theme] .compact-heading h2,
+:root[data-theme] .section-heading h2 {
+  color: var(--text-primary);
+}
