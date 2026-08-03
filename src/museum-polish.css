@@ -498,22 +498,22 @@
  * Detail-only contrast lift for data values and related-facility copy.
  * Labels remain secondary so the existing information hierarchy is intact.
  */
-:root[data-theme="light"] .detail-page .basic-info-card dd {
+:root[data-theme="light"] .view-page .basic-info-card dd {
   color: #183a49;
   opacity: 1;
 }
 
-:root[data-theme="light"] .detail-page .basic-info-card dt {
+:root[data-theme="light"] .view-page .basic-info-card dt {
   color: #536970;
   opacity: 1;
 }
 
-:root[data-theme="light"] .detail-page .related-view-card strong {
+:root[data-theme="light"] .view-page .related-view-card strong {
   color: #173b4b;
   opacity: 1;
 }
 
-:root[data-theme="light"] .detail-page .related-view-card span {
+:root[data-theme="light"] .view-page .related-view-card span {
   color: #465d66;
   opacity: 1;
 }
