@@ -445,14 +445,11 @@ export default function App() {
   const searchScrollLockRef = useRef<{
     scrollY: number
     bodyStyle: {
-      position: string
-      top: string
-      left: string
-      right: string
-      width: string
       overflow: string
     }
     htmlOverflow: string
+    touchMoveHandler: (event: TouchEvent) => void
+    wheelHandler: (event: WheelEvent) => void
   } | null>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
@@ -1074,23 +1071,30 @@ export default function App() {
     if (searchScrollLockRef.current) return
     const scrollY = pendingSearchScrollYRef.current ?? window.scrollY
     const bodyStyle = {
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      width: document.body.style.width,
       overflow: document.body.style.overflow,
     }
     const htmlOverflow = document.documentElement.style.overflow
+    const isSearchResultsTarget = (target: EventTarget | null) => (
+      target instanceof Element && target.closest('.search-suggestions') !== null
+    )
+    const touchMoveHandler = (event: TouchEvent) => {
+      if (!isSearchResultsTarget(event.target)) event.preventDefault()
+    }
+    const wheelHandler = (event: WheelEvent) => {
+      if (!isSearchResultsTarget(event.target)) event.preventDefault()
+    }
 
-    searchScrollLockRef.current = { scrollY, bodyStyle, htmlOverflow }
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.left = '0'
-    document.body.style.right = '0'
-    document.body.style.width = '100%'
+    searchScrollLockRef.current = {
+      scrollY,
+      bodyStyle,
+      htmlOverflow,
+      touchMoveHandler,
+      wheelHandler,
+    }
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
+    document.addEventListener('touchmove', touchMoveHandler, { passive: false })
+    document.addEventListener('wheel', wheelHandler, { passive: false })
   }
 
   function unlockSearchPageScroll() {
@@ -1098,11 +1102,8 @@ export default function App() {
     if (!lock) return
     searchScrollLockRef.current = null
     pendingSearchScrollYRef.current = null
-    document.body.style.position = lock.bodyStyle.position
-    document.body.style.top = lock.bodyStyle.top
-    document.body.style.left = lock.bodyStyle.left
-    document.body.style.right = lock.bodyStyle.right
-    document.body.style.width = lock.bodyStyle.width
+    document.removeEventListener('touchmove', lock.touchMoveHandler)
+    document.removeEventListener('wheel', lock.wheelHandler)
     document.body.style.overflow = lock.bodyStyle.overflow
     document.documentElement.style.overflow = lock.htmlOverflow
     window.scrollTo(0, lock.scrollY)
