@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   Background,
   ReactFlow,
@@ -152,10 +151,6 @@ function CenterRelationshipView({
   onOpenFacility,
   onHistoryBack,
   onClearHistory,
-  fixedHeaderActive,
-  mode,
-  onModeChange,
-  onBack,
 }: {
   facilities: Facility[]
   center: Facility
@@ -164,10 +159,6 @@ function CenterRelationshipView({
   onOpenFacility: (facility: Facility) => void
   onHistoryBack: () => void
   onClearHistory: () => void
-  fixedHeaderActive: boolean
-  mode: RelationshipGraphSettings['mode']
-  onModeChange: (mode: RelationshipGraphSettings['mode']) => void
-  onBack: () => void
 }) {
   const related = useMemo(
     () => getBidirectionalRelatedFacilities(facilities, center.id),
@@ -223,51 +214,8 @@ function CenterRelationshipView({
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility))
 
-  const fixedHeader = fixedHeaderActive && typeof document !== 'undefined'
-    ? createPortal(
-      <aside className="relationship-fixed-header" aria-label="関係図の固定ナビゲーション">
-        <div className="relationship-fixed-titlebar">
-          <button type="button" className="back-button" onClick={onBack} aria-label="前の画面へ戻る">‹</button>
-          <strong>施設関係図</strong>
-        </div>
-        <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
-          <button type="button" className={mode === 'center' ? 'active' : ''} onClick={() => onModeChange('center')}>中心表示</button>
-          <button type="button" className={mode === 'overview' ? 'active' : ''} onClick={() => onModeChange('overview')}>全体表示</button>
-        </div>
-        <button type="button" className="center-facility-card relationship-fixed-center-card" onClick={() => onOpenFacility(center)}>
-          <FacilityImage facility={center} />
-          <span className="center-card-copy">
-            <strong>{center.name}</strong>
-            <span className="center-card-category">{getCategoryDefinition(center.category).icon} {center.category}</span>
-            <span className="center-card-related-count">直接の関連 {related.length}件</span>
-          </span>
-        </button>
-        {groups.length > 0 && (
-          <nav className="relationship-category-overview" aria-label="関連カテゴリ概要">
-            {groups.map(({ category, facilities: groupFacilities }) => (
-              <button
-                type="button"
-                key={category.id}
-                className={`${activeCategoryId === category.id ? 'active ' : ''}${collapsed.has(category.value) ? 'collapsed' : ''}`.trim()}
-                aria-current={activeCategoryId === category.id ? 'location' : undefined}
-                aria-expanded={!collapsed.has(category.value)}
-                onClick={() => openCategoryFromOverview(category.value, category.id)}
-              >
-                <span aria-hidden="true">{category.icon}</span>
-                {category.label} <b>{groupFacilities.length}</b>
-              </button>
-            ))}
-          </nav>
-        )}
-      </aside>,
-      document.body,
-    )
-    : null
-
   return (
-    <>
-      {fixedHeader}
-      <div className={`relationship-center-view density-${density}`}>
+    <div className={`relationship-center-view density-${density}`}>
       <section className="center-summary" aria-label="直接の関連件数">
         <span>直接の関連 {related.length}件</span>
       </section>
@@ -394,8 +342,7 @@ function CenterRelationshipView({
         </div>
         <p>カードをタップすると中心が切り替わります。詳細ボタンで施設情報を開けます。</p>
       </section>
-      </div>
-    </>
+    </div>
   )
 }
 
@@ -590,7 +537,7 @@ function RelationshipGraphInner({
   }
 
   return (
-    <main ref={relationshipPageRef} className="relationship-page screen-enter">
+    <main ref={relationshipPageRef} className={`relationship-page screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
@@ -618,10 +565,6 @@ function RelationshipGraphInner({
             onOpenFacility={onOpenFacility}
             onHistoryBack={historyBack}
             onClearHistory={clearHistory}
-            fixedHeaderActive={isCompactHeader}
-            mode={normalizedSettings.mode}
-            onModeChange={setMode}
-            onBack={onBack}
           />
         ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>
       ) : (
