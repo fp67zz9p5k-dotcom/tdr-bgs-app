@@ -411,6 +411,12 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ page: 'home' })
   const [query, setQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
+  const [searchLayout, setSearchLayout] = useState<{
+    heroTop: number
+    heroHeight: number
+    stickyTop: number
+    stickyHeight: number
+  } | null>(null)
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
@@ -432,6 +438,7 @@ export default function App() {
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
   const homePageRef = useRef<HTMLElement>(null)
   const homeHeroRef = useRef<HTMLElement>(null)
+  const stickyHeaderRef = useRef<HTMLDivElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
@@ -607,7 +614,7 @@ export default function App() {
     // Keep the header exactly as it was when search began. On iOS Safari a
     // keyboard-open scroll must not switch the search surface underneath the
     // focused input.
-    if (searchFocused) return
+    if (searchFocused || query.trim().length > 0) return
 
     let animationFrame = 0
     const updateHeaderState = () => {
@@ -629,7 +636,7 @@ export default function App() {
       window.removeEventListener('scroll', updateHeaderState)
       window.removeEventListener('resize', updateHeaderState)
     }
-  }, [screen.page, searchFocused])
+  }, [query, screen.page, searchFocused])
 
   useEffect(() => {
     try {
@@ -705,8 +712,9 @@ export default function App() {
       : areaFiltered
     return favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
   }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategory, selectedPark])
-  const hasNoSearchResults = !loading && query.trim().length > 0 && filteredFacilities.length === 0
-  const isSearchMode = searchFocused && query.trim().length > 0
+  const hasSearchQuery = query.trim().length > 0
+  const hasNoSearchResults = !loading && hasSearchQuery && filteredFacilities.length === 0
+  const shouldShowSearchResults = hasSearchQuery
 
   const searchSuggestions = useMemo(() => {
     if (!query.trim()) return []
@@ -818,6 +826,10 @@ export default function App() {
     '--home-compact-translate': `${(1 - compactTitleProgress) * -6}px`,
     '--home-search-padding': `${16 - (compactTitleProgress * 3)}px`,
     '--home-filter-padding': `${11 - (compactTitleProgress * 3)}px`,
+    '--search-hero-top': `${searchLayout?.heroTop ?? 0}px`,
+    '--search-hero-height': `${searchLayout?.heroHeight ?? 0}px`,
+    '--search-sticky-top': `${searchLayout?.stickyTop ?? 0}px`,
+    '--search-sticky-height': `${searchLayout?.stickyHeight ?? 0}px`,
   } as CSSProperties
   const activeFilterChips = [
     selectedPark ? (selectedPark === 'land' ? 'ランド' : 'シー') : '',
@@ -1028,6 +1040,7 @@ export default function App() {
   const clearSearch = () => {
     setQuery('')
     setSearchFocused(false)
+    setSearchLayout(null)
     setActiveSuggestionIndex(-1)
     searchInputRef.current?.blur()
   }
@@ -1036,8 +1049,26 @@ export default function App() {
     const nextFocusedElement = event.relatedTarget
     if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
     setSearchFocused(false)
-    setActiveSuggestionIndex(-1)
   }
+
+  const handleSearchFocus = () => {
+    setSearchFocused(true)
+    if (searchLayout) return
+    const hero = homeHeroRef.current?.getBoundingClientRect()
+    const sticky = stickyHeaderRef.current?.getBoundingClientRect()
+    if (hero && sticky) {
+      setSearchLayout({
+        heroTop: hero.top,
+        heroHeight: hero.height,
+        stickyTop: sticky.top,
+        stickyHeight: sticky.height,
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!searchFocused && !hasSearchQuery) setSearchLayout(null)
+  }, [hasSearchQuery, searchFocused])
 
   const resetMapExploration = () => {
     const defaults = defaultMapFilterSettings()
@@ -1282,7 +1313,7 @@ export default function App() {
   return (
     <main
       ref={homePageRef}
-      className="app-shell home-page"
+      className={`app-shell home-page${shouldShowSearchResults && searchLayout ? ' is-search-mode' : ''}`}
       style={homeHeaderStyle}
       aria-hidden={settingsOpen || undefined}
       onTouchStart={handleHomeTouchStart}
@@ -1383,7 +1414,7 @@ export default function App() {
         document.body,
       )}
       <section className={`content home-content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
-        <div className="sticky-header-group">
+        <div className="sticky-header-group" ref={stickyHeaderRef}>
         <nav className={`home-compact-title${compactTitleProgress > 0 ? ' is-visible' : ''}`} aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
           <button type="button" tabIndex={compactTitleProgress > .8 ? 0 : -1} onClick={openSettings} aria-label="設定メニューを開く">
             <span></span><span></span><span></span>
@@ -1398,18 +1429,18 @@ export default function App() {
               ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              onFocus={() => setSearchFocused(true)}
+              onFocus={handleSearchFocus}
               onBlur={handleSearchBlur}
               onKeyDown={handleSearchKeyDown}
               placeholder="タイトル・本文・カテゴリ・エリアを検索"
               aria-label="項目を検索"
               aria-autocomplete="list"
-              aria-expanded={searchFocused && searchSuggestions.length > 0}
+              aria-expanded={shouldShowSearchResults && searchSuggestions.length > 0}
               aria-controls="search-suggestions"
             />
             {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア">×</button>}
           </label>
-          {isSearchMode && searchSuggestions.length > 0 && (
+          {shouldShowSearchResults && searchSuggestions.length > 0 && (
             <div className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
               {searchSuggestions.map((match, index) => {
                 const { facility } = match
