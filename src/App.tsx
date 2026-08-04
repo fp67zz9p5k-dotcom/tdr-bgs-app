@@ -441,6 +441,19 @@ export default function App() {
   const stickyHeaderRef = useRef<HTMLDivElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const pendingSearchScrollYRef = useRef<number | null>(null)
+  const searchScrollLockRef = useRef<{
+    scrollY: number
+    bodyStyle: {
+      position: string
+      top: string
+      left: string
+      right: string
+      width: string
+      overflow: string
+    }
+    htmlOverflow: string
+  } | null>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
@@ -1046,12 +1059,57 @@ export default function App() {
   }
 
   const handleSearchBlur = (event: ReactFocusEvent<HTMLInputElement>) => {
+    unlockSearchPageScroll()
     const nextFocusedElement = event.relatedTarget
     if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
     setSearchFocused(false)
   }
 
+  const captureSearchScrollPosition = () => {
+    if (searchScrollLockRef.current) return
+    pendingSearchScrollYRef.current = window.scrollY
+  }
+
+  const lockSearchPageScroll = () => {
+    if (searchScrollLockRef.current) return
+    const scrollY = pendingSearchScrollYRef.current ?? window.scrollY
+    const bodyStyle = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    }
+    const htmlOverflow = document.documentElement.style.overflow
+
+    searchScrollLockRef.current = { scrollY, bodyStyle, htmlOverflow }
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+  }
+
+  function unlockSearchPageScroll() {
+    const lock = searchScrollLockRef.current
+    if (!lock) return
+    searchScrollLockRef.current = null
+    pendingSearchScrollYRef.current = null
+    document.body.style.position = lock.bodyStyle.position
+    document.body.style.top = lock.bodyStyle.top
+    document.body.style.left = lock.bodyStyle.left
+    document.body.style.right = lock.bodyStyle.right
+    document.body.style.width = lock.bodyStyle.width
+    document.body.style.overflow = lock.bodyStyle.overflow
+    document.documentElement.style.overflow = lock.htmlOverflow
+    window.scrollTo(0, lock.scrollY)
+  }
+
   const handleSearchFocus = () => {
+    lockSearchPageScroll()
     setSearchFocused(true)
     if (searchLayout) return
     const hero = homeHeroRef.current?.getBoundingClientRect()
@@ -1069,6 +1127,11 @@ export default function App() {
   useEffect(() => {
     if (!searchFocused && !hasSearchQuery) setSearchLayout(null)
   }, [hasSearchQuery, searchFocused])
+
+  useEffect(() => {
+    if (screen.page !== 'home') unlockSearchPageScroll()
+    return () => unlockSearchPageScroll()
+  }, [screen.page])
 
   const resetMapExploration = () => {
     const defaults = defaultMapFilterSettings()
@@ -1429,6 +1492,7 @@ export default function App() {
               ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onPointerDown={captureSearchScrollPosition}
               onFocus={handleSearchFocus}
               onBlur={handleSearchBlur}
               onKeyDown={handleSearchKeyDown}
