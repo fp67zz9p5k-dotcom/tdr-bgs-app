@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -1045,8 +1045,15 @@ export default function App() {
     }
   }
 
-  const captureSearchStartScrollPosition = () => {
+  const handleSearchPointerDown = (event: ReactPointerEvent<HTMLInputElement>) => {
     if (!searchFocused) searchStartScrollYRef.current = window.scrollY
+    if (
+      document.activeElement !== event.currentTarget
+      && window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    ) {
+      event.preventDefault()
+      event.currentTarget.focus({ preventScroll: true })
+    }
   }
 
   const handleSearchFocus = () => {
@@ -1413,7 +1420,7 @@ export default function App() {
               ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              onPointerDown={captureSearchStartScrollPosition}
+              onPointerDown={handleSearchPointerDown}
               onFocus={handleSearchFocus}
               onBlur={handleSearchBlur}
               onKeyDown={handleSearchKeyDown}
