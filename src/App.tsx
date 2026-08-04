@@ -567,7 +567,10 @@ export default function App() {
       }
     }
     const handleBackgroundClick = (event: MouseEvent) => {
-      if (!searchAreaRef.current?.contains(event.target as Node)) {
+      const target = event.target
+      const isSearchControl = target instanceof Element
+        && (searchAreaRef.current?.contains(target) || Boolean(target.closest('.did-you-mean')))
+      if (!isSearchControl) {
         event.preventDefault()
         event.stopPropagation()
       }
@@ -815,35 +818,6 @@ export default function App() {
     setActiveSuggestionIndex(-1)
   }, [query, searchSuggestions.length])
 
-  const recommendedFacilities = useMemo(() => {
-    if (!facilities.length) return []
-    const keywords = getSearchKeywords(query)
-    const validFacilities = Array.from(
-      new Map(
-        facilities
-          .filter((facility) => facility.id.trim() && facility.name.trim())
-          .map((facility) => [facility.id, facility]),
-      ).values(),
-    )
-    return validFacilities
-      .map((facility) => {
-        const text = normalizeSearchText(searchableText(facility))
-        const relevance = keywords.reduce((score, keyword) => {
-          const partial = keyword.length > 1 ? keyword.slice(0, Math.max(1, keyword.length - 1)) : keyword
-          return score + (text.includes(partial) ? 2 : 0)
-        }, 0)
-        return {
-          facility,
-          score: relevance
-            + (selectedPark && getParkId(facility.park) === selectedPark ? 2 : 0)
-            + (selectedCategory && facility.category === selectedCategory ? 2 : 0)
-            + (facility.favorite ? 1 : 0),
-        }
-      })
-      .sort((a, b) => b.score - a.score || b.facility.updatedAt.localeCompare(a.facility.updatedAt))
-      .slice(0, 3)
-      .map(({ facility }) => facility)
-  }, [facilities, query, selectedCategory, selectedPark])
   const recentFacilities = useMemo(() => recentFacilityIds
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility)), [recentFacilityIds, facilities])
@@ -1598,32 +1572,6 @@ export default function App() {
                 </div>
               </div>
             )}
-            <div className="empty-actions">
-              <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
-            </div>
-            {recommendedFacilities.length > 0 && (
-              <section className="search-recommendations" aria-label="おすすめ施設">
-                <h4>おすすめ施設</h4>
-                <div className="search-recommendation-grid">
-                  {recommendedFacilities.map((facility) => {
-                    const category = getCategoryDefinition(facility.category)
-                    return (
-                      <button type="button" key={facility.id} onClick={() => openFacility(facility, 'home')}>
-                        {facility.photos[0] ? (
-                          <img src={facility.photos[0].dataUrl} alt="" />
-                        ) : (
-                          <span className="category-placeholder" aria-hidden="true">{category.icon}</span>
-                        )}
-                        <span className="search-recommendation-copy">
-                          <strong>{facility.name}</strong>
-                          <small><span aria-hidden="true">{category.icon}</span>{category.label}・{facility.area || 'エリア未設定'}</small>
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
           </div>
         ) : (
           <>
@@ -1669,34 +1617,9 @@ export default function App() {
               <p>{selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
             )}
             <div className="empty-actions">
-              {query
-                ? <button type="button" className="search-clear-button" onClick={clearSearch}>検索をクリア</button>
-                : (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
+              {!query && (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
               <button type="button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>施設を追加</button>
             </div>
-            {query && recommendedFacilities.length > 0 && (
-              <section className="search-recommendations" aria-label="おすすめ施設">
-                <h4>おすすめ施設</h4>
-                <div className="search-recommendation-grid">
-                  {recommendedFacilities.map((facility) => {
-                    const category = getCategoryDefinition(facility.category)
-                    return (
-                      <button type="button" key={facility.id} onClick={() => openFacility(facility, 'home')}>
-                        {facility.photos[0] ? (
-                          <img src={facility.photos[0].dataUrl} alt="" />
-                        ) : (
-                          <span className="category-placeholder" aria-hidden="true">{category.icon}</span>
-                        )}
-                        <span className="search-recommendation-copy">
-                          <strong>{facility.name}</strong>
-                          <small><span aria-hidden="true">{category.icon}</span>{category.label}・{facility.area || 'エリア未設定'}</small>
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
           </div>
         ) : (
           <div className="park-facility-groups">
