@@ -179,9 +179,6 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   --home-search-height: 62px;
   padding-top: 12px;
 }
-.home-page.is-search-mode {
-  padding-top: var(--search-hero-height, 0);
-}
 .home-page.is-search-mode::before {
   position: fixed;
   z-index: 90;
@@ -191,26 +188,31 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   background: var(--bg-app, #f8f5ed);
 }
 .home-page.is-search-mode > .hero {
-  position: fixed;
-  z-index: 91;
-  top: var(--search-hero-top, 0);
-  left: 50%;
-  width: min(100%, 760px);
-  transform: translate(-50%, var(--home-hero-translate, 0)) scale(var(--home-hero-scale, 1));
+  visibility: hidden;
+  pointer-events: none;
 }
 .home-page.is-search-mode .sticky-header-group {
   position: fixed;
   z-index: 100;
-  top: var(--search-sticky-top, 0);
+  top: calc(50px + env(safe-area-inset-top));
   left: 50%;
   width: min(100%, 760px);
   margin: 0;
   transform: translateX(-50%);
 }
+.home-page.is-search-mode .home-compact-title {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+.home-page.is-search-mode .filter-trigger-panel {
+  display: none;
+}
 .home-page.is-search-mode .search-empty-exclusive {
   position: fixed;
   z-index: 92;
-  top: calc(var(--search-sticky-top, 0px) + var(--search-sticky-height, 0px) + 12px);
+  top: calc(124px + env(safe-area-inset-top));
   right: max(20px, calc((100vw - 720px) / 2));
   bottom: calc(70px + env(safe-area-inset-bottom));
   left: max(20px, calc((100vw - 720px) / 2));
