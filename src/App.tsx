@@ -411,12 +411,6 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ page: 'home' })
   const [query, setQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
-  const [searchLayout, setSearchLayout] = useState<{
-    heroTop: number
-    heroHeight: number
-    stickyTop: number
-    stickyHeight: number
-  } | null>(null)
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
@@ -438,7 +432,6 @@ export default function App() {
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
   const homePageRef = useRef<HTMLElement>(null)
   const homeHeroRef = useRef<HTMLElement>(null)
-  const stickyHeaderRef = useRef<HTMLDivElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
@@ -826,10 +819,6 @@ export default function App() {
     '--home-compact-translate': `${(1 - compactTitleProgress) * -6}px`,
     '--home-search-padding': `${16 - (compactTitleProgress * 3)}px`,
     '--home-filter-padding': `${11 - (compactTitleProgress * 3)}px`,
-    '--search-hero-top': `${searchLayout?.heroTop ?? 0}px`,
-    '--search-hero-height': `${searchLayout?.heroHeight ?? 0}px`,
-    '--search-sticky-top': `${searchLayout?.stickyTop ?? 0}px`,
-    '--search-sticky-height': `${searchLayout?.stickyHeight ?? 0}px`,
   } as CSSProperties
   const activeFilterChips = [
     selectedPark ? (selectedPark === 'land' ? 'ランド' : 'シー') : '',
@@ -1040,7 +1029,6 @@ export default function App() {
   const clearSearch = () => {
     setQuery('')
     setSearchFocused(false)
-    setSearchLayout(null)
     setActiveSuggestionIndex(-1)
     searchInputRef.current?.blur()
   }
@@ -1053,22 +1041,7 @@ export default function App() {
 
   const handleSearchFocus = () => {
     setSearchFocused(true)
-    if (searchLayout) return
-    const hero = homeHeroRef.current?.getBoundingClientRect()
-    const sticky = stickyHeaderRef.current?.getBoundingClientRect()
-    if (hero && sticky) {
-      setSearchLayout({
-        heroTop: hero.top,
-        heroHeight: hero.height,
-        stickyTop: sticky.top,
-        stickyHeight: sticky.height,
-      })
-    }
   }
-
-  useEffect(() => {
-    if (!searchFocused && !hasSearchQuery) setSearchLayout(null)
-  }, [hasSearchQuery, searchFocused])
 
   const resetMapExploration = () => {
     const defaults = defaultMapFilterSettings()
@@ -1313,7 +1286,7 @@ export default function App() {
   return (
     <main
       ref={homePageRef}
-      className={`app-shell home-page${shouldShowSearchResults && searchLayout ? ' is-search-mode' : ''}`}
+      className="app-shell home-page"
       style={homeHeaderStyle}
       aria-hidden={settingsOpen || undefined}
       onTouchStart={handleHomeTouchStart}
@@ -1414,7 +1387,7 @@ export default function App() {
         document.body,
       )}
       <section className={`content home-content${hasVisitedNonHomeScreenRef.current ? ' screen-enter' : ''}`}>
-        <div className="sticky-header-group" ref={stickyHeaderRef}>
+        <div className="sticky-header-group">
         <nav className={`home-compact-title${compactTitleProgress > 0 ? ' is-visible' : ''}`} aria-label="一覧画面ヘッダー" aria-hidden={compactTitleProgress === 0}>
           <button type="button" tabIndex={compactTitleProgress > .8 ? 0 : -1} onClick={openSettings} aria-label="設定メニューを開く">
             <span></span><span></span><span></span>
