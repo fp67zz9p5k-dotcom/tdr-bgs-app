@@ -530,9 +530,8 @@ export default function App() {
 
   useEffect(() => {
     if (
-      !searchFocused
+      !query.trim()
       || screen.page !== 'home'
-      || !window.matchMedia('(hover: none) and (pointer: coarse)').matches
     ) return
 
     let lastTouchY: number | null = null
@@ -567,16 +566,24 @@ export default function App() {
         event.preventDefault()
       }
     }
+    const handleBackgroundClick = (event: MouseEvent) => {
+      if (!searchAreaRef.current?.contains(event.target as Node)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
     document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('wheel', handleWheel, { passive: false })
+    document.addEventListener('click', handleBackgroundClick, true)
     return () => {
       document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('wheel', handleWheel)
+      document.removeEventListener('click', handleBackgroundClick, true)
     }
-  }, [screen.page, searchFocused])
+  }, [query, screen.page])
 
   useEffect(() => {
     if (!settingsOpen) return
@@ -785,10 +792,9 @@ export default function App() {
 
   useEffect(() => {
     if (
-      !searchFocused
+      !hasSearchQuery
       || screen.page !== 'home'
       || searchSuggestions.length === 0
-      || !window.matchMedia('(hover: none) and (pointer: coarse)').matches
     ) return
 
     const viewport = window.visualViewport
@@ -803,10 +809,10 @@ export default function App() {
       window.removeEventListener('resize', updateSearchSuggestionsMaxHeight)
       searchSuggestionsRef.current?.style.removeProperty('--search-suggestions-max-height')
     }
-  }, [screen.page, searchFocused, searchSuggestions.length, updateSearchSuggestionsMaxHeight])
+  }, [hasSearchQuery, screen.page, searchSuggestions.length, updateSearchSuggestionsMaxHeight])
 
   useEffect(() => {
-    setActiveSuggestionIndex(searchSuggestions.length > 0 ? 0 : -1)
+    setActiveSuggestionIndex(-1)
   }, [query, searchSuggestions.length])
 
   const recommendedFacilities = useMemo(() => {
@@ -1079,6 +1085,10 @@ export default function App() {
   }
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      return
+    }
     if (event.key === 'Escape') {
       setSearchFocused(false)
       setActiveSuggestionIndex(-1)
@@ -1092,9 +1102,6 @@ export default function App() {
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
       setActiveSuggestionIndex((current) => (current <= 0 ? searchSuggestions.length - 1 : current - 1))
-    } else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
-      event.preventDefault()
-      selectSearchSuggestion(searchSuggestions[activeSuggestionIndex].facility)
     }
   }
 
@@ -1116,22 +1123,27 @@ export default function App() {
     setDraftFavoriteOnly(false)
   }
 
+  const restoreSearchStartScrollPosition = () => {
+    const searchStartScrollY = searchStartScrollYRef.current
+    searchStartScrollYRef.current = null
+    if (searchStartScrollY !== null) {
+      requestAnimationFrame(() => window.scrollTo({ top: searchStartScrollY, behavior: 'instant' }))
+    }
+  }
+
   const clearSearch = () => {
     setQuery('')
     setSearchFocused(false)
     setActiveSuggestionIndex(-1)
     searchInputRef.current?.blur()
+    restoreSearchStartScrollPosition()
   }
 
   const handleSearchBlur = (event: ReactFocusEvent<HTMLInputElement>) => {
     const nextFocusedElement = event.relatedTarget
     if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
     setSearchFocused(false)
-    const searchStartScrollY = searchStartScrollYRef.current
-    searchStartScrollYRef.current = null
-    if (searchStartScrollY !== null) {
-      requestAnimationFrame(() => window.scrollTo({ top: searchStartScrollY, behavior: 'instant' }))
-    }
+    restoreSearchStartScrollPosition()
   }
 
   const handleSearchPointerDown = (event: ReactPointerEvent<HTMLInputElement>) => {
@@ -1519,7 +1531,18 @@ export default function App() {
               aria-expanded={shouldShowSearchResults && searchSuggestions.length > 0}
               aria-controls="search-suggestions"
             />
-            {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア">×</button>}
+            {query && (
+              <button
+                type="button"
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  clearSearch()
+                }}
+                aria-label="検索を終了"
+              >×</button>
+            )}
           </label>
           {shouldShowSearchResults && searchSuggestions.length > 0 && (
             <div ref={searchSuggestionsRef} className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
