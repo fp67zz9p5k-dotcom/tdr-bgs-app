@@ -228,7 +228,7 @@ function CenterRelationshipView({
       <aside className="relationship-fixed-header" aria-label="関係図の固定ナビゲーション">
         <div className="relationship-fixed-titlebar">
           <button type="button" className="back-button" onClick={onBack} aria-label="前の画面へ戻る">‹</button>
-          <strong>{center.name}</strong>
+          <strong>施設関係図</strong>
         </div>
         <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
           <button type="button" className={mode === 'center' ? 'active' : ''} onClick={() => onModeChange('center')}>中心表示</button>
@@ -595,7 +595,7 @@ function RelationshipGraphInner({
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
           <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
-          <strong className="relationship-compact-title">{fallbackCenter?.name ?? '施設関係図'}</strong>
+          <strong className="relationship-compact-title">施設関係図</strong>
         </div>
         <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
           <button type="button" className={normalizedSettings.mode === 'center' ? 'active' : ''} onClick={() => setMode('center')}>中心表示</button>
