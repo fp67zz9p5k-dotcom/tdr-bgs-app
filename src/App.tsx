@@ -434,6 +434,7 @@ export default function App() {
   const homeHeroRef = useRef<HTMLElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchStartScrollYRef = useRef<number | null>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
@@ -1037,9 +1038,19 @@ export default function App() {
     const nextFocusedElement = event.relatedTarget
     if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
     setSearchFocused(false)
+    const searchStartScrollY = searchStartScrollYRef.current
+    searchStartScrollYRef.current = null
+    if (searchStartScrollY !== null) {
+      requestAnimationFrame(() => window.scrollTo({ top: searchStartScrollY, behavior: 'instant' }))
+    }
+  }
+
+  const captureSearchStartScrollPosition = () => {
+    if (!searchFocused) searchStartScrollYRef.current = window.scrollY
   }
 
   const handleSearchFocus = () => {
+    if (searchStartScrollYRef.current === null) searchStartScrollYRef.current = window.scrollY
     setSearchFocused(true)
   }
 
@@ -1402,6 +1413,7 @@ export default function App() {
               ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onPointerDown={captureSearchStartScrollPosition}
               onFocus={handleSearchFocus}
               onBlur={handleSearchBlur}
               onKeyDown={handleSearchKeyDown}
