@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -604,6 +604,11 @@ export default function App() {
       return
     }
 
+    // Keep the header exactly as it was when search began. On iOS Safari a
+    // keyboard-open scroll must not switch the search surface underneath the
+    // focused input.
+    if (searchFocused) return
+
     let animationFrame = 0
     const updateHeaderState = () => {
       cancelAnimationFrame(animationFrame)
@@ -624,7 +629,7 @@ export default function App() {
       window.removeEventListener('scroll', updateHeaderState)
       window.removeEventListener('resize', updateHeaderState)
     }
-  }, [screen.page])
+  }, [screen.page, searchFocused])
 
   useEffect(() => {
     try {
@@ -653,17 +658,6 @@ export default function App() {
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
-
-  useEffect(() => {
-    const closeSuggestions = (event: PointerEvent) => {
-      if (!searchAreaRef.current?.contains(event.target as Node)) {
-        setSearchFocused(false)
-        setActiveSuggestionIndex(-1)
-      }
-    }
-    document.addEventListener('pointerdown', closeSuggestions)
-    return () => document.removeEventListener('pointerdown', closeSuggestions)
   }, [])
 
   const rankedSearchMatches = useMemo(() => {
@@ -712,6 +706,7 @@ export default function App() {
     return favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
   }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategory, selectedPark])
   const hasNoSearchResults = !loading && query.trim().length > 0 && filteredFacilities.length === 0
+  const isSearchMode = searchFocused && query.trim().length > 0
 
   const searchSuggestions = useMemo(() => {
     if (!query.trim()) return []
@@ -1035,6 +1030,13 @@ export default function App() {
     setSearchFocused(false)
     setActiveSuggestionIndex(-1)
     searchInputRef.current?.blur()
+  }
+
+  const handleSearchBlur = (event: ReactFocusEvent<HTMLInputElement>) => {
+    const nextFocusedElement = event.relatedTarget
+    if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
+    setSearchFocused(false)
+    setActiveSuggestionIndex(-1)
   }
 
   const resetMapExploration = () => {
@@ -1397,6 +1399,7 @@ export default function App() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onFocus={() => setSearchFocused(true)}
+              onBlur={handleSearchBlur}
               onKeyDown={handleSearchKeyDown}
               placeholder="タイトル・本文・カテゴリ・エリアを検索"
               aria-label="項目を検索"
@@ -1406,7 +1409,7 @@ export default function App() {
             />
             {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア">×</button>}
           </label>
-          {searchFocused && searchSuggestions.length > 0 && (
+          {isSearchMode && searchSuggestions.length > 0 && (
             <div className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
               {searchSuggestions.map((match, index) => {
                 const { facility } = match
