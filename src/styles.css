@@ -291,8 +291,13 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   right: 0;
   left: 0;
   display: grid;
+  max-height: var(--search-suggestions-max-height, none);
   padding: 9px 7px 7px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-default, #ddd6c8);
   border-radius: 0 0 15px 15px;
   background: var(--surface-2, white);

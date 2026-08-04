@@ -434,6 +434,7 @@ export default function App() {
   const homeHeroRef = useRef<HTMLElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchSuggestionsRef = useRef<HTMLDivElement>(null)
   const searchStartScrollYRef = useRef<number | null>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
@@ -444,6 +445,22 @@ export default function App() {
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
+  const updateSearchSuggestionsMaxHeight = useCallback(() => {
+    const suggestions = searchSuggestionsRef.current
+    const searchInput = searchInputRef.current
+    if (!suggestions || !searchInput) return
+
+    const viewport = window.visualViewport
+    const viewportBottom = viewport
+      ? viewport.offsetTop + viewport.height
+      : window.innerHeight
+    const navigationTop = homePageRef.current
+      ?.querySelector<HTMLElement>('.primary-bottom-nav')
+      ?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
+    const availableBottom = Math.min(viewportBottom, navigationTop)
+    const availableHeight = Math.max(0, Math.floor(availableBottom - searchInput.getBoundingClientRect().bottom - 8))
+    suggestions.style.setProperty('--search-suggestions-max-height', `${availableHeight}px`)
+  }, [])
 
   const handleHomeTouchStart = useCallback((event: ReactTouchEvent<HTMLElement>) => {
     if (settingsOpen || event.touches.length !== 1) {
@@ -510,6 +527,56 @@ export default function App() {
   useEffect(() => {
     if (screen.page !== 'home') hasVisitedNonHomeScreenRef.current = true
   }, [screen.page])
+
+  useEffect(() => {
+    if (
+      !searchFocused
+      || screen.page !== 'home'
+      || !window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    ) return
+
+    let lastTouchY: number | null = null
+    const canScrollSuggestions = (container: HTMLElement, deltaY: number) => {
+      if (container.scrollHeight <= container.clientHeight + 1) return false
+      if (deltaY < 0) return container.scrollTop > 0
+      if (deltaY > 0) return container.scrollTop + container.clientHeight < container.scrollHeight - 1
+      return true
+    }
+    const handleTouchStart = (event: TouchEvent) => {
+      const suggestions = searchSuggestionsRef.current
+      if (suggestions?.contains(event.target as Node) && event.touches.length === 1) {
+        lastTouchY = event.touches[0].clientY
+      } else {
+        lastTouchY = null
+      }
+    }
+    const handleTouchMove = (event: TouchEvent) => {
+      const suggestions = searchSuggestionsRef.current
+      if (!suggestions?.contains(event.target as Node) || event.touches.length !== 1) {
+        event.preventDefault()
+        return
+      }
+      const currentTouchY = event.touches[0].clientY
+      const scrollDelta = lastTouchY === null ? 0 : lastTouchY - currentTouchY
+      lastTouchY = currentTouchY
+      if (!canScrollSuggestions(suggestions, scrollDelta)) event.preventDefault()
+    }
+    const handleWheel = (event: WheelEvent) => {
+      const suggestions = searchSuggestionsRef.current
+      if (!suggestions?.contains(event.target as Node) || !canScrollSuggestions(suggestions, event.deltaY)) {
+        event.preventDefault()
+      }
+    }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('wheel', handleWheel, { passive: false })
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('wheel', handleWheel)
+    }
+  }, [screen.page, searchFocused])
 
   useEffect(() => {
     if (!settingsOpen) return
@@ -715,6 +782,28 @@ export default function App() {
     return rankedSearchMatches
       .slice(0, 5)
   }, [query, rankedSearchMatches])
+
+  useEffect(() => {
+    if (
+      !searchFocused
+      || screen.page !== 'home'
+      || searchSuggestions.length === 0
+      || !window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    ) return
+
+    const viewport = window.visualViewport
+    const resizeFrame = requestAnimationFrame(updateSearchSuggestionsMaxHeight)
+    viewport?.addEventListener('resize', updateSearchSuggestionsMaxHeight)
+    viewport?.addEventListener('scroll', updateSearchSuggestionsMaxHeight)
+    window.addEventListener('resize', updateSearchSuggestionsMaxHeight)
+    return () => {
+      cancelAnimationFrame(resizeFrame)
+      viewport?.removeEventListener('resize', updateSearchSuggestionsMaxHeight)
+      viewport?.removeEventListener('scroll', updateSearchSuggestionsMaxHeight)
+      window.removeEventListener('resize', updateSearchSuggestionsMaxHeight)
+      searchSuggestionsRef.current?.style.removeProperty('--search-suggestions-max-height')
+    }
+  }, [screen.page, searchFocused, searchSuggestions.length, updateSearchSuggestionsMaxHeight])
 
   useEffect(() => {
     setActiveSuggestionIndex(searchSuggestions.length > 0 ? 0 : -1)
@@ -1433,7 +1522,7 @@ export default function App() {
             {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア">×</button>}
           </label>
           {shouldShowSearchResults && searchSuggestions.length > 0 && (
-            <div className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
+            <div ref={searchSuggestionsRef} className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
               {searchSuggestions.map((match, index) => {
                 const { facility } = match
                 return (
