@@ -655,7 +655,7 @@
       border: 1px solid var(--border-strong, #c8b38f);
       border-radius: 13px;
       background: var(--relationship-heading-bg, #304853);
-      box-shadow: none;
+      box-shadow: 0 2px 7px var(--shadow-color, #19384a17);
     }
 
     .relationship-group-heading-shell.is-collapsed {
@@ -666,12 +666,23 @@
       position: relative;
       z-index: 1;
       box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       overflow: hidden;
       border: 0;
       border-radius: 12px;
       background: transparent;
       background-clip: padding-box;
       box-shadow: none;
+    }
+
+    .relationship-group-heading-surface > .relationship-group-heading {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      margin: 0;
+      box-shadow: none !important;
     }
 
     .relationship-card-list-shell:not(.collapsed) {

@@ -954,7 +954,9 @@
     grid-template-columns: var(--relationship-card-image-width) minmax(0, 1fr);
     height: var(--relationship-card-height);
     border-width: 1px;
+    border-color: color-mix(in srgb, var(--accent-gold) 72%, transparent);
     border-radius: var(--relationship-card-radius);
+    box-shadow: 0 4px 14px var(--shadow-color);
   }
 
   .relationship-page.is-compact .center-facility-card > img,
