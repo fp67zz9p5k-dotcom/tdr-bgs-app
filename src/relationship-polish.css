@@ -430,12 +430,11 @@
     max-width: calc(100% - 12px);
   }
 }
-
 @media (max-width: 767px) {
   .relationship-header {
-    position: sticky;
+    position: relative;
     z-index: 20;
-    top: 0;
+    top: auto;
     padding-top: calc(env(safe-area-inset-top) + 14px);
     padding-bottom: 12px;
     background-clip: padding-box;
@@ -449,51 +448,18 @@
     min-width: 0;
   }
 
-  .relationship-large-title,
-  .relationship-compact-title {
-    position: absolute;
-    inset: 0;
+  .relationship-large-title {
     display: flex;
     min-width: 0;
     flex-direction: column;
     justify-content: center;
-    transform-origin: left center;
-  }
-
-  .relationship-large-title {
     opacity: 1;
     transform: none;
-    transition: opacity 220ms ease, transform 220ms ease;
   }
 
   .relationship-large-title h1,
   .relationship-large-title p {
     margin: 0;
-  }
-
-  .relationship-compact-title {
-    overflow: hidden;
-    padding-right: 6px;
-    opacity: var(--relationship-compact-opacity, 0);
-    color: #f7f3e8;
-    font-family: Georgia, "Yu Mincho", serif;
-    font-size: 15px;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    transform: var(--relationship-compact-transform, scale(.94));
-    transition: opacity 220ms ease, transform 220ms ease;
-  }
-
-  .relationship-page.is-compact .relationship-large-title {
-    opacity: 0;
-    transform: scale(.94);
-    pointer-events: none;
-  }
-
-  .relationship-page.is-compact .relationship-compact-title {
-    opacity: 1;
-    transform: none;
   }
 
   .relationship-mode-switch {
@@ -641,7 +607,6 @@
   .center-card-related-count,
   .center-tree-trunk,
   .relationship-large-title,
-  .relationship-compact-title,
   .relationship-mode-switch button,
   .relationship-card-list-shell,
   .relationship-group-heading,
