@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
 import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -55,6 +55,11 @@ type MapViewState = {
 type MapReturnState = MapViewState & {
   selectedFacilityId: string | null
   scrollY: number
+}
+
+type HomeReturnState = {
+  scrollY: number
+  headerProgress: number
 }
 
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
@@ -460,6 +465,8 @@ export default function App() {
   const settingsSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const filterSheetDragStartRef = useRef<{ x: number; y: number } | null>(null)
   const hasVisitedNonHomeScreenRef = useRef(false)
+  const homeReturnStateRef = useRef<HomeReturnState | null>(null)
+  const pendingHomeScrollRef = useRef<HomeReturnState | null>(null)
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
@@ -721,7 +728,6 @@ export default function App() {
 
   useEffect(() => {
     if (screen.page !== 'home') {
-      setHomeHeaderProgress(0)
       return
     }
 
@@ -751,6 +757,15 @@ export default function App() {
       window.removeEventListener('resize', updateHeaderState)
     }
   }, [isSearchMode, screen.page])
+
+  useLayoutEffect(() => {
+    if (screen.page !== 'home') return
+    const pendingState = pendingHomeScrollRef.current
+    if (!pendingState) return
+
+    pendingHomeScrollRef.current = null
+    window.scrollTo({ top: pendingState.scrollY, behavior: 'instant' })
+  }, [screen.page])
 
   useEffect(() => {
     if (screen.page === 'home' || !isSearchMode) return
@@ -1090,10 +1105,39 @@ export default function App() {
       return next
     })
     await reload()
+    returnToHome()
+  }
+
+  const captureHomeReturnState = () => {
+    if (screen.page !== 'home') return
+    homeReturnStateRef.current = {
+      scrollY: searchStartScrollYRef.current ?? window.scrollY,
+      headerProgress: searchStartHeaderProgressRef.current ?? homeHeaderProgress,
+    }
+  }
+
+  const returnToHome = () => {
+    const savedState = homeReturnStateRef.current ?? { scrollY: 0, headerProgress: 0 }
+    pendingHomeScrollRef.current = savedState
+    homeReturnStateRef.current = null
+    setHomeHeaderProgress(savedState.headerProgress)
     setScreen({ page: 'home' })
   }
 
+  const openHomeFresh = () => {
+    homeReturnStateRef.current = null
+    pendingHomeScrollRef.current = { scrollY: 0, headerProgress: 0 }
+    setHomeHeaderProgress(0)
+    setScreen({ page: 'home' })
+  }
+
+  const openNewFacilityFromHome = () => {
+    captureHomeReturnState()
+    setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })
+  }
+
   const openFacility = (facility: Facility, returnTo: ReturnPage, returnState?: MapReturnState) => {
+    if (returnTo === 'home') captureHomeReturnState()
     setRecentFacilityIds((current) => {
       const next = [facility.id, ...current.filter((id) => id !== facility.id)].slice(0, 10)
       void saveRecentFacilityIds(next)
@@ -1364,6 +1408,8 @@ export default function App() {
             if (screen.returnTo === 'map') {
               mapReturnStateRef.current = screen.mapReturnState ?? mapReturnStateRef.current ?? readMapReturnState()
               window.history.back()
+            } else if (screen.returnTo === 'home') {
+              returnToHome()
             } else {
               setScreen({ page: screen.returnTo })
             }
@@ -1405,7 +1451,8 @@ export default function App() {
               setRelationshipSettings(nextSettings)
               void saveRelationshipGraphSettings(nextSettings)
             }
-            setScreen({ page })
+            if (page === 'home') openHomeFresh()
+            else setScreen({ page })
           }}
         />
       </>
@@ -1425,7 +1472,7 @@ export default function App() {
           }}
           onBack={() => {
             resetMapExploration()
-            setScreen({ page: 'home' })
+            returnToHome()
           }}
           onOpenFacility={(facility, state) => {
             mapReturnStateRef.current = state
@@ -1439,7 +1486,8 @@ export default function App() {
           active="map"
           onNavigate={(page) => {
             if (page !== 'map') resetMapExploration()
-            setScreen({ page })
+            if (page === 'home') openHomeFresh()
+            else setScreen({ page })
           }}
         />
       </>
@@ -1456,14 +1504,15 @@ export default function App() {
             setRelationshipSettings(settings)
             void saveRelationshipGraphSettings(settings)
           }}
-          onBack={() => setScreen({ page: 'home' })}
+          onBack={returnToHome}
           onOpenFacility={(facility) => openFacility(facility, 'relationships')}
         />
         <PrimaryBottomNavigation
           active="relationships"
           onNavigate={(page) => {
             if (page === 'map') resetMapExploration()
-            setScreen({ page })
+            if (page === 'home') openHomeFresh()
+            else setScreen({ page })
           }}
         />
       </>
@@ -1476,9 +1525,12 @@ export default function App() {
         initialFacility={screen.facility}
         allFacilities={facilities}
         isNew={screen.isNew}
-        onBack={() => setScreen(screen.isNew
-          ? { page: screen.returnTo }
-          : { page: 'view', facility: screen.facility, returnTo: screen.returnTo })}
+        onBack={() => {
+          if (screen.isNew && screen.returnTo === 'home') returnToHome()
+          else setScreen(screen.isNew
+            ? { page: screen.returnTo }
+            : { page: 'view', facility: screen.facility, returnTo: screen.returnTo })
+        }}
         onSave={async (facility, initialRelatedIds) => {
           const savedFacility = await handleSave(facility, initialRelatedIds)
           setScreen({ page: 'view', facility: savedFacility, returnTo: screen.returnTo })
@@ -1736,7 +1788,7 @@ export default function App() {
             )}
             <div className="empty-actions">
               {!query && (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
-              <button type="button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>施設を追加</button>
+              <button type="button" onClick={openNewFacilityFromHome}>施設を追加</button>
             </div>
           </div>
         ) : (
@@ -1806,12 +1858,14 @@ export default function App() {
       <PrimaryBottomNavigation
         active="home"
         onNavigate={(page) => {
+          if (page === 'home') return
           if (page === 'map') resetMapExploration()
+          captureHomeReturnState()
           setScreen({ page })
         }}
       />
       {!hasNoSearchResults && (
-        <button className="add-button" onClick={() => setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })}>
+        <button className="add-button" onClick={openNewFacilityFromHome}>
           <span>＋</span> 施設を追加
         </button>
       )}
