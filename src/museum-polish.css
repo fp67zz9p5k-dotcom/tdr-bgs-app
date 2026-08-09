@@ -698,6 +698,10 @@
   to { opacity: 1; }
 }
 
+.relationship-compact-center-name {
+  display: none;
+}
+
 @media (max-width: 767px) {
   :root.relationship-page-active,
   body.relationship-page-active,
@@ -717,11 +721,10 @@
     min-height: 0;
     padding-bottom: 0;
     overflow: hidden;
-    transition: grid-template-rows 180ms ease-out;
   }
 
   .relationship-page.is-compact {
-    --relationship-header-height: calc(72px + var(--relationship-safe-top));
+    --relationship-header-height: calc(80px + var(--relationship-safe-top));
   }
 
   .relationship-header {
@@ -733,7 +736,6 @@
     height: 100%;
     margin: 0;
     padding-top: calc(14px + var(--relationship-safe-top));
-    transition: padding 180ms ease-out;
   }
 
   .relationship-page.is-compact .relationship-header {
@@ -744,18 +746,43 @@
   }
 
   .relationship-page.is-compact .relationship-header-copy {
-    height: 36px;
+    display: flex;
+    height: auto;
+    min-height: 40px;
+    align-items: center;
+  }
+
+  .relationship-compact-center-name {
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    color: #d9b77f;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .relationship-page.is-compact .relationship-large-title {
+    width: 100%;
+    justify-content: center;
   }
 
   .relationship-page.is-compact .relationship-large-title .eyebrow {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+    display: none;
   }
 
   .relationship-page.is-compact .relationship-large-title h1 {
     font-size: 16px;
     line-height: 1.2;
+  }
+
+  .relationship-page.is-compact .relationship-compact-center-name {
+    max-height: 14px;
+    margin-top: 2px;
+    opacity: 1;
   }
 
   .relationship-page.is-compact .relationship-mode-switch {
@@ -785,13 +812,6 @@
     overscroll-behavior-y: none;
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .relationship-compact-sentinel {
-    display: block;
-    width: 1px;
-    height: 1px;
-    pointer-events: none;
   }
 
   .relationship-center-view {
@@ -852,8 +872,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .relationship-screen-enter { animation: none; }
-  .relationship-page { transition: none; }
-  .relationship-header { transition: none; }
 }
 
 /* Icon boxes share one optical baseline without changing individual artwork. */

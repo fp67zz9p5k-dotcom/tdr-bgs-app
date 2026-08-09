@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   ReactFlow,
@@ -477,20 +477,41 @@ function RelationshipGraphInner({
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const relationshipScrollRef = useRef<HTMLDivElement>(null)
-  const compactSentinelRef = useRef<HTMLSpanElement>(null)
+  const relationshipHeaderRef = useRef<HTMLElement>(null)
+  const compactStateRef = useRef(false)
+  const previousHeaderHeightRef = useRef<number | null>(null)
   const [isCompactHeader, setIsCompactHeader] = useState(false)
 
   useEffect(() => {
     const root = relationshipScrollRef.current
-    const sentinel = compactSentinelRef.current
-    if (!root || !sentinel || typeof IntersectionObserver === 'undefined') return
+    if (!root) return
 
-    const observer = new IntersectionObserver(([entry]) => {
-      setIsCompactHeader(!entry.isIntersecting)
-    }, { root, threshold: 0 })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
+    const updateCompactState = () => {
+      if (!compactStateRef.current && root.scrollTop >= 104) {
+        compactStateRef.current = true
+        setIsCompactHeader(true)
+      } else if (compactStateRef.current && root.scrollTop <= 24) {
+        compactStateRef.current = false
+        setIsCompactHeader(false)
+      }
+    }
+
+    root.addEventListener('scroll', updateCompactState, { passive: true })
+    return () => root.removeEventListener('scroll', updateCompactState)
   }, [])
+
+  useLayoutEffect(() => {
+    const header = relationshipHeaderRef.current
+    const root = relationshipScrollRef.current
+    if (!header || !root) return
+
+    const nextHeight = header.getBoundingClientRect().height
+    const previousHeight = previousHeaderHeightRef.current
+    previousHeaderHeightRef.current = nextHeight
+    if (previousHeight === null || previousHeight === nextHeight) return
+
+    root.scrollTop += nextHeight - previousHeight
+  }, [isCompactHeader])
 
   useEffect(() => {
     if (!fallbackCenter) return
@@ -518,10 +539,14 @@ function RelationshipGraphInner({
 
   return (
     <main className={`relationship-page relationship-screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
-      <header className="relationship-header">
+      <header ref={relationshipHeaderRef} className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
-          <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
+          <div className="relationship-large-title">
+            <p className="eyebrow">RELATIONSHIP</p>
+            <h1>施設関係図</h1>
+            <span className="relationship-compact-center-name">{fallbackCenter?.name ?? '中心施設未選択'}</span>
+          </div>
         </div>
         <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
           <button type="button" className={normalizedSettings.mode === 'center' ? 'active' : ''} onClick={() => setMode('center')}>中心表示</button>
@@ -529,7 +554,6 @@ function RelationshipGraphInner({
         </div>
       </header>
       <div ref={relationshipScrollRef} className="relationship-scroll-region">
-        <span ref={compactSentinelRef} className="relationship-compact-sentinel" aria-hidden="true" />
         <p className="relationship-description">
           {normalizedSettings.mode === 'center'
             ? '中心施設と直接関係する施設を、カテゴリ別に表示しています。'
