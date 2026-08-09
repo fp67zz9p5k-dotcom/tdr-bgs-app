@@ -856,8 +856,18 @@
 
   .relationship-center-dock-content {
     box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     height: 100%;
     padding: 4px 10px 0;
+  }
+
+  .relationship-center-dock-content .center-node-stage {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin-right: 0;
+    margin-left: 0;
   }
 
   .relationship-center-view {
@@ -880,6 +890,10 @@
   }
 
   .center-facility-card {
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+    margin-left: 0;
     grid-template-columns: var(--relationship-card-image-width, 92px) minmax(0, 1fr);
     height: var(--relationship-card-height, 100px);
     border-radius: var(--relationship-card-radius, 18px);

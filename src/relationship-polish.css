@@ -69,10 +69,6 @@
   min-width: 0;
 }
 
-.relationship-group-heading-frame {
-  display: none;
-}
-
 .relationship-category-group.is-open .relationship-group-heading {
   border-color: #a98a5a;
   background: #304853;
@@ -619,11 +615,8 @@
   html { scroll-behavior: auto; }
 }
 
-/*
- * iOS Safari occasionally rasterizes the heading shadow outside the rounded
- * corner when the element is promoted to a compositing layer. Keep the exact
- * card geometry while explicitly clipping that raster to the border radius.
- */
+/* Keep the iOS heading frame in normal CSS layout. Canvas raster rounding at
+ * fractional device pixels leaves seams around the top corners and right edge. */
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     .relationship-group-heading {
@@ -658,22 +651,15 @@
     .relationship-group-heading-shell {
       position: relative;
       box-sizing: border-box;
-      overflow: visible;
-      border: 0;
+      overflow: hidden;
+      border: 1px solid var(--border-strong, #c8b38f);
       border-radius: 13px;
-      background: transparent;
+      background: var(--relationship-heading-bg, #304853);
       box-shadow: none;
     }
 
-    .relationship-group-heading-frame {
-      position: absolute;
-      z-index: 0;
-      inset: 0;
-      display: block;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-      pointer-events: none;
+    .relationship-group-heading-shell.is-collapsed {
+      background: var(--bg-card-strong, #21353f);
     }
 
     .relationship-group-heading-surface {
@@ -682,7 +668,7 @@
       box-sizing: border-box;
       overflow: hidden;
       border: 0;
-      border-radius: 13px;
+      border-radius: 12px;
       background: transparent;
       background-clip: padding-box;
       box-shadow: none;
