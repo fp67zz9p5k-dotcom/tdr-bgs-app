@@ -2386,6 +2386,7 @@ function LeafletCanvas({
     const mode = position ? 'editor' : 'park'
     const center = parkCenters[park]
     const preservedView = !position && mapViewRef.current?.park === park ? mapViewRef.current : null
+    const staticPreviewBearing = staticPreview ? getParkMapBearing(park) : null
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -2393,7 +2394,7 @@ function LeafletCanvas({
         ? [position.longitude, position.latitude]
         : preservedView?.center ?? [center[1], center[0]],
       zoom: position ? (staticPreview ? 16.8 : 18) : preservedView?.zoom ?? 16.5,
-      bearing: staticPreview ? getParkMapBearing(park) : preservedView?.bearing ?? getParkMapBearing(park),
+      bearing: staticPreviewBearing ?? preservedView?.bearing ?? getParkMapBearing(park),
       pitch: preservedView?.pitch ?? 0,
       dragPan: !staticPreview,
       dragRotate: false,
@@ -2406,6 +2407,7 @@ function LeafletCanvas({
     })
     if (staticPreview) {
       map.touchZoomRotate.disable()
+      map.once('load', () => map.jumpTo({ bearing: staticPreviewBearing ?? getParkMapBearing(park) }))
     } else {
       map.touchZoomRotate.enable()
       map.touchZoomRotate.disableRotation()
