@@ -731,47 +731,57 @@
     left: 0;
     box-sizing: border-box;
     width: 100%;
-    height: var(--relationship-header-expanded-height);
+    grid-template-columns: var(--relationship-header-leading-width, 44px) minmax(0, 1fr) minmax(var(--relationship-header-actions-min-width, 0px), auto);
+    gap: var(--relationship-header-current-gap, 12px);
+    height: var(--relationship-header-current-height, var(--relationship-header-expanded-height));
     margin: 0;
-    padding-top: calc(14px + var(--relationship-safe-top));
-    transition:
-      height 120ms cubic-bezier(.22, .61, .36, 1),
-      padding 120ms cubic-bezier(.22, .61, .36, 1);
+    padding-top: var(--relationship-header-current-padding-top, calc(14px + var(--relationship-safe-top)));
+    padding-bottom: var(--relationship-header-current-padding-bottom, 12px);
   }
 
-  .relationship-header-copy,
-  .relationship-large-title,
-  .relationship-large-title .eyebrow,
-  .relationship-large-title h1,
-  .relationship-mode-switch,
-  .relationship-mode-switch button {
-    transition:
-      min-height 120ms cubic-bezier(.22, .61, .36, 1),
-      padding 120ms cubic-bezier(.22, .61, .36, 1),
-      gap 120ms cubic-bezier(.22, .61, .36, 1),
-      border-radius 120ms cubic-bezier(.22, .61, .36, 1),
-      font-size 100ms ease-out,
-      line-height 100ms ease-out,
-      opacity 90ms ease-out;
+  .relationship-header-copy {
+    display: flex;
+    height: var(--relationship-header-copy-height, 48px);
+    min-height: var(--relationship-header-copy-height, 48px);
+    align-items: center;
+  }
+
+  .relationship-large-title {
+    width: 100%;
   }
 
   .relationship-large-title .eyebrow {
-    max-height: 24px;
+    max-height: var(--relationship-eyebrow-height, 24px);
+    opacity: var(--relationship-eyebrow-opacity, 1);
     overflow: hidden;
   }
 
+  .relationship-large-title h1 {
+    font-size: var(--relationship-title-size, 22px);
+    line-height: var(--relationship-title-line-height, 1.35);
+  }
+
+  .relationship-mode-switch {
+    width: auto;
+    padding: var(--relationship-mode-padding, 3px);
+    border-radius: var(--relationship-mode-radius, 13px);
+  }
+
+  .relationship-mode-switch button {
+    min-height: var(--relationship-mode-button-height, 42px);
+    padding: var(--relationship-mode-button-padding-y, 7px) var(--relationship-mode-button-padding-x, 12px);
+    border-radius: var(--relationship-mode-button-radius, 10px);
+    font-size: var(--relationship-mode-button-size, 11px);
+  }
+
   .relationship-page.is-compact .relationship-header {
-    height: var(--relationship-header-compact-height);
-    grid-template-columns: 36px minmax(0, 1fr) minmax(150px, auto);
-    gap: 8px;
-    padding-top: calc(8px + var(--relationship-safe-top));
-    padding-bottom: 8px;
+    height: var(--relationship-header-current-height);
   }
 
   .relationship-page.is-compact .relationship-header-copy {
     display: flex;
-    height: auto;
-    min-height: 40px;
+    height: var(--relationship-header-copy-height);
+    min-height: var(--relationship-header-copy-height);
     align-items: center;
   }
 
@@ -781,28 +791,28 @@
   }
 
   .relationship-page.is-compact .relationship-large-title .eyebrow {
-    max-height: 0;
+    max-height: var(--relationship-eyebrow-height);
     margin: 0;
-    opacity: 0;
+    opacity: var(--relationship-eyebrow-opacity);
   }
 
   .relationship-page.is-compact .relationship-large-title h1 {
-    font-size: 16px;
-    line-height: 1.2;
+    font-size: var(--relationship-title-size);
+    line-height: var(--relationship-title-line-height);
   }
 
   .relationship-page.is-compact .relationship-mode-switch {
     grid-column: auto;
     width: auto;
-    padding: 2px;
-    border-radius: 11px;
+    padding: var(--relationship-mode-padding);
+    border-radius: var(--relationship-mode-radius);
   }
 
   .relationship-page.is-compact .relationship-mode-switch button {
-    min-height: 34px;
-    padding: 4px 8px;
-    border-radius: 9px;
-    font-size: 10px;
+    min-height: var(--relationship-mode-button-height);
+    padding: var(--relationship-mode-button-padding-y) var(--relationship-mode-button-padding-x);
+    border-radius: var(--relationship-mode-button-radius);
+    font-size: var(--relationship-mode-button-size);
   }
 
   .relationship-scroll-region {
@@ -831,27 +841,23 @@
   .relationship-center-dock-slot {
     position: absolute;
     z-index: 110;
-    top: var(--relationship-header-expanded-height);
+    top: var(--relationship-dock-current-top, var(--relationship-header-expanded-height));
     right: 0;
     left: 0;
-    height: var(--relationship-dock-expanded-height);
+    height: var(--relationship-dock-current-height, var(--relationship-dock-expanded-height));
     overflow: hidden;
     background: var(--app-bg, #f4f0e8);
-    transition:
-      top 120ms cubic-bezier(.22, .61, .36, 1),
-      height 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .relationship-page.is-compact .relationship-center-dock-slot {
-    top: var(--relationship-header-compact-height);
-    height: var(--relationship-dock-compact-height);
+    top: var(--relationship-dock-current-top);
+    height: var(--relationship-dock-current-height);
   }
 
   .relationship-center-dock-content {
     box-sizing: border-box;
     height: 100%;
     padding: 4px 10px 0;
-    transition: padding 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .relationship-center-view {
@@ -859,16 +865,11 @@
   }
 
   .center-summary {
-    min-height: 18px;
-    max-height: 24px;
-    margin-bottom: 4px;
+    min-height: var(--relationship-summary-height, 18px);
+    max-height: var(--relationship-summary-max-height, 24px);
+    margin-bottom: var(--relationship-summary-margin, 4px);
     overflow: hidden;
-    opacity: 1;
-    transition:
-      min-height 100ms ease-out,
-      max-height 100ms ease-out,
-      margin 100ms ease-out,
-      opacity 80ms ease-out;
+    opacity: var(--relationship-summary-opacity, 1);
   }
 
   .center-node-stage {
@@ -879,71 +880,49 @@
   }
 
   .center-facility-card {
-    grid-template-columns: 92px minmax(0, 1fr);
-    height: 100px;
-    transition:
-      height 120ms cubic-bezier(.22, .61, .36, 1),
-      grid-template-columns 120ms cubic-bezier(.22, .61, .36, 1),
-      border-radius 120ms cubic-bezier(.22, .61, .36, 1);
+    grid-template-columns: var(--relationship-card-image-width, 92px) minmax(0, 1fr);
+    height: var(--relationship-card-height, 100px);
+    border-radius: var(--relationship-card-radius, 18px);
   }
 
   .center-facility-card > img,
   .center-facility-card > .relationship-placeholder {
-    width: 92px;
-    transition: width 120ms cubic-bezier(.22, .61, .36, 1);
+    width: var(--relationship-card-image-width, 92px);
   }
 
   .center-card-copy {
-    gap: 2px;
-    padding: 6px 9px;
-    transition:
-      gap 120ms cubic-bezier(.22, .61, .36, 1),
-      padding 120ms cubic-bezier(.22, .61, .36, 1);
+    gap: var(--relationship-card-copy-gap, 2px);
+    padding: var(--relationship-card-copy-padding-y, 6px) var(--relationship-card-copy-padding-x, 9px);
   }
 
   .center-card-copy strong {
-    font-size: 15px;
-    line-height: 1.2;
-    transition:
-      font-size 100ms ease-out,
-      line-height 100ms ease-out;
+    font-size: var(--relationship-card-title-size, 15px);
+    line-height: var(--relationship-card-title-line-height, 1.2);
   }
 
   .center-card-category {
-    font-size: 10px !important;
+    font-size: var(--relationship-category-size, 10px) !important;
   }
 
   .relationship-category-overview {
     gap: 4px;
-    margin-top: 5px;
-    padding: 4px;
-    transition:
-      gap 120ms cubic-bezier(.22, .61, .36, 1),
-      margin 120ms cubic-bezier(.22, .61, .36, 1),
-      padding 120ms cubic-bezier(.22, .61, .36, 1),
-      border-color 90ms ease-out,
-      background-color 90ms ease-out;
+    margin-top: var(--relationship-category-margin, 5px);
+    padding:
+      var(--relationship-category-padding-top, 4px)
+      var(--relationship-category-padding-x, 4px)
+      var(--relationship-category-padding-bottom, 4px);
   }
 
   .relationship-category-overview button {
-    min-height: 28px;
+    min-height: var(--relationship-category-button-height, 28px);
     padding: 3px 6px;
-    transition:
-      min-height 100ms ease-out,
-      padding 100ms ease-out,
-      background-color 90ms ease-out,
-      color 90ms ease-out;
   }
 
   .center-tree-trunk {
-    height: 18px;
-    max-height: 18px;
+    height: var(--relationship-tree-height, 18px);
+    max-height: var(--relationship-tree-height, 18px);
     overflow: hidden;
-    opacity: 1;
-    transition:
-      height 100ms ease-out,
-      max-height 100ms ease-out,
-      opacity 80ms ease-out;
+    opacity: var(--relationship-tree-opacity, 1);
   }
 
   .relationship-page.is-compact .relationship-center-dock-content {
@@ -951,48 +930,48 @@
   }
 
   .relationship-page.is-compact .center-summary {
-    min-height: 0;
-    max-height: 0;
-    margin: 0;
-    opacity: 0;
+    min-height: var(--relationship-summary-height);
+    max-height: var(--relationship-summary-max-height);
+    margin-bottom: var(--relationship-summary-margin);
+    opacity: var(--relationship-summary-opacity);
   }
 
   .relationship-page.is-compact .center-facility-card {
-    grid-template-columns: 58px minmax(0, 1fr);
-    height: 58px;
+    grid-template-columns: var(--relationship-card-image-width) minmax(0, 1fr);
+    height: var(--relationship-card-height);
     border-width: 1px;
-    border-radius: 14px;
+    border-radius: var(--relationship-card-radius);
   }
 
   .relationship-page.is-compact .center-facility-card > img,
   .relationship-page.is-compact .center-facility-card > .relationship-placeholder {
-    width: 58px;
+    width: var(--relationship-card-image-width);
   }
 
   .relationship-page.is-compact .center-card-copy {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-content: center;
-    gap: 1px 6px;
-    padding: 4px 7px;
+    gap: var(--relationship-card-copy-gap) 6px;
+    padding: var(--relationship-card-copy-padding-y) var(--relationship-card-copy-padding-x);
   }
 
   .relationship-page.is-compact .center-card-copy strong {
     grid-column: 1 / -1;
     overflow: hidden;
-    font-size: 13px;
-    line-height: 1.15;
+    font-size: var(--relationship-card-title-size);
+    line-height: var(--relationship-card-title-line-height);
     text-overflow: ellipsis;
     white-space: nowrap;
     -webkit-line-clamp: unset;
   }
 
   .relationship-page.is-compact .center-card-category {
-    font-size: 9px !important;
+    font-size: var(--relationship-category-size) !important;
   }
 
   .relationship-page.is-compact .center-card-related-count {
-    font-size: 8px !important;
+    font-size: var(--relationship-related-count-size) !important;
     white-space: nowrap;
   }
 
@@ -1000,8 +979,11 @@
     flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 4px;
-    margin-top: 4px;
-    padding: 0 0 2px;
+    margin-top: var(--relationship-category-margin);
+    padding:
+      var(--relationship-category-padding-top)
+      var(--relationship-category-padding-x)
+      var(--relationship-category-padding-bottom);
     overflow-x: auto;
     overflow-y: hidden;
     border: 0;
@@ -1016,38 +998,15 @@
 
   .relationship-page.is-compact .relationship-category-overview button {
     flex: 0 0 auto;
-    min-height: 27px;
+    min-height: var(--relationship-category-button-height);
     padding: 3px 6px;
     white-space: nowrap;
   }
 
   .relationship-page.is-compact .center-tree-trunk {
-    height: 0;
-    max-height: 0;
-    opacity: 0;
-  }
-}
-
-@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
-  .relationship-header,
-  .relationship-header-copy,
-  .relationship-large-title,
-  .relationship-large-title .eyebrow,
-  .relationship-large-title h1,
-  .relationship-mode-switch,
-  .relationship-mode-switch button,
-  .relationship-center-dock-slot,
-  .relationship-center-dock-content,
-  .center-summary,
-  .center-facility-card,
-  .center-facility-card > img,
-  .center-facility-card > .relationship-placeholder,
-  .center-card-copy,
-  .center-card-copy strong,
-  .relationship-category-overview,
-  .relationship-category-overview button,
-  .center-tree-trunk {
-    transition: none;
+    height: var(--relationship-tree-height);
+    max-height: var(--relationship-tree-height);
+    opacity: var(--relationship-tree-opacity);
   }
 }
 

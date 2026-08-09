@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Background,
@@ -491,8 +491,7 @@ function RelationshipGraphInner({
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const relationshipScrollRef = useRef<HTMLDivElement>(null)
-  const compactStateRef = useRef(false)
-  const [isCompactHeader, setIsCompactHeader] = useState(false)
+  const [compactProgress, setCompactProgress] = useState(0)
   const [centerDockHost, setCenterDockHost] = useState<HTMLDivElement | null>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
@@ -510,18 +509,21 @@ function RelationshipGraphInner({
     const root = relationshipScrollRef.current
     if (!root) return
 
-    const updateCompactState = () => {
-      if (!compactStateRef.current && root.scrollTop >= 104) {
-        compactStateRef.current = true
-        setIsCompactHeader(true)
-      } else if (compactStateRef.current && root.scrollTop <= 24) {
-        compactStateRef.current = false
-        setIsCompactHeader(false)
-      }
+    let animationFrame = 0
+    const updateCompactProgress = () => {
+      cancelAnimationFrame(animationFrame)
+      animationFrame = requestAnimationFrame(() => {
+        const progress = Math.min(1, Math.max(0, root.scrollTop / 104))
+        setCompactProgress((current) => Math.abs(current - progress) < .005 ? current : progress)
+      })
     }
 
-    root.addEventListener('scroll', updateCompactState, { passive: true })
-    return () => root.removeEventListener('scroll', updateCompactState)
+    updateCompactProgress()
+    root.addEventListener('scroll', updateCompactProgress, { passive: true })
+    return () => {
+      cancelAnimationFrame(animationFrame)
+      root.removeEventListener('scroll', updateCompactProgress)
+    }
   }, [])
 
   useEffect(() => {
@@ -547,9 +549,55 @@ function RelationshipGraphInner({
   const clearHistory = () => {
     if (fallbackCenter) setHistory([fallbackCenter.id])
   }
+  const interpolate = (expanded: number, compact: number) => expanded + ((compact - expanded) * compactProgress)
+  const relationshipStyle = {
+    '--relationship-compact-progress': compactProgress,
+    '--relationship-header-current-height': `calc(${interpolate(128, 80)}px + var(--relationship-safe-top))`,
+    '--relationship-header-current-padding-top': `calc(${interpolate(14, 8)}px + var(--relationship-safe-top))`,
+    '--relationship-header-current-padding-bottom': `${interpolate(12, 8)}px`,
+    '--relationship-header-current-gap': `${interpolate(12, 8)}px`,
+    '--relationship-header-leading-width': `${interpolate(44, 36)}px`,
+    '--relationship-header-actions-min-width': `${interpolate(0, 150)}px`,
+    '--relationship-header-copy-height': `${interpolate(48, 40)}px`,
+    '--relationship-eyebrow-height': `${interpolate(24, 0)}px`,
+    '--relationship-eyebrow-opacity': 1 - compactProgress,
+    '--relationship-title-size': `${interpolate(22, 16)}px`,
+    '--relationship-title-line-height': interpolate(1.35, 1.2),
+    '--relationship-mode-padding': `${interpolate(3, 2)}px`,
+    '--relationship-mode-radius': `${interpolate(13, 11)}px`,
+    '--relationship-mode-button-height': `${interpolate(42, 34)}px`,
+    '--relationship-mode-button-padding-y': `${interpolate(7, 4)}px`,
+    '--relationship-mode-button-padding-x': `${interpolate(12, 8)}px`,
+    '--relationship-mode-button-radius': `${interpolate(10, 9)}px`,
+    '--relationship-mode-button-size': `${interpolate(11, 10)}px`,
+    '--relationship-dock-current-top': `calc(${interpolate(128, 80)}px + var(--relationship-safe-top))`,
+    '--relationship-dock-current-height': `${interpolate(214, 100)}px`,
+    '--relationship-summary-height': `${interpolate(18, 0)}px`,
+    '--relationship-summary-max-height': `${interpolate(24, 0)}px`,
+    '--relationship-summary-margin': `${interpolate(4, 0)}px`,
+    '--relationship-summary-opacity': 1 - compactProgress,
+    '--relationship-card-image-width': `${interpolate(92, 58)}px`,
+    '--relationship-card-height': `${interpolate(100, 58)}px`,
+    '--relationship-card-radius': `${interpolate(18, 14)}px`,
+    '--relationship-card-copy-gap': `${interpolate(2, 1)}px`,
+    '--relationship-card-copy-padding-y': `${interpolate(6, 4)}px`,
+    '--relationship-card-copy-padding-x': `${interpolate(9, 7)}px`,
+    '--relationship-card-title-size': `${interpolate(15, 13)}px`,
+    '--relationship-card-title-line-height': interpolate(1.2, 1.15),
+    '--relationship-category-size': `${interpolate(10, 9)}px`,
+    '--relationship-related-count-size': `${interpolate(9, 8)}px`,
+    '--relationship-category-margin': `${interpolate(5, 4)}px`,
+    '--relationship-category-padding-top': `${interpolate(4, 0)}px`,
+    '--relationship-category-padding-x': `${interpolate(4, 0)}px`,
+    '--relationship-category-padding-bottom': `${interpolate(4, 2)}px`,
+    '--relationship-category-button-height': `${interpolate(28, 27)}px`,
+    '--relationship-tree-height': `${interpolate(18, 0)}px`,
+    '--relationship-tree-opacity': 1 - compactProgress,
+  } as CSSProperties
+  const isCompactHeader = compactProgress >= .995
 
   return (
-    <main className={`relationship-page relationship-screen-enter ${normalizedSettings.mode === 'center' ? 'is-center-mode' : 'is-overview-mode'}${isCompactHeader ? ' is-compact' : ''}`}>
+    <main style={relationshipStyle} className={`relationship-page relationship-screen-enter ${normalizedSettings.mode === 'center' ? 'is-center-mode' : 'is-overview-mode'}${isCompactHeader ? ' is-compact' : ''}`}>
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
