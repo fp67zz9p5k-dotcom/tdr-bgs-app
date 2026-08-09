@@ -686,8 +686,9 @@
 }
 
 /*
- * Keep the relationship header in a non-scrolling grid row on iOS. This avoids
- * Safari's fixed/sticky compositing path; only the second grid row scrolls.
+ * Keep the relationship chrome in a stable overlay on iOS. The scroll region
+ * always fills the same box with the same expanded top inset, so switching the
+ * overlay to its compact presentation never changes scroll geometry.
  */
 .relationship-screen-enter {
   animation: relationship-screen-enter 210ms ease-out backwards;
@@ -696,10 +697,6 @@
 @keyframes relationship-screen-enter {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-.relationship-compact-center-name {
-  display: none;
 }
 
 @media (max-width: 767px) {
@@ -714,31 +711,33 @@
 
   .relationship-page {
     --relationship-safe-top: env(safe-area-inset-top);
-    --relationship-header-height: calc(128px + var(--relationship-safe-top));
-    display: grid;
-    grid-template-rows: var(--relationship-header-height) minmax(0, 1fr);
+    --relationship-header-expanded-height: calc(128px + var(--relationship-safe-top));
+    --relationship-header-compact-height: calc(80px + var(--relationship-safe-top));
+    --relationship-dock-expanded-height: 214px;
+    --relationship-dock-compact-height: 100px;
+    position: relative;
+    display: block;
     height: 100svh;
     min-height: 0;
     padding-bottom: 0;
     overflow: hidden;
   }
 
-  .relationship-page.is-compact {
-    --relationship-header-height: calc(80px + var(--relationship-safe-top));
-  }
-
   .relationship-header {
-    position: relative;
+    position: absolute;
     z-index: 120;
-    top: auto;
+    top: 0;
+    right: 0;
+    left: 0;
     box-sizing: border-box;
     width: 100%;
-    height: 100%;
+    height: var(--relationship-header-expanded-height);
     margin: 0;
     padding-top: calc(14px + var(--relationship-safe-top));
   }
 
   .relationship-page.is-compact .relationship-header {
+    height: var(--relationship-header-compact-height);
     grid-template-columns: 36px minmax(0, 1fr) minmax(150px, auto);
     gap: 8px;
     padding-top: calc(8px + var(--relationship-safe-top));
@@ -750,19 +749,6 @@
     height: auto;
     min-height: 40px;
     align-items: center;
-  }
-
-  .relationship-compact-center-name {
-    display: block;
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    color: #d9b77f;
-    font-size: 9px;
-    font-weight: 800;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .relationship-page.is-compact .relationship-large-title {
@@ -777,12 +763,6 @@
   .relationship-page.is-compact .relationship-large-title h1 {
     font-size: 16px;
     line-height: 1.2;
-  }
-
-  .relationship-page.is-compact .relationship-compact-center-name {
-    max-height: 14px;
-    margin-top: 2px;
-    opacity: 1;
   }
 
   .relationship-page.is-compact .relationship-mode-switch {
@@ -800,18 +780,48 @@
   }
 
   .relationship-scroll-region {
-    position: relative;
+    position: absolute;
+    inset: 0;
     box-sizing: border-box;
     width: 100%;
-    height: auto;
+    height: 100%;
     min-height: 0;
-    padding-top: 0;
     padding-bottom: calc(108px + env(safe-area-inset-bottom));
     overflow-x: clip;
     overflow-y: auto;
     overscroll-behavior-y: none;
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .relationship-page.is-center-mode .relationship-scroll-region {
+    padding-top: calc(var(--relationship-header-expanded-height) + var(--relationship-dock-expanded-height));
+  }
+
+  .relationship-page.is-overview-mode .relationship-scroll-region {
+    padding-top: var(--relationship-header-expanded-height);
+  }
+
+  .relationship-center-dock-slot {
+    position: absolute;
+    z-index: 110;
+    top: var(--relationship-header-expanded-height);
+    right: 0;
+    left: 0;
+    height: var(--relationship-dock-expanded-height);
+    overflow: hidden;
+    background: var(--app-bg, #f4f0e8);
+  }
+
+  .relationship-page.is-compact .relationship-center-dock-slot {
+    top: var(--relationship-header-compact-height);
+    height: var(--relationship-dock-compact-height);
+  }
+
+  .relationship-center-dock-content {
+    box-sizing: border-box;
+    height: 100%;
+    padding: 4px 10px 0;
   }
 
   .relationship-center-view {
@@ -867,6 +877,82 @@
 
   .center-tree-trunk {
     height: 18px;
+  }
+
+  .relationship-page.is-compact .relationship-center-dock-content {
+    padding-top: 4px;
+  }
+
+  .relationship-page.is-compact .center-summary {
+    display: none;
+  }
+
+  .relationship-page.is-compact .center-facility-card {
+    grid-template-columns: 58px minmax(0, 1fr);
+    height: 58px;
+    border-width: 1px;
+    border-radius: 14px;
+  }
+
+  .relationship-page.is-compact .center-facility-card > img,
+  .relationship-page.is-compact .center-facility-card > .relationship-placeholder {
+    width: 58px;
+  }
+
+  .relationship-page.is-compact .center-card-copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    gap: 1px 6px;
+    padding: 4px 7px;
+  }
+
+  .relationship-page.is-compact .center-card-copy strong {
+    grid-column: 1 / -1;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -webkit-line-clamp: unset;
+  }
+
+  .relationship-page.is-compact .center-card-category {
+    font-size: 9px !important;
+  }
+
+  .relationship-page.is-compact .center-card-related-count {
+    font-size: 8px !important;
+    white-space: nowrap;
+  }
+
+  .relationship-page.is-compact .relationship-category-overview {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 0 0 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    scrollbar-width: none;
+  }
+
+  .relationship-page.is-compact .relationship-category-overview::-webkit-scrollbar {
+    display: none;
+  }
+
+  .relationship-page.is-compact .relationship-category-overview button {
+    flex: 0 0 auto;
+    min-height: 27px;
+    padding: 3px 6px;
+    white-space: nowrap;
+  }
+
+  .relationship-page.is-compact .center-tree-trunk {
+    display: none;
   }
 }
 

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Background,
   ReactFlow,
@@ -151,6 +152,8 @@ function CenterRelationshipView({
   onOpenFacility,
   onHistoryBack,
   onClearHistory,
+  dockHost,
+  useDock,
 }: {
   facilities: Facility[]
   center: Facility
@@ -159,6 +162,8 @@ function CenterRelationshipView({
   onOpenFacility: (facility: Facility) => void
   onHistoryBack: () => void
   onClearHistory: () => void
+  dockHost: HTMLDivElement | null
+  useDock: boolean
 }) {
   const related = useMemo(
     () => getBidirectionalRelatedFacilities(facilities, center.id),
@@ -215,43 +220,52 @@ function CenterRelationshipView({
     .map((id) => facilities.find((facility) => facility.id === id))
     .filter((facility): facility is Facility => Boolean(facility))
 
+  const centerSummary = (
+    <section className="center-summary" aria-label="直接の関連件数">
+      <span>直接の関連 {related.length}件</span>
+    </section>
+  )
+  const centerStage = (
+    <div className="center-node-stage">
+      <button type="button" className="center-facility-card" key={center.id} onClick={() => onOpenFacility(center)}>
+        <FacilityImage facility={center} />
+        <span className="center-card-copy">
+          <small>{getCategoryDefinition(center.category).englishLabel}</small>
+          <strong>{center.name}</strong>
+          <span className="center-card-area">{center.area || 'エリア未設定'}</span>
+          <span className="center-card-category">{getCategoryDefinition(center.category).icon} {center.category}{center.favorite ? '　★ お気に入り' : ''}</span>
+          <span className="center-card-related-count">直接の関連 {related.length}件</span>
+        </span>
+      </button>
+      {groups.length > 0 && (
+        <nav className="relationship-category-overview" aria-label="関連カテゴリ概要">
+          {groups.map(({ category, facilities: groupFacilities }) => (
+            <button
+              type="button"
+              key={category.id}
+              className={`${activeCategoryId === category.id ? 'active ' : ''}${collapsed.has(category.value) ? 'collapsed' : ''}`.trim()}
+              aria-current={activeCategoryId === category.id ? 'location' : undefined}
+              aria-expanded={!collapsed.has(category.value)}
+              onClick={() => openCategoryFromOverview(category.value, category.id)}
+            >
+              <span aria-hidden="true">{category.icon}</span>
+              {category.label} <b>{groupFacilities.length}</b>
+            </button>
+          ))}
+        </nav>
+      )}
+      {groups.length > 0 && <div className="center-tree-trunk" aria-hidden="true" />}
+    </div>
+  )
+
   return (
     <div className={`relationship-center-view density-${density}`}>
-      <section className="center-summary" aria-label="直接の関連件数">
-        <span>直接の関連 {related.length}件</span>
-      </section>
+      {useDock
+        ? dockHost && createPortal(<div className="relationship-center-dock-content">{centerSummary}{centerStage}</div>, dockHost)
+        : centerSummary}
 
       <div className="relationship-center-layout">
-        <div className="center-node-stage">
-          <button type="button" className="center-facility-card" key={center.id} onClick={() => onOpenFacility(center)}>
-            <FacilityImage facility={center} />
-            <span className="center-card-copy">
-              <small>{getCategoryDefinition(center.category).englishLabel}</small>
-              <strong>{center.name}</strong>
-              <span className="center-card-area">{center.area || 'エリア未設定'}</span>
-              <span className="center-card-category">{getCategoryDefinition(center.category).icon} {center.category}{center.favorite ? '　★ お気に入り' : ''}</span>
-              <span className="center-card-related-count">直接の関連 {related.length}件</span>
-            </span>
-          </button>
-          {groups.length > 0 && (
-            <nav className="relationship-category-overview" aria-label="関連カテゴリ概要">
-              {groups.map(({ category, facilities: groupFacilities }) => (
-                <button
-                  type="button"
-                  key={category.id}
-                  className={`${activeCategoryId === category.id ? 'active ' : ''}${collapsed.has(category.value) ? 'collapsed' : ''}`.trim()}
-                  aria-current={activeCategoryId === category.id ? 'location' : undefined}
-                  aria-expanded={!collapsed.has(category.value)}
-                  onClick={() => openCategoryFromOverview(category.value, category.id)}
-                >
-                  <span aria-hidden="true">{category.icon}</span>
-                  {category.label} <b>{groupFacilities.length}</b>
-                </button>
-              ))}
-            </nav>
-          )}
-          {groups.length > 0 && <div className="center-tree-trunk" aria-hidden="true" />}
-        </div>
+        {!useDock && centerStage}
 
         {groups.length > 0 ? (
           <div className="relationship-branch-scroll" aria-label="カテゴリ別の関連施設">
@@ -477,10 +491,20 @@ function RelationshipGraphInner({
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const relationshipScrollRef = useRef<HTMLDivElement>(null)
-  const relationshipHeaderRef = useRef<HTMLElement>(null)
   const compactStateRef = useRef(false)
-  const previousHeaderHeightRef = useRef<number | null>(null)
   const [isCompactHeader, setIsCompactHeader] = useState(false)
+  const [centerDockHost, setCenterDockHost] = useState<HTMLDivElement | null>(null)
+  const [isMobileLayout, setIsMobileLayout] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  ))
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const updateLayout = () => setIsMobileLayout(media.matches)
+    updateLayout()
+    media.addEventListener('change', updateLayout)
+    return () => media.removeEventListener('change', updateLayout)
+  }, [])
 
   useEffect(() => {
     const root = relationshipScrollRef.current
@@ -499,19 +523,6 @@ function RelationshipGraphInner({
     root.addEventListener('scroll', updateCompactState, { passive: true })
     return () => root.removeEventListener('scroll', updateCompactState)
   }, [])
-
-  useLayoutEffect(() => {
-    const header = relationshipHeaderRef.current
-    const root = relationshipScrollRef.current
-    if (!header || !root) return
-
-    const nextHeight = header.getBoundingClientRect().height
-    const previousHeight = previousHeaderHeightRef.current
-    previousHeaderHeightRef.current = nextHeight
-    if (previousHeight === null || previousHeight === nextHeight) return
-
-    root.scrollTop += nextHeight - previousHeight
-  }, [isCompactHeader])
 
   useEffect(() => {
     if (!fallbackCenter) return
@@ -538,21 +549,18 @@ function RelationshipGraphInner({
   }
 
   return (
-    <main className={`relationship-page relationship-screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
-      <header ref={relationshipHeaderRef} className="relationship-header">
+    <main className={`relationship-page relationship-screen-enter ${normalizedSettings.mode === 'center' ? 'is-center-mode' : 'is-overview-mode'}${isCompactHeader ? ' is-compact' : ''}`}>
+      <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
-          <div className="relationship-large-title">
-            <p className="eyebrow">RELATIONSHIP</p>
-            <h1>施設関係図</h1>
-            <span className="relationship-compact-center-name">{fallbackCenter?.name ?? '中心施設未選択'}</span>
-          </div>
+          <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
         </div>
         <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
           <button type="button" className={normalizedSettings.mode === 'center' ? 'active' : ''} onClick={() => setMode('center')}>中心表示</button>
           <button type="button" className={normalizedSettings.mode === 'overview' ? 'active' : ''} onClick={() => setMode('overview')}>全体表示</button>
         </div>
       </header>
+      {normalizedSettings.mode === 'center' && <div ref={setCenterDockHost} className="relationship-center-dock-slot" />}
       <div ref={relationshipScrollRef} className="relationship-scroll-region">
         <p className="relationship-description">
           {normalizedSettings.mode === 'center'
@@ -570,6 +578,8 @@ function RelationshipGraphInner({
               onOpenFacility={onOpenFacility}
               onHistoryBack={historyBack}
               onClearHistory={clearHistory}
+              dockHost={isMobileLayout ? centerDockHost : null}
+              useDock={isMobileLayout}
             />
           ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>
         ) : (
