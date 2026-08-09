@@ -700,6 +700,15 @@
 }
 
 @media (max-width: 767px) {
+  :root.relationship-page-active,
+  body.relationship-page-active,
+  body.relationship-page-active #root {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   .relationship-page {
     --relationship-safe-top: env(safe-area-inset-top);
     --relationship-fixed-header-height: calc(128px + var(--relationship-safe-top));
@@ -734,7 +743,7 @@
     padding-bottom: calc(108px + env(safe-area-inset-bottom));
     overflow-x: clip;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: none;
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
   }

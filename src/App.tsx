@@ -413,6 +413,18 @@ export default function App() {
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
+
+  useEffect(() => {
+    if (screen.page !== 'relationships') return
+
+    document.documentElement.classList.add('relationship-page-active')
+    document.body.classList.add('relationship-page-active')
+
+    return () => {
+      document.documentElement.classList.remove('relationship-page-active')
+      document.body.classList.remove('relationship-page-active')
+    }
+  }, [screen.page])
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
