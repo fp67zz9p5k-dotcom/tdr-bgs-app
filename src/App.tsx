@@ -62,7 +62,26 @@ type HomeReturnState = {
   headerProgress: number
 }
 
+type NavigationTimeline = {
+  entries: Screen[]
+  index: number
+}
+
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
+
+const blocksHorizontalSwipe = (target: EventTarget | null) => {
+  if (!(target instanceof Element)) return false
+  if (target.closest('input, textarea, select, [contenteditable="true"], .search-suggestions, .park-map-canvas, .coordinate-canvas, .relationship-canvas, [data-swipe-navigation-ignore]')) return true
+  let element: Element | null = target
+  while (element && element !== document.body) {
+    if (element instanceof HTMLElement && element.scrollWidth > element.clientWidth + 1) {
+      const overflowX = window.getComputedStyle(element).overflowX
+      if (overflowX === 'auto' || overflowX === 'scroll') return true
+    }
+    element = element.parentElement
+  }
+  return false
+}
 
 const parks: Park[] = ['東京ディズニーランド', '東京ディズニーシー']
 const roundMapCoordinate = (value: number) => Number(value.toFixed(6))
@@ -451,6 +470,7 @@ export default function App() {
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
+  const mapNavigationStateGetterRef = useRef<(() => MapReturnState) | null>(null)
   const homePageRef = useRef<HTMLElement>(null)
   const homeHeroRef = useRef<HTMLElement>(null)
   const searchAreaRef = useRef<HTMLDivElement>(null)
@@ -468,11 +488,18 @@ export default function App() {
   const hasVisitedNonHomeScreenRef = useRef(false)
   const homeReturnStateRef = useRef<HomeReturnState | null>(null)
   const pendingHomeScrollRef = useRef<HomeReturnState | null>(null)
-  const navigationHistoryRef = useRef<Screen[]>([])
+  const navigationHistoryRef = useRef<NavigationTimeline>({ entries: [], index: -1 })
   const swipeBackActionRef = useRef<() => void>(() => undefined)
+  const swipeForwardActionRef = useRef<() => void>(() => undefined)
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
+  const registerMapNavigationStateGetter = useCallback((getter: () => MapReturnState) => {
+    mapNavigationStateGetterRef.current = getter
+    return () => {
+      if (mapNavigationStateGetterRef.current === getter) mapNavigationStateGetterRef.current = null
+    }
+  }, [])
   const updateSearchSuggestionsMaxHeight = useCallback(() => {
     const suggestions = searchSuggestionsRef.current
     const searchInput = searchInputRef.current
@@ -491,7 +518,7 @@ export default function App() {
   }, [])
 
   const handleHomeTouchStart = useCallback((event: ReactTouchEvent<HTMLElement>) => {
-    if (settingsOpen || isSearchMode || event.touches.length !== 1) {
+    if (settingsOpen || isSearchMode || event.touches.length !== 1 || blocksHorizontalSwipe(event.target)) {
       homeSwipeStartRef.current = null
       return
     }
@@ -514,6 +541,8 @@ export default function App() {
     const elapsed = performance.now() - start.time
     if (deltaX >= 72 && Math.abs(deltaY) <= 56 && deltaX > Math.abs(deltaY) * 1.35 && elapsed <= 700) {
       openSettings()
+    } else if (deltaX <= -72 && Math.abs(deltaY) <= 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35 && elapsed <= 700) {
+      swipeForwardActionRef.current()
     }
   }, [isSearchMode, openSettings, settingsOpen])
 
@@ -1119,18 +1148,18 @@ export default function App() {
     }
   }
 
-  const returnToHome = () => {
+  const returnToHome = (preserveNavigationHistory = false) => {
     const savedState = homeReturnStateRef.current ?? { scrollY: 0, headerProgress: 0 }
     pendingHomeScrollRef.current = savedState
     homeReturnStateRef.current = null
-    navigationHistoryRef.current = []
+    if (!preserveNavigationHistory) navigationHistoryRef.current = { entries: [], index: -1 }
     setHomeHeaderProgress(savedState.headerProgress)
     setScreen({ page: 'home' })
   }
 
   const openHomeFresh = () => {
     homeReturnStateRef.current = null
-    navigationHistoryRef.current = []
+    navigationHistoryRef.current = { entries: [], index: -1 }
     pendingHomeScrollRef.current = { scrollY: 0, headerProgress: 0 }
     setHomeHeaderProgress(0)
     setScreen({ page: 'home' })
@@ -1142,21 +1171,41 @@ export default function App() {
   }
 
   const navigateForward = (nextScreen: Screen) => {
-    navigationHistoryRef.current.push(screen)
+    const timeline = navigationHistoryRef.current
+    const activeEntries = timeline.index >= 0
+      ? timeline.entries.slice(0, timeline.index + 1)
+      : [screen]
+    navigationHistoryRef.current = {
+      entries: [...activeEntries, nextScreen],
+      index: activeEntries.length,
+    }
     setScreen(nextScreen)
   }
 
   const navigateBack = (fallback: () => void) => {
-    const previousScreen = navigationHistoryRef.current.pop()
-    if (!previousScreen) {
+    const timeline = navigationHistoryRef.current
+    if (timeline.index <= 0) {
       fallback()
       return
     }
+    const nextIndex = timeline.index - 1
+    const previousScreen = timeline.entries[nextIndex]
+    navigationHistoryRef.current = { ...timeline, index: nextIndex }
     if (previousScreen.page === 'home') {
-      returnToHome()
+      returnToHome(true)
       return
     }
     setScreen(previousScreen)
+  }
+
+  const navigateHistoryForward = () => {
+    const timeline = navigationHistoryRef.current
+    if (timeline.index < 0 || timeline.index >= timeline.entries.length - 1) return
+    const nextIndex = timeline.index + 1
+    const nextScreen = timeline.entries[nextIndex]
+    if (screen.page === 'home') captureHomeReturnState()
+    navigationHistoryRef.current = { ...timeline, index: nextIndex }
+    setScreen(nextScreen)
   }
 
   const openFacility = (facility: Facility, returnTo: ReturnPage, returnState?: MapReturnState) => {
@@ -1343,8 +1392,15 @@ export default function App() {
   }
 
   const handleMapBack = () => {
-    resetMapExploration()
-    navigateBack(returnToHome)
+    const mapState = mapNavigationStateGetterRef.current?.()
+    if (mapState) {
+      mapReturnStateRef.current = mapState
+      sessionStorage.setItem(MAP_RETURN_STATE_KEY, JSON.stringify(mapState))
+    }
+    navigateBack(() => {
+      resetMapExploration()
+      returnToHome()
+    })
   }
 
   const handleRelationshipsBack = () => navigateBack(returnToHome)
@@ -1363,26 +1419,14 @@ export default function App() {
     else if (screen.page === 'relationships') handleRelationshipsBack()
     else if (screen.page === 'edit') setSwipeBackSequence((current) => current + 1)
   }
+  swipeForwardActionRef.current = navigateHistoryForward
 
   useEffect(() => {
     if (screen.page === 'home') return
 
     let start: { x: number; y: number; time: number } | null = null
-    const blocksHorizontalNavigation = (target: EventTarget | null) => {
-      if (!(target instanceof Element)) return false
-      if (target.closest('.park-map-canvas, .coordinate-canvas, .relationship-canvas, [data-swipe-navigation-ignore]')) return true
-      let element: Element | null = target
-      while (element && element !== document.body) {
-        if (element instanceof HTMLElement && element.scrollWidth > element.clientWidth + 1) {
-          const overflowX = window.getComputedStyle(element).overflowX
-          if (overflowX === 'auto' || overflowX === 'scroll') return true
-        }
-        element = element.parentElement
-      }
-      return false
-    }
     const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1 || blocksHorizontalNavigation(event.target)) {
+      if (event.touches.length !== 1 || blocksHorizontalSwipe(event.target)) {
         start = null
         return
       }
@@ -1574,6 +1618,7 @@ export default function App() {
           facilities={facilities}
           filterSettings={mapFilterSettings}
           initialState={mapReturnStateRef.current}
+          registerNavigationStateGetter={registerMapNavigationStateGetter}
           onFilterSettingsChange={(settings) => {
             setMapFilterSettings(settings)
             void saveMapFilterSettings(settings)
@@ -2035,6 +2080,7 @@ function ParkMap({
   facilities,
   filterSettings,
   initialState,
+  registerNavigationStateGetter,
   onFilterSettingsChange,
   onBack,
   onOpenFacility,
@@ -2042,6 +2088,7 @@ function ParkMap({
   facilities: Facility[]
   filterSettings: MapFilterSettings
   initialState: MapReturnState | null
+  registerNavigationStateGetter: (getter: () => MapReturnState) => () => void
   onFilterSettingsChange: (settings: MapFilterSettings) => void
   onBack: () => void
   onOpenFacility: (facility: Facility, state: MapReturnState) => void
@@ -2058,6 +2105,28 @@ function ParkMap({
         pitch: initialState.pitch,
       }
     : null)
+  const parkRef = useRef(park)
+  const selectedIdRef = useRef(selectedId)
+  parkRef.current = park
+  selectedIdRef.current = selectedId
+
+  useEffect(() => registerNavigationStateGetter(() => {
+    const currentPark = parkRef.current
+    const center = parkCenters[currentPark]
+    const currentView = mapViewRef.current ?? {
+      park: currentPark,
+      center: [center[1], center[0]] as [number, number],
+      zoom: 16.5,
+      bearing: getParkMapBearing(currentPark),
+      pitch: 0,
+    }
+    return {
+      ...currentView,
+      park: currentPark,
+      selectedFacilityId: selectedIdRef.current,
+      scrollY: window.scrollY,
+    }
+  }), [registerNavigationStateGetter])
 
   useEffect(() => {
     if (!initialState?.scrollY) return
