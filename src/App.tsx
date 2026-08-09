@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
@@ -1124,8 +1124,13 @@ export default function App() {
     pendingHomeScrollRef.current = savedState
     homeReturnStateRef.current = null
     navigationHistoryRef.current = []
-    setHomeHeaderProgress(savedState.headerProgress)
-    setScreen({ page: 'home' })
+    // RelationshipGraph scrolls the document itself on iPhone. Commit the home
+    // tree and its layout-effect restoration before the originating gesture
+    // finishes so Safari cannot anchor the outgoing document position afterward.
+    flushSync(() => {
+      setHomeHeaderProgress(savedState.headerProgress)
+      setScreen({ page: 'home' })
+    })
   }
 
   const openHomeFresh = () => {
