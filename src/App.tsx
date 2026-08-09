@@ -837,14 +837,12 @@ export default function App() {
   const searchSuggestions = useMemo(() => {
     if (!query.trim()) return []
     return rankedSearchMatches
-      .slice(0, 5)
   }, [query, rankedSearchMatches])
 
   useEffect(() => {
     if (
       !hasSearchQuery
       || screen.page !== 'home'
-      || searchSuggestions.length === 0
     ) return
 
     const viewport = window.visualViewport
@@ -1604,7 +1602,7 @@ export default function App() {
               placeholder="タイトル・本文・カテゴリ・エリアを検索"
               aria-label="項目を検索"
               aria-autocomplete="list"
-              aria-expanded={shouldShowSearchResults && searchSuggestions.length > 0}
+              aria-expanded={shouldShowSearchResults}
               aria-controls="search-suggestions"
             />
             {(isSearchMode || query) && (
@@ -1620,9 +1618,15 @@ export default function App() {
               >×</button>
             )}
           </label>
-          {shouldShowSearchResults && searchSuggestions.length > 0 && (
-            <div ref={searchSuggestionsRef} className="search-suggestions" id="search-suggestions" role="listbox" aria-label="検索候補">
-              {searchSuggestions.map((match, index) => {
+          {shouldShowSearchResults && (
+            <div
+              ref={searchSuggestionsRef}
+              className="search-suggestions"
+              id="search-suggestions"
+              role={searchSuggestions.length > 0 ? 'listbox' : 'region'}
+              aria-label={searchSuggestions.length > 0 ? '検索候補' : '検索結果'}
+            >
+              {searchSuggestions.length > 0 ? searchSuggestions.map((match, index) => {
                 const { facility } = match
                 return (
                 <button
@@ -1648,34 +1652,34 @@ export default function App() {
                   </span>
                 </button>
                 )
-              })}
+              }) : (
+                <div className="empty search-empty search-empty-exclusive">
+                  <span className="empty-icon" aria-hidden="true">⌕</span>
+                  <h3>検索結果が見つかりませんでした</h3>
+                  <div className="search-empty-copy">
+                    <p className="search-empty-query">入力した検索語：<strong>{query.trim()}</strong></p>
+                    <p>検索キーワードを変更して、もう一度お試しください</p>
+                  </div>
+                  {didYouMeanFacilities.length > 0 && (
+                    <div className="did-you-mean" aria-label="もしかして候補">
+                      <span>もしかして：</span>
+                      <div>
+                        {didYouMeanFacilities.map((facility) => (
+                          <button type="button" key={facility.id} onClick={() => selectDidYouMean(facility)}>
+                            {facility.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
-        {!hasNoSearchResults && homeFilterTrigger}
+        {homeFilterTrigger}
         </div>
-        {hasNoSearchResults ? (
-          <div className="empty search-empty search-empty-exclusive">
-            <span className="empty-icon" aria-hidden="true">⌕</span>
-            <h3>検索結果が見つかりませんでした</h3>
-            <div className="search-empty-copy">
-              <p className="search-empty-query">入力した検索語：<strong>{query.trim()}</strong></p>
-              <p>検索キーワードを変更して、もう一度お試しください</p>
-            </div>
-            {didYouMeanFacilities.length > 0 && (
-              <div className="did-you-mean" aria-label="もしかして候補">
-                <span>もしかして：</span>
-                <div>
-                  {didYouMeanFacilities.map((facility) => (
-                    <button type="button" key={facility.id} onClick={() => selectDidYouMean(facility)}>
-                      {facility.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
+        {!hasNoSearchResults && (
           <>
         {recentFacilities.length > 0 && (
           <section className="recent-section" aria-label="最近見た施設">
