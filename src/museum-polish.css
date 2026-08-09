@@ -735,8 +735,8 @@
     margin: 0;
     padding-top: calc(14px + var(--relationship-safe-top));
     transition:
-      height 220ms cubic-bezier(.22, .61, .36, 1),
-      padding 220ms cubic-bezier(.22, .61, .36, 1);
+      height 120ms cubic-bezier(.22, .61, .36, 1),
+      padding 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .relationship-header-copy,
@@ -746,13 +746,13 @@
   .relationship-mode-switch,
   .relationship-mode-switch button {
     transition:
-      min-height 220ms cubic-bezier(.22, .61, .36, 1),
-      padding 220ms cubic-bezier(.22, .61, .36, 1),
-      gap 220ms cubic-bezier(.22, .61, .36, 1),
-      border-radius 220ms cubic-bezier(.22, .61, .36, 1),
-      font-size 180ms ease-out,
-      line-height 180ms ease-out,
-      opacity 160ms ease-out;
+      min-height 120ms cubic-bezier(.22, .61, .36, 1),
+      padding 120ms cubic-bezier(.22, .61, .36, 1),
+      gap 120ms cubic-bezier(.22, .61, .36, 1),
+      border-radius 120ms cubic-bezier(.22, .61, .36, 1),
+      font-size 100ms ease-out,
+      line-height 100ms ease-out,
+      opacity 90ms ease-out;
   }
 
   .relationship-large-title .eyebrow {
@@ -838,8 +838,8 @@
     overflow: hidden;
     background: var(--app-bg, #f4f0e8);
     transition:
-      top 220ms cubic-bezier(.22, .61, .36, 1),
-      height 220ms cubic-bezier(.22, .61, .36, 1);
+      top 120ms cubic-bezier(.22, .61, .36, 1),
+      height 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .relationship-page.is-compact .relationship-center-dock-slot {
@@ -851,7 +851,7 @@
     box-sizing: border-box;
     height: 100%;
     padding: 4px 10px 0;
-    transition: padding 220ms cubic-bezier(.22, .61, .36, 1);
+    transition: padding 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .relationship-center-view {
@@ -865,10 +865,10 @@
     overflow: hidden;
     opacity: 1;
     transition:
-      min-height 180ms ease-out,
-      max-height 180ms ease-out,
-      margin 180ms ease-out,
-      opacity 140ms ease-out;
+      min-height 100ms ease-out,
+      max-height 100ms ease-out,
+      margin 100ms ease-out,
+      opacity 80ms ease-out;
   }
 
   .center-node-stage {
@@ -882,31 +882,31 @@
     grid-template-columns: 92px minmax(0, 1fr);
     height: 100px;
     transition:
-      height 220ms cubic-bezier(.22, .61, .36, 1),
-      grid-template-columns 220ms cubic-bezier(.22, .61, .36, 1),
-      border-radius 220ms cubic-bezier(.22, .61, .36, 1);
+      height 120ms cubic-bezier(.22, .61, .36, 1),
+      grid-template-columns 120ms cubic-bezier(.22, .61, .36, 1),
+      border-radius 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .center-facility-card > img,
   .center-facility-card > .relationship-placeholder {
     width: 92px;
-    transition: width 220ms cubic-bezier(.22, .61, .36, 1);
+    transition: width 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .center-card-copy {
     gap: 2px;
     padding: 6px 9px;
     transition:
-      gap 220ms cubic-bezier(.22, .61, .36, 1),
-      padding 220ms cubic-bezier(.22, .61, .36, 1);
+      gap 120ms cubic-bezier(.22, .61, .36, 1),
+      padding 120ms cubic-bezier(.22, .61, .36, 1);
   }
 
   .center-card-copy strong {
     font-size: 15px;
     line-height: 1.2;
     transition:
-      font-size 180ms ease-out,
-      line-height 180ms ease-out;
+      font-size 100ms ease-out,
+      line-height 100ms ease-out;
   }
 
   .center-card-category {
@@ -918,21 +918,21 @@
     margin-top: 5px;
     padding: 4px;
     transition:
-      gap 220ms cubic-bezier(.22, .61, .36, 1),
-      margin 220ms cubic-bezier(.22, .61, .36, 1),
-      padding 220ms cubic-bezier(.22, .61, .36, 1),
-      border-color 160ms ease-out,
-      background-color 160ms ease-out;
+      gap 120ms cubic-bezier(.22, .61, .36, 1),
+      margin 120ms cubic-bezier(.22, .61, .36, 1),
+      padding 120ms cubic-bezier(.22, .61, .36, 1),
+      border-color 90ms ease-out,
+      background-color 90ms ease-out;
   }
 
   .relationship-category-overview button {
     min-height: 28px;
     padding: 3px 6px;
     transition:
-      min-height 180ms ease-out,
-      padding 180ms ease-out,
-      background-color 160ms ease-out,
-      color 160ms ease-out;
+      min-height 100ms ease-out,
+      padding 100ms ease-out,
+      background-color 90ms ease-out,
+      color 90ms ease-out;
   }
 
   .center-tree-trunk {
@@ -941,9 +941,9 @@
     overflow: hidden;
     opacity: 1;
     transition:
-      height 180ms ease-out,
-      max-height 180ms ease-out,
-      opacity 140ms ease-out;
+      height 100ms ease-out,
+      max-height 100ms ease-out,
+      opacity 80ms ease-out;
   }
 
   .relationship-page.is-compact .relationship-center-dock-content {
