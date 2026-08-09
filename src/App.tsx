@@ -412,6 +412,7 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
@@ -438,6 +439,8 @@ export default function App() {
   const searchSuggestionsRef = useRef<HTMLDivElement>(null)
   const searchStartScrollYRef = useRef<number | null>(null)
   const searchStartHeaderProgressRef = useRef<number | null>(null)
+  const searchPageStyleRef = useRef<{ minHeight: string; overflowAnchor: string } | null>(null)
+  const searchKeyboardOpenedRef = useRef(false)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
@@ -591,6 +594,31 @@ export default function App() {
   }, [isSearchMode, screen.page])
 
   useEffect(() => {
+    if (!isSearchMode || screen.page !== 'home') {
+      setIsKeyboardVisible(false)
+      searchKeyboardOpenedRef.current = false
+      return
+    }
+
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const updateKeyboardVisibility = () => {
+      const obscuredHeight = window.innerHeight - (viewport.height + viewport.offsetTop)
+      const keyboardVisible = obscuredHeight > 120
+      if (keyboardVisible) searchKeyboardOpenedRef.current = true
+      setIsKeyboardVisible(keyboardVisible)
+    }
+
+    updateKeyboardVisibility()
+    viewport.addEventListener('resize', updateKeyboardVisibility)
+    viewport.addEventListener('scroll', updateKeyboardVisibility)
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardVisibility)
+      viewport.removeEventListener('scroll', updateKeyboardVisibility)
+    }
+  }, [isSearchMode, screen.page])
+
+  useEffect(() => {
     if (!settingsOpen) return
 
     const homePage = homePageRef.current
@@ -715,9 +743,17 @@ export default function App() {
     if (screen.page === 'home' || !isSearchMode) return
     setIsSearchMode(false)
     setSearchFocused(false)
+    setIsKeyboardVisible(false)
     setActiveSuggestionIndex(-1)
     searchStartScrollYRef.current = null
     searchStartHeaderProgressRef.current = null
+    searchKeyboardOpenedRef.current = false
+    const homePage = homePageRef.current
+    if (homePage && searchPageStyleRef.current) {
+      homePage.style.minHeight = searchPageStyleRef.current.minHeight
+      homePage.style.overflowAnchor = searchPageStyleRef.current.overflowAnchor
+    }
+    searchPageStyleRef.current = null
   }, [isSearchMode, screen.page])
 
   useEffect(() => {
@@ -1059,9 +1095,17 @@ export default function App() {
   const selectSearchSuggestion = (facility: Facility) => {
     setIsSearchMode(false)
     setSearchFocused(false)
+    setIsKeyboardVisible(false)
     setActiveSuggestionIndex(-1)
     searchStartScrollYRef.current = null
     searchStartHeaderProgressRef.current = null
+    searchKeyboardOpenedRef.current = false
+    const homePage = homePageRef.current
+    if (homePage && searchPageStyleRef.current) {
+      homePage.style.minHeight = searchPageStyleRef.current.minHeight
+      homePage.style.overflowAnchor = searchPageStyleRef.current.overflowAnchor
+    }
+    searchPageStyleRef.current = null
     openFacility(facility, 'home')
   }
 
@@ -1120,25 +1164,49 @@ export default function App() {
     }
   }
 
-  const clearSearch = () => {
-    setQuery('')
+  const preserveSearchPageGeometry = () => {
+    const homePage = homePageRef.current
+    if (!homePage || searchPageStyleRef.current) return
+    searchPageStyleRef.current = {
+      minHeight: homePage.style.minHeight,
+      overflowAnchor: homePage.style.overflowAnchor,
+    }
+    const documentHeight = document.scrollingElement?.scrollHeight ?? homePage.scrollHeight
+    homePage.style.minHeight = `${Math.max(homePage.scrollHeight, documentHeight)}px`
+    homePage.style.overflowAnchor = 'none'
+  }
+
+  const endSearchMode = (clearQuery: boolean, blurInput = true) => {
+    if (clearQuery) setQuery('')
     setIsSearchMode(false)
     setSearchFocused(false)
+    setIsKeyboardVisible(false)
     setActiveSuggestionIndex(-1)
-    searchInputRef.current?.blur()
+    searchKeyboardOpenedRef.current = false
+    if (blurInput) searchInputRef.current?.blur()
+    const homePage = homePageRef.current
+    if (homePage && searchPageStyleRef.current) {
+      homePage.style.minHeight = searchPageStyleRef.current.minHeight
+      homePage.style.overflowAnchor = searchPageStyleRef.current.overflowAnchor
+    }
+    searchPageStyleRef.current = null
     restoreSearchStartScrollPosition()
   }
+
+  const clearSearch = () => endSearchMode(true)
 
   const handleSearchBlur = (event: ReactFocusEvent<HTMLInputElement>) => {
     const nextFocusedElement = event.relatedTarget
     if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
     setSearchFocused(false)
+    if (!query.trim()) endSearchMode(false, false)
   }
 
   const handleSearchPointerDown = (event: ReactPointerEvent<HTMLInputElement>) => {
     if (!isSearchMode) {
       searchStartScrollYRef.current = window.scrollY
       searchStartHeaderProgressRef.current = homeHeaderProgress
+      preserveSearchPageGeometry()
     }
     if (
       document.activeElement !== event.currentTarget
@@ -1153,11 +1221,22 @@ export default function App() {
     if (!isSearchMode) {
       if (searchStartScrollYRef.current === null) searchStartScrollYRef.current = window.scrollY
       if (searchStartHeaderProgressRef.current === null) searchStartHeaderProgressRef.current = homeHeaderProgress
+      preserveSearchPageGeometry()
       setHomeHeaderProgress(searchStartHeaderProgressRef.current)
       setIsSearchMode(true)
     }
     setSearchFocused(true)
   }
+
+  useEffect(() => {
+    if (
+      !isSearchMode
+      || isKeyboardVisible
+      || !searchKeyboardOpenedRef.current
+      || query.trim()
+    ) return
+    endSearchMode(false)
+  }, [isKeyboardVisible, isSearchMode, query])
 
   const resetMapExploration = () => {
     const defaults = defaultMapFilterSettings()
