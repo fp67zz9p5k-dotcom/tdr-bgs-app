@@ -17,6 +17,7 @@ import {
 } from './db'
 import { RelationshipGraph } from './RelationshipGraph'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
+import { getParkMapBearing } from './mapOrientation'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
 import { getAreaDefinitions, getAreaId, getAreaLabel, getParkById, getParkId, isOfficialArea, normalizeAreaName, PARK_AREAS, type AreaId, type ParkId } from './areas'
 import {
@@ -1376,7 +1377,7 @@ export default function App() {
               park: facility.park,
               center: [facility.longitude, facility.latitude],
               zoom: 17,
-              bearing: parkBearings[facility.park],
+              bearing: getParkMapBearing(facility.park),
               pitch: 0,
               selectedFacilityId: facility.id,
               scrollY: 0,
@@ -1959,7 +1960,7 @@ function ParkMap({
       park,
       center: [center[1], center[0]] as [number, number],
       zoom: 16.5,
-      bearing: parkBearings[park],
+      bearing: getParkMapBearing(park),
       pitch: 0,
     }
     onOpenFacility(facility, {
@@ -2058,11 +2059,6 @@ function ParkMap({
 const parkCenters: Record<Park, [number, number]> = {
   東京ディズニーランド: [35.6329, 139.8804],
   東京ディズニーシー: [35.6267, 139.8851],
-}
-
-const parkBearings: Record<Park, number> = {
-  東京ディズニーランド: 157,
-  東京ディズニーシー: -101,
 }
 
 const parkEntrances: Record<Park, [number, number]> = {
@@ -2173,7 +2169,7 @@ function LeafletCanvas({
         ? [position.longitude, position.latitude]
         : preservedView?.center ?? [center[1], center[0]],
       zoom: position ? (staticPreview ? 16.8 : 18) : preservedView?.zoom ?? 16.5,
-      bearing: staticPreview ? 0 : preservedView?.bearing ?? parkBearings[park],
+      bearing: staticPreview ? getParkMapBearing(park) : preservedView?.bearing ?? getParkMapBearing(park),
       pitch: preservedView?.pitch ?? 0,
       dragPan: !staticPreview,
       dragRotate: false,
@@ -2221,7 +2217,7 @@ function LeafletCanvas({
         if (!preservedView) {
           map.easeTo({
             center: [entrance[1], entrance[0]],
-            bearing: parkBearings[park],
+            bearing: getParkMapBearing(park),
             offset: [0, containerRef.current ? containerRef.current.clientHeight * 0.36 : 180],
             duration: 0,
           })
