@@ -439,7 +439,7 @@ export default function App() {
   const searchSuggestionsRef = useRef<HTMLDivElement>(null)
   const searchStartScrollYRef = useRef<number | null>(null)
   const searchStartHeaderProgressRef = useRef<number | null>(null)
-  const searchPageStyleRef = useRef<{ minHeight: string; overflowAnchor: string } | null>(null)
+  const searchContentStyleRef = useRef<{ minHeight: string; overflowAnchor: string } | null>(null)
   const searchKeyboardOpenedRef = useRef(false)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
@@ -748,12 +748,12 @@ export default function App() {
     searchStartScrollYRef.current = null
     searchStartHeaderProgressRef.current = null
     searchKeyboardOpenedRef.current = false
-    const homePage = homePageRef.current
-    if (homePage && searchPageStyleRef.current) {
-      homePage.style.minHeight = searchPageStyleRef.current.minHeight
-      homePage.style.overflowAnchor = searchPageStyleRef.current.overflowAnchor
+    const homeContent = homePageRef.current?.querySelector<HTMLElement>('.home-content')
+    if (homeContent && searchContentStyleRef.current) {
+      homeContent.style.minHeight = searchContentStyleRef.current.minHeight
+      homeContent.style.overflowAnchor = searchContentStyleRef.current.overflowAnchor
     }
-    searchPageStyleRef.current = null
+    searchContentStyleRef.current = null
   }, [isSearchMode, screen.page])
 
   useEffect(() => {
@@ -857,7 +857,7 @@ export default function App() {
       window.removeEventListener('resize', updateSearchSuggestionsMaxHeight)
       searchSuggestionsRef.current?.style.removeProperty('--search-suggestions-max-height')
     }
-  }, [hasSearchQuery, screen.page, searchSuggestions.length, updateSearchSuggestionsMaxHeight])
+  }, [hasSearchQuery, screen.page, updateSearchSuggestionsMaxHeight])
 
   useEffect(() => {
     setActiveSuggestionIndex(-1)
@@ -1098,12 +1098,12 @@ export default function App() {
     searchStartScrollYRef.current = null
     searchStartHeaderProgressRef.current = null
     searchKeyboardOpenedRef.current = false
-    const homePage = homePageRef.current
-    if (homePage && searchPageStyleRef.current) {
-      homePage.style.minHeight = searchPageStyleRef.current.minHeight
-      homePage.style.overflowAnchor = searchPageStyleRef.current.overflowAnchor
+    const homeContent = homePageRef.current?.querySelector<HTMLElement>('.home-content')
+    if (homeContent && searchContentStyleRef.current) {
+      homeContent.style.minHeight = searchContentStyleRef.current.minHeight
+      homeContent.style.overflowAnchor = searchContentStyleRef.current.overflowAnchor
     }
-    searchPageStyleRef.current = null
+    searchContentStyleRef.current = null
     openFacility(facility, 'home')
   }
 
@@ -1162,16 +1162,15 @@ export default function App() {
     }
   }
 
-  const preserveSearchPageGeometry = () => {
-    const homePage = homePageRef.current
-    if (!homePage || searchPageStyleRef.current) return
-    searchPageStyleRef.current = {
-      minHeight: homePage.style.minHeight,
-      overflowAnchor: homePage.style.overflowAnchor,
+  const preserveSearchContentGeometry = () => {
+    const homeContent = homePageRef.current?.querySelector<HTMLElement>('.home-content')
+    if (!homeContent || searchContentStyleRef.current) return
+    searchContentStyleRef.current = {
+      minHeight: homeContent.style.minHeight,
+      overflowAnchor: homeContent.style.overflowAnchor,
     }
-    const documentHeight = document.scrollingElement?.scrollHeight ?? homePage.scrollHeight
-    homePage.style.minHeight = `${Math.max(homePage.scrollHeight, documentHeight)}px`
-    homePage.style.overflowAnchor = 'none'
+    homeContent.style.minHeight = `${homeContent.scrollHeight}px`
+    homeContent.style.overflowAnchor = 'none'
   }
 
   const endSearchMode = (clearQuery: boolean, blurInput = true) => {
@@ -1182,12 +1181,12 @@ export default function App() {
     setActiveSuggestionIndex(-1)
     searchKeyboardOpenedRef.current = false
     if (blurInput) searchInputRef.current?.blur()
-    const homePage = homePageRef.current
-    if (homePage && searchPageStyleRef.current) {
-      homePage.style.minHeight = searchPageStyleRef.current.minHeight
-      homePage.style.overflowAnchor = searchPageStyleRef.current.overflowAnchor
+    const homeContent = homePageRef.current?.querySelector<HTMLElement>('.home-content')
+    if (homeContent && searchContentStyleRef.current) {
+      homeContent.style.minHeight = searchContentStyleRef.current.minHeight
+      homeContent.style.overflowAnchor = searchContentStyleRef.current.overflowAnchor
     }
-    searchPageStyleRef.current = null
+    searchContentStyleRef.current = null
     restoreSearchStartScrollPosition()
   }
 
@@ -1204,7 +1203,7 @@ export default function App() {
     if (!isSearchMode) {
       searchStartScrollYRef.current = window.scrollY
       searchStartHeaderProgressRef.current = homeHeaderProgress
-      preserveSearchPageGeometry()
+      preserveSearchContentGeometry()
     }
     if (
       document.activeElement !== event.currentTarget
@@ -1219,7 +1218,7 @@ export default function App() {
     if (!isSearchMode) {
       if (searchStartScrollYRef.current === null) searchStartScrollYRef.current = window.scrollY
       if (searchStartHeaderProgressRef.current === null) searchStartHeaderProgressRef.current = homeHeaderProgress
-      preserveSearchPageGeometry()
+      preserveSearchContentGeometry()
       setHomeHeaderProgress(searchStartHeaderProgressRef.current)
       setIsSearchMode(true)
     }
