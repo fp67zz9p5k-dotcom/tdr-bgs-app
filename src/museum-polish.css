@@ -704,6 +704,12 @@
   .relationship-page {
     --relationship-safe-top: env(safe-area-inset-top);
     --relationship-sticky-header-height: calc(128px + var(--relationship-safe-top));
+    display: flex;
+    height: 100svh;
+    min-height: 0;
+    flex-direction: column;
+    padding-bottom: 0;
+    overflow: hidden;
   }
 
   .relationship-compact-sentinel {
@@ -716,13 +722,28 @@
   }
 
   .relationship-header {
+    position: relative;
+    top: auto;
+    flex: 0 0 var(--relationship-sticky-header-height);
     box-sizing: border-box;
     height: var(--relationship-sticky-header-height);
     padding-top: calc(14px + var(--relationship-safe-top));
   }
 
+  .relationship-scroll-region {
+    position: relative;
+    min-height: 0;
+    flex: 1 1 auto;
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .center-node-stage {
-    top: var(--relationship-sticky-header-height);
+    top: 0;
   }
 }
 

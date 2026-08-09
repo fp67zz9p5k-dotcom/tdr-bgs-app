@@ -183,6 +183,7 @@ function CenterRelationshipView({
     const container = categoryGroupsRef.current
     if (!container || typeof IntersectionObserver === 'undefined') return
     const sections = [...container.querySelectorAll<HTMLElement>('.relationship-category-group')]
+    const scrollRoot = container.closest<HTMLElement>('.relationship-scroll-region')
     const observer = new IntersectionObserver((entries) => {
       const visible = entries
         .filter((entry) => entry.isIntersecting)
@@ -191,7 +192,7 @@ function CenterRelationshipView({
         const categoryId = visible.target.id.replace('relationship-category-', '')
         if (isCategoryId(categoryId)) setActiveCategoryId(categoryId)
       }
-    }, { root: null, rootMargin: '-32% 0px -58% 0px', threshold: 0 })
+    }, { root: scrollRoot, rootMargin: '-32% 0px -58% 0px', threshold: 0 })
     sections.forEach((section) => observer.observe(section))
     return () => observer.disconnect()
   }, [center.id, groups])
@@ -514,7 +515,6 @@ function RelationshipGraphInner({
 
   return (
     <main className={`relationship-page relationship-screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
-      <span ref={compactHeaderSentinelRef} className="relationship-compact-sentinel" aria-hidden="true" />
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
@@ -526,32 +526,35 @@ function RelationshipGraphInner({
           <button type="button" className={normalizedSettings.mode === 'overview' ? 'active' : ''} onClick={() => setMode('overview')}>全体表示</button>
         </div>
       </header>
-      <p className="relationship-description">
-        {normalizedSettings.mode === 'center'
-          ? '中心施設と直接関係する施設を、カテゴリ別に表示しています。'
-          : '全施設のつながりを俯瞰表示しています。ノードを選択すると直接の関係を強調します。'}
-      </p>
+      <div className="relationship-scroll-region">
+        <span ref={compactHeaderSentinelRef} className="relationship-compact-sentinel" aria-hidden="true" />
+        <p className="relationship-description">
+          {normalizedSettings.mode === 'center'
+            ? '中心施設と直接関係する施設を、カテゴリ別に表示しています。'
+            : '全施設のつながりを俯瞰表示しています。ノードを選択すると直接の関係を強調します。'}
+        </p>
 
-      {normalizedSettings.mode === 'center' ? (
-        fallbackCenter ? (
-          <CenterRelationshipView
+        {normalizedSettings.mode === 'center' ? (
+          fallbackCenter ? (
+            <CenterRelationshipView
+              facilities={facilities}
+              center={fallbackCenter}
+              history={history}
+              onSelectCenter={selectCenter}
+              onOpenFacility={onOpenFacility}
+              onHistoryBack={historyBack}
+              onClearHistory={clearHistory}
+            />
+          ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>
+        ) : (
+          <OverviewRelationshipView
             facilities={facilities}
-            center={fallbackCenter}
-            history={history}
-            onSelectCenter={selectCenter}
+            settings={normalizedSettings}
+            onSettingsChange={onSettingsChange}
             onOpenFacility={onOpenFacility}
-            onHistoryBack={historyBack}
-            onClearHistory={clearHistory}
           />
-        ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>
-      ) : (
-        <OverviewRelationshipView
-          facilities={facilities}
-          settings={normalizedSettings}
-          onSettingsChange={onSettingsChange}
-          onOpenFacility={onOpenFacility}
-        />
-      )}
+        )}
+      </div>
     </main>
   )
 }
