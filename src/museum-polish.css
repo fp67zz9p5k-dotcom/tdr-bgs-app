@@ -686,9 +686,8 @@
 }
 
 /*
- * Keep the relationship banner outside the scrolling content on iOS. Its
- * viewport position and dimensions are constant for the lifetime of the page;
- * only the content region beneath it owns vertical scrolling.
+ * Keep the relationship header in a non-scrolling grid row on iOS. This avoids
+ * Safari's fixed/sticky compositing path; only the second grid row scrolls.
  */
 .relationship-screen-enter {
   animation: relationship-screen-enter 210ms ease-out backwards;
@@ -711,35 +710,75 @@
 
   .relationship-page {
     --relationship-safe-top: env(safe-area-inset-top);
-    --relationship-fixed-header-height: calc(128px + var(--relationship-safe-top));
-    display: block;
+    --relationship-header-height: calc(128px + var(--relationship-safe-top));
+    display: grid;
+    grid-template-rows: var(--relationship-header-height) minmax(0, 1fr);
     height: 100svh;
     min-height: 0;
-    flex-direction: column;
     padding-bottom: 0;
     overflow: hidden;
+    transition: grid-template-rows 180ms ease-out;
+  }
+
+  .relationship-page.is-compact {
+    --relationship-header-height: calc(72px + var(--relationship-safe-top));
   }
 
   .relationship-header {
-    position: fixed;
+    position: relative;
     z-index: 120;
-    top: 0;
-    right: 0;
-    left: 0;
+    top: auto;
     box-sizing: border-box;
     width: 100%;
-    height: var(--relationship-fixed-header-height);
+    height: 100%;
     margin: 0;
     padding-top: calc(14px + var(--relationship-safe-top));
+    transition: padding 180ms ease-out;
+  }
+
+  .relationship-page.is-compact .relationship-header {
+    grid-template-columns: 36px minmax(0, 1fr) minmax(150px, auto);
+    gap: 8px;
+    padding-top: calc(8px + var(--relationship-safe-top));
+    padding-bottom: 8px;
+  }
+
+  .relationship-page.is-compact .relationship-header-copy {
+    height: 36px;
+  }
+
+  .relationship-page.is-compact .relationship-large-title .eyebrow {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .relationship-page.is-compact .relationship-large-title h1 {
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .relationship-page.is-compact .relationship-mode-switch {
+    grid-column: auto;
+    width: auto;
+    padding: 2px;
+    border-radius: 11px;
+  }
+
+  .relationship-page.is-compact .relationship-mode-switch button {
+    min-height: 34px;
+    padding: 4px 8px;
+    border-radius: 9px;
+    font-size: 10px;
   }
 
   .relationship-scroll-region {
     position: relative;
     box-sizing: border-box;
     width: 100%;
-    height: 100%;
+    height: auto;
     min-height: 0;
-    padding-top: var(--relationship-fixed-header-height);
+    padding-top: 0;
     padding-bottom: calc(108px + env(safe-area-inset-bottom));
     overflow-x: clip;
     overflow-y: auto;
@@ -748,13 +787,73 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  .relationship-compact-sentinel {
+    display: block;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+
+  .relationship-center-view {
+    padding: 8px 10px 20px;
+  }
+
+  .center-summary {
+    min-height: 18px;
+    margin-bottom: 4px;
+  }
+
   .center-node-stage {
-    top: 0;
+    position: relative;
+    top: auto;
+    padding-top: 0;
+    background: transparent;
+  }
+
+  .center-facility-card {
+    grid-template-columns: 92px minmax(0, 1fr);
+    height: 100px;
+  }
+
+  .center-facility-card > img,
+  .center-facility-card > .relationship-placeholder {
+    width: 92px;
+  }
+
+  .center-card-copy {
+    gap: 2px;
+    padding: 6px 9px;
+  }
+
+  .center-card-copy strong {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .center-card-category {
+    font-size: 10px !important;
+  }
+
+  .relationship-category-overview {
+    gap: 4px;
+    margin-top: 5px;
+    padding: 4px;
+  }
+
+  .relationship-category-overview button {
+    min-height: 28px;
+    padding: 3px 6px;
+  }
+
+  .center-tree-trunk {
+    height: 18px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .relationship-screen-enter { animation: none; }
+  .relationship-page { transition: none; }
+  .relationship-header { transition: none; }
 }
 
 /* Icon boxes share one optical baseline without changing individual artwork. */

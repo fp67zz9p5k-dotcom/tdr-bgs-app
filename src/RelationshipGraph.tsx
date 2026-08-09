@@ -476,6 +476,21 @@ function RelationshipGraphInner({
     [facilities, normalizedSettings.selectedId],
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
+  const relationshipScrollRef = useRef<HTMLDivElement>(null)
+  const compactSentinelRef = useRef<HTMLSpanElement>(null)
+  const [isCompactHeader, setIsCompactHeader] = useState(false)
+
+  useEffect(() => {
+    const root = relationshipScrollRef.current
+    const sentinel = compactSentinelRef.current
+    if (!root || !sentinel || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsCompactHeader(!entry.isIntersecting)
+    }, { root, threshold: 0 })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!fallbackCenter) return
@@ -502,7 +517,7 @@ function RelationshipGraphInner({
   }
 
   return (
-    <main className="relationship-page relationship-screen-enter">
+    <main className={`relationship-page relationship-screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
@@ -513,7 +528,8 @@ function RelationshipGraphInner({
           <button type="button" className={normalizedSettings.mode === 'overview' ? 'active' : ''} onClick={() => setMode('overview')}>全体表示</button>
         </div>
       </header>
-      <div className="relationship-scroll-region">
+      <div ref={relationshipScrollRef} className="relationship-scroll-region">
+        <span ref={compactSentinelRef} className="relationship-compact-sentinel" aria-hidden="true" />
         <p className="relationship-description">
           {normalizedSettings.mode === 'center'
             ? '中心施設と直接関係する施設を、カテゴリ別に表示しています。'

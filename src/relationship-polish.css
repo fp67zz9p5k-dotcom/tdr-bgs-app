@@ -487,9 +487,9 @@
   }
 
   .center-node-stage {
-    position: sticky;
+    position: relative;
     z-index: 10;
-    top: calc(env(safe-area-inset-top) + 128px);
+    top: auto;
     padding-top: 5px;
     background: var(--app-bg, #f4f0e8);
   }
