@@ -685,6 +685,51 @@
   stroke: color-mix(in srgb, var(--accent-gold) 84%, var(--app-bg));
 }
 
+/*
+ * Keep iOS Safari's relationship sticky layers in one stable coordinate system.
+ * The page transition is opacity-only so no transformed ancestor can become a
+ * sticky containing block. Both sticky tiers share the same immutable header
+ * height instead of measuring or rewriting positions while scrolling.
+ */
+.relationship-screen-enter {
+  animation: relationship-screen-enter 210ms ease-out backwards;
+}
+
+@keyframes relationship-screen-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  .relationship-page {
+    --relationship-safe-top: env(safe-area-inset-top);
+    --relationship-sticky-header-height: calc(128px + var(--relationship-safe-top));
+  }
+
+  .relationship-compact-sentinel {
+    position: absolute;
+    top: 104px;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+
+  .relationship-header {
+    box-sizing: border-box;
+    height: var(--relationship-sticky-header-height);
+    padding-top: calc(14px + var(--relationship-safe-top));
+  }
+
+  .center-node-stage {
+    top: var(--relationship-sticky-header-height);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relationship-screen-enter { animation: none; }
+}
+
 /* Icon boxes share one optical baseline without changing individual artwork. */
 :root[data-theme] .primary-bottom-nav button > span,
 :root[data-theme] .view-category,

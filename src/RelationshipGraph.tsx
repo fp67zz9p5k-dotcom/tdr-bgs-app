@@ -475,41 +475,17 @@ function RelationshipGraphInner({
     [facilities, normalizedSettings.selectedId],
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
-  const relationshipPageRef = useRef<HTMLElement>(null)
-  const scrollFrameRef = useRef(0)
-  const relationshipPageTopRef = useRef(0)
+  const compactHeaderSentinelRef = useRef<HTMLSpanElement>(null)
   const [isCompactHeader, setIsCompactHeader] = useState(false)
 
   useEffect(() => {
-    const measurePageTop = () => {
-      const page = relationshipPageRef.current
-      if (!page) return
-      relationshipPageTopRef.current = window.scrollY + page.getBoundingClientRect().top
-    }
-
-    const updateHeaderProgress = () => {
-      cancelAnimationFrame(scrollFrameRef.current)
-      scrollFrameRef.current = requestAnimationFrame(() => {
-        const scrollOffset = window.scrollY - relationshipPageTopRef.current
-        // Use separate enter/exit thresholds so iOS scroll anchoring and elastic
-        // scrolling cannot repeatedly toggle the compact sticky state.
-        setIsCompactHeader((current) => current ? scrollOffset > 72 : scrollOffset > 104)
-      })
-    }
-
-    measurePageTop()
-    updateHeaderProgress()
-    window.addEventListener('scroll', updateHeaderProgress, { passive: true })
-    const handleResize = () => {
-      measurePageTop()
-      updateHeaderProgress()
-    }
-    window.addEventListener('resize', handleResize)
-    return () => {
-      cancelAnimationFrame(scrollFrameRef.current)
-      window.removeEventListener('scroll', updateHeaderProgress)
-      window.removeEventListener('resize', handleResize)
-    }
+    const sentinel = compactHeaderSentinelRef.current
+    if (!sentinel || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsCompactHeader(!entry.isIntersecting)
+    }, { threshold: 0 })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
@@ -537,7 +513,8 @@ function RelationshipGraphInner({
   }
 
   return (
-    <main ref={relationshipPageRef} className={`relationship-page screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
+    <main className={`relationship-page relationship-screen-enter${isCompactHeader ? ' is-compact' : ''}`}>
+      <span ref={compactHeaderSentinelRef} className="relationship-compact-sentinel" aria-hidden="true" />
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
