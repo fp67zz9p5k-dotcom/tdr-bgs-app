@@ -446,6 +446,7 @@ export default function App() {
   const [backupMessage, setBackupMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [homeHeaderProgress, setHomeHeaderProgress] = useState(0)
+  const [swipeBackSequence, setSwipeBackSequence] = useState(0)
   const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference)
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
@@ -467,6 +468,8 @@ export default function App() {
   const hasVisitedNonHomeScreenRef = useRef(false)
   const homeReturnStateRef = useRef<HomeReturnState | null>(null)
   const pendingHomeScrollRef = useRef<HomeReturnState | null>(null)
+  const navigationHistoryRef = useRef<Screen[]>([])
+  const swipeBackActionRef = useRef<() => void>(() => undefined)
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
@@ -1120,12 +1123,14 @@ export default function App() {
     const savedState = homeReturnStateRef.current ?? { scrollY: 0, headerProgress: 0 }
     pendingHomeScrollRef.current = savedState
     homeReturnStateRef.current = null
+    navigationHistoryRef.current = []
     setHomeHeaderProgress(savedState.headerProgress)
     setScreen({ page: 'home' })
   }
 
   const openHomeFresh = () => {
     homeReturnStateRef.current = null
+    navigationHistoryRef.current = []
     pendingHomeScrollRef.current = { scrollY: 0, headerProgress: 0 }
     setHomeHeaderProgress(0)
     setScreen({ page: 'home' })
@@ -1136,6 +1141,24 @@ export default function App() {
     setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })
   }
 
+  const navigateForward = (nextScreen: Screen) => {
+    navigationHistoryRef.current.push(screen)
+    setScreen(nextScreen)
+  }
+
+  const navigateBack = (fallback: () => void) => {
+    const previousScreen = navigationHistoryRef.current.pop()
+    if (!previousScreen) {
+      fallback()
+      return
+    }
+    if (previousScreen.page === 'home') {
+      returnToHome()
+      return
+    }
+    setScreen(previousScreen)
+  }
+
   const openFacility = (facility: Facility, returnTo: ReturnPage, returnState?: MapReturnState) => {
     if (returnTo === 'home') captureHomeReturnState()
     setRecentFacilityIds((current) => {
@@ -1143,7 +1166,9 @@ export default function App() {
       void saveRecentFacilityIds(next)
       return next
     })
-    setScreen({ page: 'view', facility, returnTo, mapReturnState: returnState })
+    const nextScreen: Screen = { page: 'view', facility, returnTo, mapReturnState: returnState }
+    if (screen.page === 'map') setScreen(nextScreen)
+    else navigateForward(nextScreen)
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   }
 
@@ -1304,6 +1329,98 @@ export default function App() {
     }
   }
 
+  const handleViewBack = () => {
+    if (screen.page !== 'view') return
+    if (screen.returnTo === 'map') {
+      mapReturnStateRef.current = screen.mapReturnState ?? mapReturnStateRef.current ?? readMapReturnState()
+      window.history.back()
+      return
+    }
+    navigateBack(() => {
+      if (screen.returnTo === 'home') returnToHome()
+      else setScreen({ page: screen.returnTo })
+    })
+  }
+
+  const handleMapBack = () => {
+    resetMapExploration()
+    navigateBack(returnToHome)
+  }
+
+  const handleRelationshipsBack = () => navigateBack(returnToHome)
+
+  const handleEditBack = () => {
+    if (screen.page !== 'edit') return
+    if (screen.isNew && screen.returnTo === 'home') returnToHome()
+    else setScreen(screen.isNew
+      ? { page: screen.returnTo }
+      : { page: 'view', facility: screen.facility, returnTo: screen.returnTo })
+  }
+
+  swipeBackActionRef.current = () => {
+    if (screen.page === 'view') handleViewBack()
+    else if (screen.page === 'map') handleMapBack()
+    else if (screen.page === 'relationships') handleRelationshipsBack()
+    else if (screen.page === 'edit') setSwipeBackSequence((current) => current + 1)
+  }
+
+  useEffect(() => {
+    if (screen.page === 'home') return
+
+    let start: { x: number; y: number; time: number } | null = null
+    const blocksHorizontalNavigation = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return false
+      if (target.closest('.park-map-canvas, .coordinate-canvas, .relationship-canvas, [data-swipe-navigation-ignore]')) return true
+      let element: Element | null = target
+      while (element && element !== document.body) {
+        if (element instanceof HTMLElement && element.scrollWidth > element.clientWidth + 1) {
+          const overflowX = window.getComputedStyle(element).overflowX
+          if (overflowX === 'auto' || overflowX === 'scroll') return true
+        }
+        element = element.parentElement
+      }
+      return false
+    }
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1 || blocksHorizontalNavigation(event.target)) {
+        start = null
+        return
+      }
+      const touch = event.touches[0]
+      // Preserve Safari's native history gesture at the physical screen edge.
+      if (touch.clientX <= 28) {
+        start = null
+        return
+      }
+      start = { x: touch.clientX, y: touch.clientY, time: performance.now() }
+    }
+    const handleTouchEnd = (event: TouchEvent) => {
+      const gestureStart = start
+      start = null
+      if (!gestureStart || event.changedTouches.length !== 1) return
+      const touch = event.changedTouches[0]
+      const deltaX = touch.clientX - gestureStart.x
+      const deltaY = touch.clientY - gestureStart.y
+      const elapsed = performance.now() - gestureStart.time
+      if (
+        deltaX >= 72
+        && Math.abs(deltaY) <= 56
+        && deltaX > Math.abs(deltaY) * 1.35
+        && elapsed <= 700
+      ) swipeBackActionRef.current()
+    }
+    const cancelGesture = () => { start = null }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+    document.addEventListener('touchcancel', cancelGesture, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchend', handleTouchEnd)
+      document.removeEventListener('touchcancel', cancelGesture)
+    }
+  }, [screen.page])
+
   const toggleFavorite = async (facility: Facility) => {
     const updated = { ...facility, favorite: !facility.favorite, updatedAt: new Date().toISOString() }
     await saveFacility(updated)
@@ -1404,16 +1521,7 @@ export default function App() {
           key={screen.facility.id}
           facility={screen.facility}
           allFacilities={facilities}
-          onBack={() => {
-            if (screen.returnTo === 'map') {
-              mapReturnStateRef.current = screen.mapReturnState ?? mapReturnStateRef.current ?? readMapReturnState()
-              window.history.back()
-            } else if (screen.returnTo === 'home') {
-              returnToHome()
-            } else {
-              setScreen({ page: screen.returnTo })
-            }
-          }}
+          onBack={handleViewBack}
           onEdit={() => setScreen({ page: 'edit', facility: screen.facility, isNew: false, returnTo: screen.returnTo })}
           onToggleFavorite={() => void toggleFavorite(screen.facility)}
           onOpenFacility={(facility) => openFacility(facility, screen.returnTo, screen.mapReturnState)}
@@ -1433,7 +1541,7 @@ export default function App() {
             void saveMapFilterSettings(nextFilters)
             mapReturnStateRef.current = state
             sessionStorage.setItem(MAP_RETURN_STATE_KEY, JSON.stringify(state))
-            setScreen({ page: 'map' })
+            navigateForward({ page: 'map' })
           }}
         />
         <PrimaryBottomNavigation
@@ -1452,7 +1560,7 @@ export default function App() {
               void saveRelationshipGraphSettings(nextSettings)
             }
             if (page === 'home') openHomeFresh()
-            else setScreen({ page })
+            else navigateForward({ page })
           }}
         />
       </>
@@ -1470,10 +1578,7 @@ export default function App() {
             setMapFilterSettings(settings)
             void saveMapFilterSettings(settings)
           }}
-          onBack={() => {
-            resetMapExploration()
-            returnToHome()
-          }}
+          onBack={handleMapBack}
           onOpenFacility={(facility, state) => {
             mapReturnStateRef.current = state
             sessionStorage.setItem(MAP_RETURN_STATE_KEY, JSON.stringify(state))
@@ -1487,7 +1592,7 @@ export default function App() {
           onNavigate={(page) => {
             if (page !== 'map') resetMapExploration()
             if (page === 'home') openHomeFresh()
-            else setScreen({ page })
+            else navigateForward({ page })
           }}
         />
       </>
@@ -1504,7 +1609,7 @@ export default function App() {
             setRelationshipSettings(settings)
             void saveRelationshipGraphSettings(settings)
           }}
-          onBack={returnToHome}
+          onBack={handleRelationshipsBack}
           onOpenFacility={(facility) => openFacility(facility, 'relationships')}
         />
         <PrimaryBottomNavigation
@@ -1512,7 +1617,7 @@ export default function App() {
           onNavigate={(page) => {
             if (page === 'map') resetMapExploration()
             if (page === 'home') openHomeFresh()
-            else setScreen({ page })
+            else navigateForward({ page })
           }}
         />
       </>
@@ -1525,12 +1630,8 @@ export default function App() {
         initialFacility={screen.facility}
         allFacilities={facilities}
         isNew={screen.isNew}
-        onBack={() => {
-          if (screen.isNew && screen.returnTo === 'home') returnToHome()
-          else setScreen(screen.isNew
-            ? { page: screen.returnTo }
-            : { page: 'view', facility: screen.facility, returnTo: screen.returnTo })
-        }}
+        swipeBackSequence={swipeBackSequence}
+        onBack={handleEditBack}
         onSave={async (facility, initialRelatedIds) => {
           const savedFacility = await handleSave(facility, initialRelatedIds)
           setScreen({ page: 'view', facility: savedFacility, returnTo: screen.returnTo })
@@ -1861,7 +1962,7 @@ export default function App() {
           if (page === 'home') return
           if (page === 'map') resetMapExploration()
           captureHomeReturnState()
-          setScreen({ page })
+          navigateForward({ page })
         }}
       />
       {!hasNoSearchResults && (
@@ -2833,12 +2934,13 @@ type FacilityDetailProps = {
   initialFacility: Facility
   allFacilities: Facility[]
   isNew: boolean
+  swipeBackSequence: number
   onBack: () => void
   onSave: (facility: Facility, initialRelatedIds: string[]) => Promise<void>
   onDelete: (facility: Facility) => Promise<void>
 }
 
-function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave, onDelete }: FacilityDetailProps) {
+function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequence, onBack, onSave, onDelete }: FacilityDetailProps) {
   const initialEditableFacility = useMemo(() => ({
     ...initialFacility,
     relatedFacilityIds: getBidirectionalRelatedFacilityIds(allFacilities, initialFacility.id),
@@ -2851,6 +2953,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
   const initialFacilitySnapshot = useRef(JSON.stringify(initialEditableFacility))
   const initialRelatedIds = useRef([...initialEditableFacility.relatedFacilityIds])
   const savingRef = useRef(false)
+  const handledSwipeBackSequenceRef = useRef(swipeBackSequence)
   const formTitle = isNew ? '施設を追加' : '施設を編集'
   const hasChanges = useMemo(
     () => JSON.stringify(facility) !== initialFacilitySnapshot.current,
@@ -2889,6 +2992,12 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, onBack, onSave,
     }
     onBack()
   }
+
+  useEffect(() => {
+    if (handledSwipeBackSequenceRef.current === swipeBackSequence) return
+    handledSwipeBackSequenceRef.current = swipeBackSequence
+    requestBack()
+  }, [swipeBackSequence])
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
