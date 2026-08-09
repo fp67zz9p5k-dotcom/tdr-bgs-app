@@ -410,6 +410,7 @@ export default function App() {
   const [facilities, setFacilities] = useState<Facility[]>([])
   const [screen, setScreen] = useState<Screen>({ page: 'home' })
   const [query, setQuery] = useState('')
+  const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
@@ -436,6 +437,7 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchSuggestionsRef = useRef<HTMLDivElement>(null)
   const searchStartScrollYRef = useRef<number | null>(null)
+  const searchStartHeaderProgressRef = useRef<number | null>(null)
   const settingsCloseButtonRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const homeSwipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
@@ -463,7 +465,7 @@ export default function App() {
   }, [])
 
   const handleHomeTouchStart = useCallback((event: ReactTouchEvent<HTMLElement>) => {
-    if (settingsOpen || event.touches.length !== 1) {
+    if (settingsOpen || isSearchMode || event.touches.length !== 1) {
       homeSwipeStartRef.current = null
       return
     }
@@ -474,12 +476,12 @@ export default function App() {
       return
     }
     homeSwipeStartRef.current = { x: touch.clientX, y: touch.clientY, time: performance.now() }
-  }, [settingsOpen])
+  }, [isSearchMode, settingsOpen])
 
   const handleHomeTouchEnd = useCallback((event: ReactTouchEvent<HTMLElement>) => {
     const start = homeSwipeStartRef.current
     homeSwipeStartRef.current = null
-    if (!start || settingsOpen || event.changedTouches.length !== 1) return
+    if (!start || settingsOpen || isSearchMode || event.changedTouches.length !== 1) return
     const touch = event.changedTouches[0]
     const deltaX = touch.clientX - start.x
     const deltaY = touch.clientY - start.y
@@ -487,7 +489,7 @@ export default function App() {
     if (deltaX >= 72 && Math.abs(deltaY) <= 56 && deltaX > Math.abs(deltaY) * 1.35 && elapsed <= 700) {
       openSettings()
     }
-  }, [openSettings, settingsOpen])
+  }, [isSearchMode, openSettings, settingsOpen])
 
   const handleSettingsTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) {
@@ -530,7 +532,7 @@ export default function App() {
 
   useEffect(() => {
     if (
-      !query.trim()
+      !isSearchMode
       || screen.page !== 'home'
     ) return
 
@@ -586,7 +588,7 @@ export default function App() {
       document.removeEventListener('wheel', handleWheel)
       document.removeEventListener('click', handleBackgroundClick, true)
     }
-  }, [query, screen.page])
+  }, [isSearchMode, screen.page])
 
   useEffect(() => {
     if (!settingsOpen) return
@@ -685,7 +687,7 @@ export default function App() {
     // Keep the header exactly as it was when search began. On iOS Safari a
     // keyboard-open scroll must not switch the search surface underneath the
     // focused input.
-    if (searchFocused || query.trim().length > 0) return
+    if (isSearchMode) return
 
     let animationFrame = 0
     const updateHeaderState = () => {
@@ -707,7 +709,16 @@ export default function App() {
       window.removeEventListener('scroll', updateHeaderState)
       window.removeEventListener('resize', updateHeaderState)
     }
-  }, [query, screen.page, searchFocused])
+  }, [isSearchMode, screen.page])
+
+  useEffect(() => {
+    if (screen.page === 'home' || !isSearchMode) return
+    setIsSearchMode(false)
+    setSearchFocused(false)
+    setActiveSuggestionIndex(-1)
+    searchStartScrollYRef.current = null
+    searchStartHeaderProgressRef.current = null
+  }, [isSearchMode, screen.page])
 
   useEffect(() => {
     try {
@@ -1046,8 +1057,11 @@ export default function App() {
   }
 
   const selectSearchSuggestion = (facility: Facility) => {
+    setIsSearchMode(false)
     setSearchFocused(false)
     setActiveSuggestionIndex(-1)
+    searchStartScrollYRef.current = null
+    searchStartHeaderProgressRef.current = null
     openFacility(facility, 'home')
   }
 
@@ -1100,6 +1114,7 @@ export default function App() {
   const restoreSearchStartScrollPosition = () => {
     const searchStartScrollY = searchStartScrollYRef.current
     searchStartScrollYRef.current = null
+    searchStartHeaderProgressRef.current = null
     if (searchStartScrollY !== null) {
       requestAnimationFrame(() => window.scrollTo({ top: searchStartScrollY, behavior: 'instant' }))
     }
@@ -1107,6 +1122,7 @@ export default function App() {
 
   const clearSearch = () => {
     setQuery('')
+    setIsSearchMode(false)
     setSearchFocused(false)
     setActiveSuggestionIndex(-1)
     searchInputRef.current?.blur()
@@ -1117,11 +1133,13 @@ export default function App() {
     const nextFocusedElement = event.relatedTarget
     if (nextFocusedElement instanceof Node && searchAreaRef.current?.contains(nextFocusedElement)) return
     setSearchFocused(false)
-    restoreSearchStartScrollPosition()
   }
 
   const handleSearchPointerDown = (event: ReactPointerEvent<HTMLInputElement>) => {
-    if (!searchFocused) searchStartScrollYRef.current = window.scrollY
+    if (!isSearchMode) {
+      searchStartScrollYRef.current = window.scrollY
+      searchStartHeaderProgressRef.current = homeHeaderProgress
+    }
     if (
       document.activeElement !== event.currentTarget
       && window.matchMedia('(hover: none) and (pointer: coarse)').matches
@@ -1132,7 +1150,12 @@ export default function App() {
   }
 
   const handleSearchFocus = () => {
-    if (searchStartScrollYRef.current === null) searchStartScrollYRef.current = window.scrollY
+    if (!isSearchMode) {
+      if (searchStartScrollYRef.current === null) searchStartScrollYRef.current = window.scrollY
+      if (searchStartHeaderProgressRef.current === null) searchStartHeaderProgressRef.current = homeHeaderProgress
+      setHomeHeaderProgress(searchStartHeaderProgressRef.current)
+      setIsSearchMode(true)
+    }
     setSearchFocused(true)
   }
 
@@ -1379,7 +1402,7 @@ export default function App() {
   return (
     <main
       ref={homePageRef}
-      className="app-shell home-page"
+      className={`app-shell home-page${isSearchMode ? ' is-search-mode' : ''}`}
       style={homeHeaderStyle}
       aria-hidden={settingsOpen || undefined}
       onTouchStart={handleHomeTouchStart}
@@ -1505,7 +1528,7 @@ export default function App() {
               aria-expanded={shouldShowSearchResults && searchSuggestions.length > 0}
               aria-controls="search-suggestions"
             />
-            {query && (
+            {(isSearchMode || query) && (
               <button
                 type="button"
                 onPointerDown={(event) => event.preventDefault()}
