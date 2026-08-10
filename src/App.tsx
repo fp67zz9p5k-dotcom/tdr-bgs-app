@@ -2856,7 +2856,13 @@ function FacilityView({
               {relatedFacilities.map((item) => {
                 const itemCategory = getCategoryDefinition(item.category)
                 return (
-                  <article className="related-view-card" key={item.id}>
+                  <button
+                    type="button"
+                    className="related-view-card"
+                    key={item.id}
+                    onClick={() => onOpenFacility(item)}
+                    aria-label={`${item.name}の詳細を開く`}
+                  >
                     {item.photos[0] ? (
                       <img src={item.photos[0].dataUrl} alt={item.photos[0].title || `${item.name}の写真`} />
                     ) : (
@@ -2867,9 +2873,9 @@ function FacilityView({
                       <span>{item.area || 'エリア未設定'} · {itemCategory.icon} {itemCategory.label}</span>
                     </div>
                     <div className="related-card-actions">
-                      <button type="button" onClick={() => onOpenFacility(item)}>詳細</button>
+                      <span aria-hidden="true">詳細</span>
                     </div>
-                  </article>
+                  </button>
                 )
               })}
             </div>
@@ -3021,6 +3027,8 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
   const [saving, setSaving] = useState(false)
   const [compactHeader, setCompactHeader] = useState(false)
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
+  const [relatedQuery, setRelatedQuery] = useState('')
+  const [relatedParkFilter, setRelatedParkFilter] = useState<ParkId | 'all'>('all')
   const initialFacilitySnapshot = useRef(JSON.stringify(initialEditableFacility))
   const initialRelatedIds = useRef([...initialEditableFacility.relatedFacilityIds])
   const savingRef = useRef(false)
@@ -3100,6 +3108,37 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
     }))
   }
 
+  const relatedCandidates = useMemo(
+    () => allFacilities.filter((item) => item.id !== facility.id),
+    [allFacilities, facility.id],
+  )
+  const selectedRelatedFacilities = useMemo(
+    () => relatedCandidates.filter((item) => facility.relatedFacilityIds.includes(item.id)),
+    [facility.relatedFacilityIds, relatedCandidates],
+  )
+  const availableRelatedFacilities = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(relatedQuery)
+    return relatedCandidates.filter((item) => {
+      if (facility.relatedFacilityIds.includes(item.id)) return false
+      if (relatedParkFilter !== 'all' && getParkId(item.park) !== relatedParkFilter) return false
+      return !normalizedQuery || normalizeSearchText(item.name).includes(normalizedQuery)
+    })
+  }, [facility.relatedFacilityIds, relatedCandidates, relatedParkFilter, relatedQuery])
+
+  const renderRelatedOption = (item: Facility) => (
+    <label className="check-row" key={item.id}>
+      <input
+        type="checkbox"
+        checked={facility.relatedFacilityIds.includes(item.id)}
+        onChange={() => toggleRelated(item.id)}
+      />
+      <span>
+        <strong>{item.name}</strong>
+        <small>{item.park} ・ {item.area}</small>
+      </span>
+    </label>
+  )
+
   return (
     <main className="app-shell detail-page facility-edit-page screen-enter">
       <header className="detail-header facility-edit-large-header">
@@ -3170,21 +3209,57 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
 
         <section className="form-section">
           <h2>関連項目</h2>
-          <div className="related-list">
-            {allFacilities.filter((item) => item.id !== facility.id).length === 0 && <p className="field-note">関連付けできる他の施設がまだありません。</p>}
-            {allFacilities.filter((item) => item.id !== facility.id).map((item) => (
-              <label className="check-row" key={item.id}>
-                <input
-                  type="checkbox"
-                  checked={facility.relatedFacilityIds.includes(item.id)}
-                  onChange={() => toggleRelated(item.id)}
-                />
-                <span>
-                  <strong>{item.name}</strong>
-                  <small>{item.area}</small>
-                </span>
-              </label>
-            ))}
+          <div className="related-picker-controls">
+            <label className="related-picker-search">
+              <span>施設名で検索</span>
+              <input
+                value={relatedQuery}
+                onChange={(event) => setRelatedQuery(event.target.value)}
+                placeholder="関連施設を検索"
+                autoComplete="off"
+              />
+            </label>
+            <div className="related-park-filter" role="group" aria-label="パークで絞り込み">
+              {([
+                ['all', 'すべて'],
+                ['land', 'ランド'],
+                ['sea', 'シー'],
+              ] as const).map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={relatedParkFilter === value ? 'active' : ''}
+                  aria-pressed={relatedParkFilter === value}
+                  onClick={() => setRelatedParkFilter(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {selectedRelatedFacilities.length > 0 && (
+            <div className="related-picker-group">
+              <div className="related-picker-heading">
+                <h3>選択中</h3>
+                <span>{selectedRelatedFacilities.length}件</span>
+              </div>
+              <div className="related-list">
+                {selectedRelatedFacilities.map(renderRelatedOption)}
+              </div>
+            </div>
+          )}
+          <div className="related-picker-group">
+            <div className="related-picker-heading">
+              <h3>候補</h3>
+              <span>{availableRelatedFacilities.length}件</span>
+            </div>
+            <div className="related-list">
+              {relatedCandidates.length === 0 && <p className="field-note">関連付けできる他の施設がまだありません。</p>}
+              {relatedCandidates.length > 0 && availableRelatedFacilities.length === 0 && (
+                <p className="field-note">条件に一致する未選択の施設はありません。</p>
+              )}
+              {availableRelatedFacilities.map(renderRelatedOption)}
+            </div>
           </div>
         </section>
 
