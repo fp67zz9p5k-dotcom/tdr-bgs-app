@@ -2872,9 +2872,6 @@ function FacilityView({
                       <strong>{item.name}</strong>
                       <span>{item.area || 'エリア未設定'} · {itemCategory.icon} {itemCategory.label}</span>
                     </div>
-                    <div className="related-card-actions">
-                      <span aria-hidden="true">詳細</span>
-                    </div>
                   </button>
                 )
               })}
