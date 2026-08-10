@@ -62,11 +62,19 @@ type HomeReturnState = {
   headerProgress: number
 }
 
+type NavigationEntry =
+  | { page: 'home' }
+  | { page: 'map'; mapReturnState: MapReturnState | null }
+  | { page: 'relationships' }
+  | { page: 'view'; facilityId: string; returnTo: ReturnPage; mapReturnState?: MapReturnState }
+  | { page: 'edit'; facilityId: string; isNew: boolean; returnTo: ReturnPage }
+
 type NavigationTimeline = {
-  entries: Screen[]
+  entries: NavigationEntry[]
   index: number
 }
 
+const MAX_NAVIGATION_HISTORY = 20
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
 
 const blocksHorizontalSwipe = (target: EventTarget | null) => {
@@ -1170,14 +1178,57 @@ export default function App() {
     setScreen({ page: 'edit', facility: emptyFacility(), isNew: true, returnTo: 'home' })
   }
 
+  const createNavigationEntry = (target: Screen): NavigationEntry => {
+    if (target.page === 'map') {
+      return {
+        page: 'map',
+        mapReturnState: mapNavigationStateGetterRef.current?.() ?? mapReturnStateRef.current,
+      }
+    }
+    if (target.page === 'view') {
+      return {
+        page: 'view',
+        facilityId: target.facility.id,
+        returnTo: target.returnTo,
+        mapReturnState: target.mapReturnState,
+      }
+    }
+    if (target.page === 'edit') {
+      return {
+        page: 'edit',
+        facilityId: target.facility.id,
+        isNew: target.isNew,
+        returnTo: target.returnTo,
+      }
+    }
+    return { page: target.page }
+  }
+
+  const resolveNavigationEntry = (entry: NavigationEntry): Screen | null => {
+    if (entry.page === 'map') {
+      mapReturnStateRef.current = entry.mapReturnState
+      return { page: 'map' }
+    }
+    if (entry.page === 'view' || entry.page === 'edit') {
+      const facility = facilities.find((item) => item.id === entry.facilityId)
+      if (!facility) return null
+      return entry.page === 'view'
+        ? { page: 'view', facility, returnTo: entry.returnTo, mapReturnState: entry.mapReturnState }
+        : { page: 'edit', facility, isNew: entry.isNew, returnTo: entry.returnTo }
+    }
+    return { page: entry.page }
+  }
+
   const navigateForward = (nextScreen: Screen) => {
     const timeline = navigationHistoryRef.current
     const activeEntries = timeline.index >= 0
       ? timeline.entries.slice(0, timeline.index + 1)
-      : [screen]
+      : [createNavigationEntry(screen)]
+    if (timeline.index >= 0) activeEntries[activeEntries.length - 1] = createNavigationEntry(screen)
+    const entries = [...activeEntries, createNavigationEntry(nextScreen)].slice(-MAX_NAVIGATION_HISTORY)
     navigationHistoryRef.current = {
-      entries: [...activeEntries, nextScreen],
-      index: activeEntries.length,
+      entries,
+      index: entries.length - 1,
     }
     setScreen(nextScreen)
   }
@@ -1189,8 +1240,14 @@ export default function App() {
       return
     }
     const nextIndex = timeline.index - 1
-    const previousScreen = timeline.entries[nextIndex]
-    navigationHistoryRef.current = { ...timeline, index: nextIndex }
+    const previousScreen = resolveNavigationEntry(timeline.entries[nextIndex])
+    if (!previousScreen) {
+      fallback()
+      return
+    }
+    const entries = [...timeline.entries]
+    entries[timeline.index] = createNavigationEntry(screen)
+    navigationHistoryRef.current = { entries, index: nextIndex }
     if (previousScreen.page === 'home') {
       returnToHome(true)
       return
@@ -1202,9 +1259,12 @@ export default function App() {
     const timeline = navigationHistoryRef.current
     if (timeline.index < 0 || timeline.index >= timeline.entries.length - 1) return
     const nextIndex = timeline.index + 1
-    const nextScreen = timeline.entries[nextIndex]
+    const nextScreen = resolveNavigationEntry(timeline.entries[nextIndex])
+    if (!nextScreen) return
     if (screen.page === 'home') captureHomeReturnState()
-    navigationHistoryRef.current = { ...timeline, index: nextIndex }
+    const entries = [...timeline.entries]
+    entries[timeline.index] = createNavigationEntry(screen)
+    navigationHistoryRef.current = { entries, index: nextIndex }
     setScreen(nextScreen)
   }
 
@@ -1452,6 +1512,12 @@ export default function App() {
         && deltaX > Math.abs(deltaY) * 1.35
         && elapsed <= 700
       ) swipeBackActionRef.current()
+      else if (
+        deltaX <= -72
+        && Math.abs(deltaY) <= 56
+        && Math.abs(deltaX) > Math.abs(deltaY) * 1.35
+        && elapsed <= 700
+      ) swipeForwardActionRef.current()
     }
     const cancelGesture = () => { start = null }
 
