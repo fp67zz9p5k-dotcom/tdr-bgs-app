@@ -2793,7 +2793,13 @@ function LeafletCanvas({
     }
   }, [park, facilities, onSelect, onOpenFacility, position, onPositionChange, staticPreview])
 
-  return <div ref={containerRef} className={`leaflet-map${compact ? ' compact' : ''}${staticPreview ? ' static-preview' : ''}`} />
+  return (
+    <div
+      ref={containerRef}
+      className={`leaflet-map${compact ? ' compact' : ''}${staticPreview ? ' static-preview' : ''}`}
+      data-swipe-navigation-ignore={!staticPreview ? '' : undefined}
+    />
+  )
 }
 
 function FacilityView({
