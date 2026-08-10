@@ -22,30 +22,3 @@ export const getBidirectionalRelatedFacilities = (
   const ids = new Set(getBidirectionalRelatedFacilityIds(facilities, facilityId))
   return facilities.filter((item) => ids.has(item.id))
 }
-
-export type FacilityRelationship = {
-  id: string
-  source: string
-  target: string
-}
-
-export const getUniqueBidirectionalRelationships = (
-  facilities: Facility[],
-): FacilityRelationship[] => {
-  const validIds = new Set(facilities.map((facility) => facility.id))
-  const seen = new Set<string>()
-  const relationships: FacilityRelationship[] = []
-
-  facilities.forEach((facility) => {
-    facility.relatedFacilityIds.forEach((targetId) => {
-      if (targetId === facility.id || !validIds.has(targetId)) return
-      const [source, target] = [facility.id, targetId].sort()
-      const id = `${source}--${target}`
-      if (seen.has(id)) return
-      seen.add(id)
-      relationships.push({ id, source, target })
-    })
-  })
-
-  return relationships
-}

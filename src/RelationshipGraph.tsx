@@ -1,22 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Background,
-  ReactFlow,
-  ReactFlowProvider,
-  applyNodeChanges,
-  type Edge,
-  type Node,
-  type NodeChange,
-  type Viewport,
-} from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-import type { Category, Facility, Park, RelationshipGraphSettings } from './types'
+import type { Category, Facility, RelationshipGraphSettings } from './types'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition, type CategoryId } from './categories'
 import {
   getBidirectionalRelatedFacilities,
   getBidirectionalRelatedFacilityIds,
-  getUniqueBidirectionalRelationships,
 } from './relationships'
 
 const degreeOf = (facility: Facility, facilities: Facility[]) =>
@@ -24,27 +12,6 @@ const degreeOf = (facility: Facility, facilities: Facility[]) =>
 
 const isCategoryId = (value: string): value is CategoryId =>
   CATEGORY_DEFINITIONS.some((category) => category.id === value)
-
-const layoutPositions = (facilities: Facility[], centerId?: string | null) => {
-  const ordered = [...facilities].sort((a, b) => degreeOf(b, facilities) - degreeOf(a, facilities))
-  const center = ordered.find((facility) => facility.id === centerId) ?? ordered[0]
-  const positions: Record<string, { x: number; y: number }> = {}
-  if (!center) return positions
-  positions[center.id] = { x: 0, y: 0 }
-  const connected = new Set(getBidirectionalRelatedFacilityIds(facilities, center.id))
-  const neighbors = ordered.filter((facility) => connected.has(facility.id))
-  const others = ordered.filter((facility) => facility.id !== center.id && !connected.has(facility.id))
-  neighbors.forEach((facility, index) => {
-    const angle = (index / Math.max(neighbors.length, 1)) * Math.PI * 2
-    positions[facility.id] = { x: Math.cos(angle) * 310, y: Math.sin(angle) * 240 }
-  })
-  others.forEach((facility, index) => {
-    const angle = (index / Math.max(others.length, 1)) * Math.PI * 2
-    const ring = 560 + Math.floor(index / 14) * 210
-    positions[facility.id] = { x: Math.cos(angle) * ring, y: Math.sin(angle) * ring * .72 }
-  })
-  return positions
-}
 
 type RelationshipGraphProps = {
   facilities: Facility[]
@@ -328,118 +295,6 @@ function CenterRelationshipView({
   )
 }
 
-function OverviewRelationshipView({
-  facilities,
-  settings,
-  onSettingsChange,
-  onOpenFacility,
-}: {
-  facilities: Facility[]
-  settings: RelationshipGraphSettings
-  onSettingsChange: (settings: RelationshipGraphSettings) => void
-  onOpenFacility: (facility: Facility) => void
-}) {
-  const areas = useMemo(() => Array.from(new Set(facilities
-    .filter((facility) => settings.park === 'すべて' || facility.park === settings.park)
-    .map((facility) => facility.area).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ja')), [facilities, settings.park])
-  const visibleFacilities = useMemo(() => facilities.filter((facility) =>
-    (settings.park === 'すべて' || facility.park === settings.park)
-    && (!settings.category || facility.category === settings.category)
-    && (!settings.area || facility.area === settings.area)),
-  [facilities, settings.park, settings.category, settings.area])
-  const visibleIds = useMemo(() => new Set(visibleFacilities.map((facility) => facility.id)), [visibleFacilities])
-  const connectedIds = useMemo(() => new Set(settings.selectedId
-    ? [settings.selectedId, ...getBidirectionalRelatedFacilityIds(facilities, settings.selectedId)]
-    : []), [facilities, settings.selectedId])
-  const generatedPositions = useMemo(
-    () => layoutPositions(visibleFacilities, settings.selectedId),
-    [visibleFacilities, settings.selectedId],
-  )
-  const baseNodes = useMemo<Node[]>(() => visibleFacilities.map((facility) => {
-    const category = getCategoryDefinition(facility.category)
-    const selected = facility.id === settings.selectedId
-    const related = connectedIds.has(facility.id)
-    const dimmed = Boolean(settings.selectedId) && !related
-    return {
-      id: facility.id,
-      position: settings.positions[facility.id] ?? generatedPositions[facility.id] ?? { x: 0, y: 0 },
-      className: `relation-node${selected ? ' selected' : ''}${related && !selected ? ' related' : ''}${dimmed ? ' dimmed' : ''}`,
-      data: {
-        label: (
-          <div className="relation-node-content">
-            {selected && <FacilityImage facility={facility} />}
-            <span className="relation-node-category" aria-hidden="true">{category.icon}</span>
-            <strong>{facility.name}</strong>
-            <small>{facility.area || 'エリア未設定'} · {category.label}</small>
-            {selected && <button className="nodrag nopan" type="button" onClick={() => onOpenFacility(facility)}>詳細</button>}
-          </div>
-        ),
-      },
-    }
-  }), [visibleFacilities, settings.selectedId, settings.positions, generatedPositions, connectedIds, onOpenFacility])
-  const [nodes, setNodes] = useState<Node[]>(baseNodes)
-  useEffect(() => setNodes(baseNodes), [baseNodes])
-
-  const edges = useMemo<Edge[]>(() => getUniqueBidirectionalRelationships(facilities)
-    .filter(({ source, target }) => visibleIds.has(source) && visibleIds.has(target))
-    .map((relationship) => {
-      const active = !settings.selectedId
-        || relationship.source === settings.selectedId
-        || relationship.target === settings.selectedId
-      return {
-        ...relationship,
-        className: active ? 'relation-edge active' : 'relation-edge dimmed',
-      }
-    }), [facilities, visibleIds, settings.selectedId])
-
-  const save = (patch: Partial<RelationshipGraphSettings>) => onSettingsChange({ ...settings, ...patch })
-  const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
-    setNodes((current) => applyNodeChanges(changes, current))
-  }, [])
-
-  return (
-    <div className="relationship-overview">
-      <div className="relationship-filters">
-        <select aria-label="パーク" value={settings.park} onChange={(event) => save({ park: event.target.value as 'すべて' | Park, area: '' })}>
-          <option>すべて</option><option>東京ディズニーランド</option><option>東京ディズニーシー</option>
-        </select>
-        <select aria-label="カテゴリ" value={settings.category} onChange={(event) => save({ category: event.target.value as '' | Category })}>
-          <option value="">全カテゴリ</option>
-          {CATEGORY_DEFINITIONS.map((category) => <option value={category.value} key={category.id}>{category.icon} {category.label}</option>)}
-        </select>
-        <select aria-label="エリア" value={settings.area} onChange={(event) => save({ area: event.target.value })}>
-          <option value="">全エリア</option>{areas.map((area) => <option key={area}>{area}</option>)}
-        </select>
-      </div>
-      <div className="overview-status"><span>{visibleFacilities.length}施設を表示</span><span>選択した施設と直接関係する項目を強調します</span></div>
-      <div className="relationship-canvas">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onNodeClick={(_, node) => save({ selectedId: node.id })}
-          onNodeDoubleClick={(_, node) => {
-            const facility = facilities.find((item) => item.id === node.id)
-            if (facility) onOpenFacility(facility)
-          }}
-          onNodeDragStop={(_, node) => save({ positions: { ...settings.positions, [node.id]: node.position } })}
-          onMoveEnd={(_, viewport: Viewport) => save({ viewport })}
-          defaultViewport={settings.viewport}
-          fitView={!Object.keys(settings.positions).length}
-          minZoom={.25}
-          maxZoom={2.5}
-          nodesConnectable={false}
-          zoomOnPinch
-          zoomOnScroll
-          panOnDrag
-        >
-          <Background gap={22} size={1} />
-        </ReactFlow>
-      </div>
-    </div>
-  )
-}
-
 function RelationshipGraphInner({
   facilities,
   settings,
@@ -447,14 +302,10 @@ function RelationshipGraphInner({
   onBack,
   onOpenFacility,
 }: RelationshipGraphProps) {
-  const normalizedSettings = useMemo(
-    () => ({ ...settings, mode: settings.mode ?? 'center', category: settings.category ?? '' }),
-    [settings],
-  )
   const fallbackCenter = useMemo(
-    () => facilities.find((facility) => facility.id === normalizedSettings.selectedId)
+    () => facilities.find((facility) => facility.id === settings.selectedId)
       ?? [...facilities].sort((a, b) => degreeOf(b, facilities) - degreeOf(a, facilities))[0],
-    [facilities, normalizedSettings.selectedId],
+    [facilities, settings.selectedId],
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const relationshipScrollRef = useRef<HTMLDivElement>(null)
@@ -498,18 +349,15 @@ function RelationshipGraphInner({
     setHistory((current) => current.at(-1) === fallbackCenter.id ? current : [...current, fallbackCenter.id])
   }, [fallbackCenter])
 
-  const setMode = (mode: RelationshipGraphSettings['mode']) => {
-    onSettingsChange({ ...normalizedSettings, mode })
-  }
   const selectCenter = (facility: Facility) => {
     setHistory((current) => current.at(-1) === facility.id ? current : [...current, facility.id])
-    onSettingsChange({ ...normalizedSettings, selectedId: facility.id })
+    onSettingsChange({ selectedId: facility.id })
   }
   const historyBack = () => {
     setHistory((current) => {
       if (current.length < 2) return current
       const next = current.slice(0, -1)
-      onSettingsChange({ ...normalizedSettings, selectedId: next.at(-1) ?? null })
+      onSettingsChange({ selectedId: next.at(-1) ?? null })
       return next
     })
   }
@@ -524,19 +372,11 @@ function RelationshipGraphInner({
     '--relationship-header-current-padding-bottom': `${interpolate(12, 8)}px`,
     '--relationship-header-current-gap': `${interpolate(12, 8)}px`,
     '--relationship-header-leading-width': `${interpolate(44, 36)}px`,
-    '--relationship-header-actions-min-width': `${interpolate(0, 150)}px`,
     '--relationship-header-copy-height': `${interpolate(48, 40)}px`,
     '--relationship-eyebrow-height': `${interpolate(24, 0)}px`,
     '--relationship-eyebrow-opacity': 1 - compactProgress,
     '--relationship-title-size': `${interpolate(22, 16)}px`,
     '--relationship-title-line-height': interpolate(1.35, 1.2),
-    '--relationship-mode-padding': `${interpolate(3, 2)}px`,
-    '--relationship-mode-radius': `${interpolate(13, 11)}px`,
-    '--relationship-mode-button-height': `${interpolate(42, 34)}px`,
-    '--relationship-mode-button-padding-y': `${interpolate(7, 4)}px`,
-    '--relationship-mode-button-padding-x': `${interpolate(12, 8)}px`,
-    '--relationship-mode-button-radius': `${interpolate(10, 9)}px`,
-    '--relationship-mode-button-size': `${interpolate(11, 10)}px`,
     '--relationship-dock-current-top': `calc(${interpolate(128, 80)}px + var(--relationship-safe-top))`,
     '--relationship-dock-current-height': `${interpolate(214, 100)}px`,
     '--relationship-summary-height': `${interpolate(18, 0)}px`,
@@ -564,52 +404,35 @@ function RelationshipGraphInner({
   const isCompactHeader = compactProgress >= .995
 
   return (
-    <main style={relationshipStyle} className={`relationship-page relationship-screen-enter ${normalizedSettings.mode === 'center' ? 'is-center-mode' : 'is-overview-mode'}${isCompactHeader ? ' is-compact' : ''}`}>
+    <main style={relationshipStyle} className={`relationship-page relationship-screen-enter is-center-mode${isCompactHeader ? ' is-compact' : ''}`}>
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
           <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
         </div>
-        <div className="relationship-mode-switch" role="group" aria-label="関係図の表示方法">
-          <button type="button" className={normalizedSettings.mode === 'center' ? 'active' : ''} onClick={() => setMode('center')}>中心表示</button>
-          <button type="button" className={normalizedSettings.mode === 'overview' ? 'active' : ''} onClick={() => setMode('overview')}>全体表示</button>
-        </div>
       </header>
-      {normalizedSettings.mode === 'center' && <div ref={setCenterDockHost} className="relationship-center-dock-slot" />}
+      <div ref={setCenterDockHost} className="relationship-center-dock-slot" />
       <div ref={relationshipScrollRef} className="relationship-scroll-region">
-        <p className="relationship-description">
-          {normalizedSettings.mode === 'center'
-            ? '中心施設と直接関係する施設を、カテゴリ別に表示しています。'
-            : '全施設のつながりを俯瞰表示しています。ノードを選択すると直接の関係を強調します。'}
-        </p>
+        <p className="relationship-description">中心施設と直接関係する施設を、カテゴリ別に表示しています。</p>
 
-        {normalizedSettings.mode === 'center' ? (
-          fallbackCenter ? (
-            <CenterRelationshipView
-              facilities={facilities}
-              center={fallbackCenter}
-              history={history}
-              onSelectCenter={selectCenter}
-              onOpenFacility={onOpenFacility}
-              onHistoryBack={historyBack}
-              onClearHistory={clearHistory}
-              dockHost={isMobileLayout ? centerDockHost : null}
-              useDock={isMobileLayout}
-            />
-          ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>
-        ) : (
-          <OverviewRelationshipView
+        {fallbackCenter ? (
+          <CenterRelationshipView
             facilities={facilities}
-            settings={normalizedSettings}
-            onSettingsChange={onSettingsChange}
+            center={fallbackCenter}
+            history={history}
+            onSelectCenter={selectCenter}
             onOpenFacility={onOpenFacility}
+            onHistoryBack={historyBack}
+            onClearHistory={clearHistory}
+            dockHost={isMobileLayout ? centerDockHost : null}
+            useDock={isMobileLayout}
           />
-        )}
+        ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>}
       </div>
     </main>
   )
 }
 
 export function RelationshipGraph(props: RelationshipGraphProps) {
-  return <ReactFlowProvider><RelationshipGraphInner {...props} /></ReactFlowProvider>
+  return <RelationshipGraphInner {...props} />
 }

@@ -327,8 +327,7 @@
    prefers-color-scheme rules so the explicit app setting always wins. */
 :root[data-theme] .content,
 :root[data-theme] .view-content,
-:root[data-theme] .map-content,
-:root[data-theme] .relationship-overview {
+:root[data-theme] .map-content {
   background: var(--app-bg);
   color: var(--text-primary);
 }
@@ -346,9 +345,7 @@
 :root[data-theme] .recent-card,
 :root[data-theme] .facility-card,
 :root[data-theme] .map-selected-card,
-:root[data-theme] .map-empty,
-:root[data-theme] .overview-status,
-:root[data-theme] .relationship-filters {
+:root[data-theme] .map-empty {
   border-color: var(--border-default);
   background: var(--surface-2);
   color: var(--text-primary);
@@ -389,8 +386,7 @@
 :root[data-theme] .park-switch button,
 :root[data-theme] .map-filter-button,
 :root[data-theme] .map-filter-actions button,
-:root[data-theme] .map-category-filter-grid button,
-:root[data-theme] .relationship-filters select {
+:root[data-theme] .map-category-filter-grid button {
   border-color: var(--border-default);
   background: var(--surface-3);
   color: var(--text-primary);
@@ -506,71 +502,9 @@
   color: #fff;
 }
 
-:root[data-theme] .relationship-filters {
-  border-bottom-color: var(--border-default);
-  background: var(--surface-1);
-}
-
-:root[data-theme] .overview-status {
-  color: var(--text-secondary);
-}
-
-:root[data-theme] .relationship-canvas {
-  background: var(--app-bg);
-}
-
-:root[data-theme] .relationship-canvas .react-flow__background {
-  color: var(--border-default);
-}
-
-:root[data-theme] .relationship-canvas .react-flow__node {
-  border-color: var(--border-default);
-  background: var(--card-bg);
-  color: var(--text-primary);
-  box-shadow: 0 5px 16px var(--shadow-color);
-}
-
-:root[data-theme] .relationship-canvas .react-flow__node.selected {
-  border-color: var(--accent-gold);
-  background: var(--card-bg-hover);
-  box-shadow: 0 0 0 2px var(--accent-gold-soft), 0 7px 20px var(--shadow-color);
-}
-
-:root[data-theme] .relationship-canvas .react-flow__node.related {
-  border-color: var(--accent-gold);
-}
-
-:root[data-theme] .relationship-canvas .react-flow__node.dimmed {
-  opacity: .58;
-}
-
-:root[data-theme] .relationship-canvas .relation-node-content strong {
-  color: var(--text-primary) !important;
-  text-shadow: none;
-}
-
-:root[data-theme] .relation-node-content > span {
-  background: var(--surface-3);
-  color: var(--accent-gold);
-}
-
-:root[data-theme] .relation-node-content button {
-  background: var(--accent-blue);
-  color: #fff;
-}
-
-:root[data-theme] .relationship-canvas .react-flow__edge-path {
-  stroke: var(--border-default);
-}
-
-:root[data-theme] .relationship-canvas .relation-edge.active .react-flow__edge-path {
-  stroke: var(--accent-gold);
-}
-
 :root[data-theme="dark"] .content,
 :root[data-theme="dark"] .view-content,
 :root[data-theme="dark"] .map-content,
-:root[data-theme="dark"] .relationship-overview,
 :root[data-theme="dark"] .recent-list,
 :root[data-theme="dark"] .filter-chip-row {
   background-color: var(--app-bg);
@@ -581,8 +515,7 @@
 :root[data-theme="dark"] .recent-card,
 :root[data-theme="dark"] .facility-card,
 :root[data-theme="dark"] .map-selected-card,
-:root[data-theme="dark"] .map-empty,
-:root[data-theme="dark"] .overview-status {
+:root[data-theme="dark"] .map-empty {
   background: var(--card-bg);
 }
 

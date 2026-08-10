@@ -1,7 +1,6 @@
 import {
   createTextEntry,
   defaultMapFilterSettings,
-  defaultRelationshipGraphSettings,
   type Facility,
   type LegacyFacility,
   type MapFilterSettings,
@@ -203,15 +202,8 @@ export const getRelationshipGraphSettings = async (): Promise<RelationshipGraphS
     const request = db.transaction(SETTINGS_STORE_NAME, 'readonly').objectStore(SETTINGS_STORE_NAME).get('relationshipGraph')
     request.onsuccess = () => {
       const value = request.result?.value as Partial<RelationshipGraphSettings> | undefined
-      const defaults = defaultRelationshipGraphSettings()
       resolve({
-        mode: value?.mode === 'overview' ? 'overview' : defaults.mode,
-        park: value?.park ?? defaults.park,
-        category: value?.category ?? defaults.category,
-        area: typeof value?.area === 'string' ? value.area : defaults.area,
         selectedId: typeof value?.selectedId === 'string' ? value.selectedId : null,
-        positions: value?.positions && typeof value.positions === 'object' ? value.positions : defaults.positions,
-        viewport: value?.viewport && typeof value.viewport === 'object' ? value.viewport : defaults.viewport,
       })
     }
     request.onerror = () => reject(request.error)

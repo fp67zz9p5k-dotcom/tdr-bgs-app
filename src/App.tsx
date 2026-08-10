@@ -79,7 +79,7 @@ const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
 
 const blocksHorizontalSwipe = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false
-  if (target.closest('input, textarea, select, [contenteditable="true"], .search-suggestions, .park-map-canvas, .coordinate-canvas, .relationship-canvas, [data-swipe-navigation-ignore]')) return true
+  if (target.closest('input, textarea, select, [contenteditable="true"], .search-suggestions, .park-map-canvas, .coordinate-canvas, [data-swipe-navigation-ignore]')) return true
   let element: Element | null = target
   while (element && element !== document.body) {
     if (element instanceof HTMLElement && element.scrollWidth > element.clientWidth + 1) {
@@ -1591,7 +1591,11 @@ export default function App() {
       if (!window.confirm('バックアップを読み込みます。同じ施設はバックアップの内容で上書きされます。よろしいですか？')) return
       const count = await importFacilities(backupFacilities)
       if (importedRelationshipSettings) {
-        const normalizedSettings = { ...defaultRelationshipGraphSettings(), ...importedRelationshipSettings }
+        const normalizedSettings: RelationshipGraphSettings = {
+          selectedId: typeof importedRelationshipSettings.selectedId === 'string'
+            ? importedRelationshipSettings.selectedId
+            : null,
+        }
         await saveRelationshipGraphSettings(normalizedSettings)
         setRelationshipSettings(normalizedSettings)
       }
@@ -1661,10 +1665,7 @@ export default function App() {
             if (page === 'relationships') {
               const nextSettings = {
                 ...relationshipSettings,
-                mode: 'center' as const,
                 selectedId: screen.facility.id,
-                positions: {},
-                viewport: { x: 0, y: 0, zoom: 1 },
               }
               setRelationshipSettings(nextSettings)
               void saveRelationshipGraphSettings(nextSettings)

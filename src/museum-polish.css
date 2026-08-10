@@ -91,8 +91,6 @@
 :root[data-theme] .related-view-card,
 :root[data-theme] .facility-mini-map,
 :root[data-theme] .map-selected-card,
-:root[data-theme] .overview-status,
-:root[data-theme] .relationship-filters,
 :root[data-theme] .relationship-category-group,
 :root[data-theme] .search-recommendation-grid button {
   border-color: var(--border-default);
@@ -677,14 +675,6 @@
   background: color-mix(in srgb, var(--relationship-line, var(--accent-gold)) 76%, var(--app-bg));
 }
 
-:root[data-theme] .relationship-canvas .react-flow__edge-path {
-  stroke: color-mix(in srgb, var(--border-default) 78%, var(--app-bg));
-}
-
-:root[data-theme] .relationship-canvas .relation-edge.active .react-flow__edge-path {
-  stroke: color-mix(in srgb, var(--accent-gold) 84%, var(--app-bg));
-}
-
 /*
  * Keep the relationship chrome in a stable overlay on iOS. The scroll region
  * always fills the same box with the same expanded top inset, so switching the
@@ -761,19 +751,6 @@
     line-height: var(--relationship-title-line-height, 1.35);
   }
 
-  .relationship-mode-switch {
-    width: auto;
-    padding: var(--relationship-mode-padding, 3px);
-    border-radius: var(--relationship-mode-radius, 13px);
-  }
-
-  .relationship-mode-switch button {
-    min-height: var(--relationship-mode-button-height, 42px);
-    padding: var(--relationship-mode-button-padding-y, 7px) var(--relationship-mode-button-padding-x, 12px);
-    border-radius: var(--relationship-mode-button-radius, 10px);
-    font-size: var(--relationship-mode-button-size, 11px);
-  }
-
   .relationship-page.is-compact .relationship-header {
     height: var(--relationship-header-current-height);
   }
@@ -801,20 +778,6 @@
     line-height: var(--relationship-title-line-height);
   }
 
-  .relationship-page.is-compact .relationship-mode-switch {
-    grid-column: auto;
-    width: auto;
-    padding: var(--relationship-mode-padding);
-    border-radius: var(--relationship-mode-radius);
-  }
-
-  .relationship-page.is-compact .relationship-mode-switch button {
-    min-height: var(--relationship-mode-button-height);
-    padding: var(--relationship-mode-button-padding-y) var(--relationship-mode-button-padding-x);
-    border-radius: var(--relationship-mode-button-radius);
-    font-size: var(--relationship-mode-button-size);
-  }
-
   .relationship-scroll-region {
     position: absolute;
     inset: 0;
@@ -832,10 +795,6 @@
 
   .relationship-page.is-center-mode .relationship-scroll-region {
     padding-top: calc(var(--relationship-header-expanded-height) + var(--relationship-dock-expanded-height));
-  }
-
-  .relationship-page.is-overview-mode .relationship-scroll-region {
-    padding-top: var(--relationship-header-expanded-height);
   }
 
   .relationship-center-dock-slot {

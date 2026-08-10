@@ -27,23 +27,11 @@ export const defaultMapFilterSettings = (): MapFilterSettings => ({
 })
 
 export type RelationshipGraphSettings = {
-  mode: 'center' | 'overview'
-  park: 'すべて' | Park
-  category: '' | Category
-  area: string
   selectedId: string | null
-  positions: Record<string, { x: number; y: number }>
-  viewport: { x: number; y: number; zoom: number }
 }
 
 export const defaultRelationshipGraphSettings = (): RelationshipGraphSettings => ({
-  mode: 'center',
-  park: 'すべて',
-  category: '',
-  area: '',
   selectedId: null,
-  positions: {},
-  viewport: { x: 0, y: 0, zoom: 1 },
 })
 
 export type TextEntry = {

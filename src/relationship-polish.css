@@ -458,17 +458,6 @@
     margin: 0;
   }
 
-  .relationship-mode-switch {
-    position: relative;
-    z-index: 1;
-    margin-top: 0;
-  }
-
-  .relationship-mode-switch button {
-    min-height: 42px;
-    transition: background-color 200ms ease, color 200ms ease;
-  }
-
   .center-summary {
     min-height: 22px;
     align-items: center;
@@ -603,7 +592,6 @@
   .center-card-related-count,
   .center-tree-trunk,
   .relationship-large-title,
-  .relationship-mode-switch button,
   .relationship-card-list-shell,
   .relationship-group-heading,
   .relationship-category-overview button,
