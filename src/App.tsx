@@ -462,10 +462,10 @@ export default function App() {
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
   const [selectedAreaIds, setSelectedAreaIds] = useState<AreaId[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([])
   const [draftPark, setDraftPark] = useState<ParkId | ''>('')
   const [draftAreaIds, setDraftAreaIds] = useState<AreaId[]>([])
-  const [draftCategory, setDraftCategory] = useState<Category | ''>('')
+  const [draftCategories, setDraftCategories] = useState<Category[]>([])
   const [draftFavoriteOnly, setDraftFavoriteOnly] = useState(false)
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
@@ -893,11 +893,11 @@ export default function App() {
         return areaId !== null && selectedAreaIds.includes(areaId)
       })
       : parkFiltered
-    const categoryFiltered = selectedCategory
-      ? areaFiltered.filter((facility) => facility.category === selectedCategory)
+    const categoryFiltered = selectedCategories.length > 0
+      ? areaFiltered.filter((facility) => selectedCategories.includes(facility.category))
       : areaFiltered
     return favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
-  }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategory, selectedPark])
+  }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategories, selectedPark])
   const hasSearchQuery = query.trim().length > 0
   const hasNoSearchResults = !loading && hasSearchQuery && filteredFacilities.length === 0
   const shouldShowSearchResults = hasSearchQuery
@@ -947,17 +947,29 @@ export default function App() {
       ? current.filter((id) => id !== areaId)
       : [...current, areaId])
   }
+  const toggleDraftCategory = (category: Category) => {
+    setDraftCategories((current) => current.includes(category)
+      ? current.filter((value) => value !== category)
+      : [...current, category])
+  }
+  const openFilterSheet = () => {
+    setDraftPark(selectedPark)
+    setDraftAreaIds(selectedAreaIds)
+    setDraftCategories(selectedCategories)
+    setDraftFavoriteOnly(favoriteOnly)
+    setFilterSheetOpen(true)
+  }
   const resetDraftFilters = () => {
     setQuery('')
     setDraftPark('')
     setDraftAreaIds([])
-    setDraftCategory('')
+    setDraftCategories([])
     setDraftFavoriteOnly(false)
   }
   const applyDraftFilters = () => {
     setSelectedPark(draftPark)
     setSelectedAreaIds(draftAreaIds)
-    setSelectedCategory(draftCategory)
+    setSelectedCategories(draftCategories)
     setFavoriteOnly(draftFavoriteOnly)
     setFilterSheetOpen(false)
   }
@@ -979,12 +991,12 @@ export default function App() {
     const conditionCount = Number(Boolean(query.trim()))
       + Number(Boolean(selectedPark))
       + selectedAreaIds.length
-      + Number(Boolean(selectedCategory))
+      + Number(selectedCategories.length > 0)
       + Number(favoriteOnly)
     if (conditionCount === 0) return `すべて・${filteredFacilities.length}件`
     if (selectedAreaIds.length === 1 && !query.trim() && !favoriteOnly) {
       const areaLabel = getAreaLabel(selectedAreaIds[0])
-      const categoryLabel = selectedCategory ? getCategoryDefinition(selectedCategory).label : ''
+      const categoryLabel = selectedCategories.length === 1 ? getCategoryDefinition(selectedCategories[0]).label : ''
       return `${areaLabel}${categoryLabel ? `・${categoryLabel}` : ''}　${filteredFacilities.length}件`
     }
     if (conditionCount === 1 && selectedPark) {
@@ -1006,12 +1018,12 @@ export default function App() {
   const activeFilterChips = [
     selectedPark ? (selectedPark === 'land' ? 'ランド' : 'シー') : '',
     ...selectedAreaIds.map(getAreaLabel),
-    selectedCategory ? getCategoryDefinition(selectedCategory).label : '',
+    ...selectedCategories.map((category) => getCategoryDefinition(category).label),
     favoriteOnly ? 'お気に入り' : '',
   ].filter(Boolean)
   const homeFilterTrigger = (
     <section className="filter-trigger-panel" aria-label="適用中の絞り込み">
-      <button type="button" className="open-filter-sheet" onClick={() => setFilterSheetOpen(true)} aria-haspopup="dialog" aria-expanded={filterSheetOpen}>
+      <button type="button" className="open-filter-sheet" onClick={openFilterSheet} aria-haspopup="dialog" aria-expanded={filterSheetOpen}>
         <span aria-hidden="true">≡</span>絞り込み
         <small>{filteredFacilities.length}件</small>
       </button>
@@ -1054,11 +1066,17 @@ export default function App() {
       <div className="filter-section">
         <span className="filter-section-label">カテゴリ</span>
         <div className="expanded-category-grid">
-          <button type="button" className={draftCategory === '' ? 'active' : ''} onClick={() => setDraftCategory('')}>
+          <button type="button" className={draftCategories.length === 0 ? 'active' : ''} onClick={() => setDraftCategories([])}>
             カテゴリすべて
           </button>
           {CATEGORY_DEFINITIONS.map((category) => (
-            <button type="button" className={draftCategory === category.value ? 'active' : ''} key={category.id} onClick={() => setDraftCategory((current) => current === category.value ? '' : category.value)}>
+            <button
+              type="button"
+              className={draftCategories.includes(category.value) ? 'active' : ''}
+              aria-pressed={draftCategories.includes(category.value)}
+              key={category.id}
+              onClick={() => toggleDraftCategory(category.value)}
+            >
               <span aria-hidden="true">{category.icon}</span>{category.label}
             </button>
           ))}
@@ -1336,11 +1354,11 @@ export default function App() {
     setQuery('')
     setSelectedPark('')
     setSelectedAreaIds([])
-    setSelectedCategory('')
+    setSelectedCategories([])
     setFavoriteOnly(false)
     setDraftPark('')
     setDraftAreaIds([])
-    setDraftCategory('')
+    setDraftCategories([])
     setDraftFavoriteOnly(false)
   }
 
@@ -1990,17 +2008,17 @@ export default function App() {
         ) : filteredFacilities.length === 0 ? (
           <div className="empty search-empty">
             <span className="empty-icon" aria-hidden="true">⌕</span>
-            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
+            <h3>{query ? '検索結果が見つかりませんでした' : (selectedPark || selectedAreaIds.length > 0 || selectedCategories.length > 0 || favoriteOnly ? '条件に一致する項目がありません' : '最初の項目を登録しましょう')}</h3>
             {query ? (
               <div className="search-empty-copy">
                 <p>検索キーワードを変更して、もう一度お試しください</p>
                 <p className="search-empty-query">入力した検索語：<strong>{query}</strong></p>
               </div>
             ) : (
-              <p>{selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
+              <p>{selectedPark || selectedAreaIds.length > 0 || selectedCategories.length > 0 || favoriteOnly ? '絞り込み条件を変更してください。' : 'BGSやトリビアを、自分だけの図鑑に残せます。'}</p>
             )}
             <div className="empty-actions">
-              {!query && (selectedPark || selectedAreaIds.length > 0 || selectedCategory || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
+              {!query && (selectedPark || selectedAreaIds.length > 0 || selectedCategories.length > 0 || favoriteOnly) && <button type="button" onClick={clearFilters}>絞り込みを解除</button>}
               <button type="button" onClick={openNewFacilityFromHome}>施設を追加</button>
             </div>
           </div>
