@@ -1503,18 +1503,25 @@ export default function App() {
     if (screen.page === 'home') return
 
     let start: { x: number; y: number; time: number } | null = null
+    let gestureClaimed = false
     const handleTouchStart = (event: TouchEvent) => {
+      gestureClaimed = false
       if (event.touches.length !== 1 || blocksHorizontalSwipe(event.target)) {
         start = null
         return
       }
       const touch = event.touches[0]
-      // Preserve Safari's native history gesture at the physical screen edge.
-      if (touch.clientX <= 28) {
-        start = null
-        return
-      }
       start = { x: touch.clientX, y: touch.clientY, time: performance.now() }
+    }
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!start || gestureClaimed || event.touches.length !== 1) return
+      const touch = event.touches[0]
+      const deltaX = touch.clientX - start.x
+      const deltaY = touch.clientY - start.y
+      if (Math.abs(deltaX) >= 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+        gestureClaimed = true
+        event.preventDefault()
+      }
     }
     const handleTouchEnd = (event: TouchEvent) => {
       const gestureStart = start
@@ -1537,13 +1544,18 @@ export default function App() {
         && elapsed <= 700
       ) swipeForwardActionRef.current()
     }
-    const cancelGesture = () => { start = null }
+    const cancelGesture = () => {
+      start = null
+      gestureClaimed = false
+    }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('touchend', handleTouchEnd, { passive: true })
     document.addEventListener('touchcancel', cancelGesture, { passive: true })
     return () => {
       document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', cancelGesture)
     }
