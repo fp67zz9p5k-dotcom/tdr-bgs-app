@@ -74,6 +74,8 @@ type NavigationTimeline = {
   index: number
 }
 
+type HomeSortOrder = 'default' | 'name' | 'category' | 'updated'
+
 const MAX_NAVIGATION_HISTORY = 20
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
 
@@ -463,6 +465,7 @@ export default function App() {
   const [selectedPark, setSelectedPark] = useState<ParkId | ''>('')
   const [selectedAreaIds, setSelectedAreaIds] = useState<AreaId[]>([])
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([])
+  const [homeSortOrder, setHomeSortOrder] = useState<HomeSortOrder>('default')
   const [draftPark, setDraftPark] = useState<ParkId | ''>('')
   const [draftAreaIds, setDraftAreaIds] = useState<AreaId[]>([])
   const [draftCategories, setDraftCategories] = useState<Category[]>([])
@@ -896,8 +899,36 @@ export default function App() {
     const categoryFiltered = selectedCategories.length > 0
       ? areaFiltered.filter((facility) => selectedCategories.includes(facility.category))
       : areaFiltered
-    return favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
-  }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategories, selectedPark])
+    const visibleFacilities = favoriteOnly ? categoryFiltered.filter((facility) => facility.favorite) : categoryFiltered
+    if (homeSortOrder === 'default') return visibleFacilities
+
+    return visibleFacilities
+      .map((facility, index) => ({ facility, index }))
+      .sort((a, b) => {
+        if (homeSortOrder === 'name') {
+          return a.facility.name.localeCompare(b.facility.name, 'ja') || a.index - b.index
+        }
+        if (homeSortOrder === 'category') {
+          const categoryOrder = (facility: Facility) => CATEGORY_DEFINITIONS.findIndex((definition) => definition.value === facility.category)
+          return categoryOrder(a.facility) - categoryOrder(b.facility)
+            || a.facility.name.localeCompare(b.facility.name, 'ja')
+            || a.index - b.index
+        }
+        const timestamp = (facility: Facility) => {
+          const values = [facility.createdAt, facility.updatedAt]
+            .map((value) => Date.parse(value))
+            .filter((value) => Number.isFinite(value))
+          return values.length > 0 ? Math.max(...values) : null
+        }
+        const aTimestamp = timestamp(a.facility)
+        const bTimestamp = timestamp(b.facility)
+        if (aTimestamp === null && bTimestamp === null) return a.index - b.index
+        if (aTimestamp === null) return 1
+        if (bTimestamp === null) return -1
+        return bTimestamp - aTimestamp || a.index - b.index
+      })
+      .map(({ facility }) => facility)
+  }, [rankedSearchMatches, favoriteOnly, selectedAreaIds, selectedCategories, selectedPark, homeSortOrder])
   const hasSearchQuery = query.trim().length > 0
   const hasNoSearchResults = !loading && hasSearchQuery && filteredFacilities.length === 0
   const shouldShowSearchResults = hasSearchQuery
@@ -1022,11 +1053,20 @@ export default function App() {
     favoriteOnly ? 'お気に入り' : '',
   ].filter(Boolean)
   const homeFilterTrigger = (
-    <section className="filter-trigger-panel" aria-label="適用中の絞り込み">
+    <section className="filter-trigger-panel" aria-label="一覧操作">
       <button type="button" className="open-filter-sheet" onClick={openFilterSheet} aria-haspopup="dialog" aria-expanded={filterSheetOpen}>
         <span aria-hidden="true">≡</span>絞り込み
         <small>{filteredFacilities.length}件</small>
       </button>
+      <label className="home-sort-control">
+        <span>並び替え</span>
+        <select value={homeSortOrder} onChange={(event) => setHomeSortOrder(event.target.value as HomeSortOrder)} aria-label="一覧の並び替え">
+          <option value="default">標準</option>
+          <option value="name">50音順</option>
+          <option value="category">カテゴリ順</option>
+          <option value="updated">登録・更新順</option>
+        </select>
+      </label>
       {activeFilterChips.length > 0 && (
         <div className="active-filter-chips" aria-label="適用中の条件">
           {activeFilterChips.map((label) => <span key={label}>{label}</span>)}
