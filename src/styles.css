@@ -10,6 +10,17 @@
   animation: screen-enter 210ms ease-out backwards;
 }
 
+/* Fixed/sticky home controls must not inherit a transformed containing block
+   while the home content re-enters after a screen transition. */
+.home-content.screen-enter {
+  animation-name: home-content-enter;
+}
+
+@keyframes home-content-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes screen-enter {
   from {
     opacity: 0;
