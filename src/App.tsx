@@ -3129,6 +3129,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
   const [relatedQuery, setRelatedQuery] = useState('')
   const [relatedParkFilter, setRelatedParkFilter] = useState<ParkId | 'all'>('all')
+  const [relatedAreaFilter, setRelatedAreaFilter] = useState('')
   const initialFacilitySnapshot = useRef(JSON.stringify(initialEditableFacility))
   const initialRelatedIds = useRef([...initialEditableFacility.relatedFacilityIds])
   const savingRef = useRef(false)
@@ -3221,9 +3222,22 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
     return relatedCandidates.filter((item) => {
       if (facility.relatedFacilityIds.includes(item.id)) return false
       if (relatedParkFilter !== 'all' && getParkId(item.park) !== relatedParkFilter) return false
+      if (relatedAreaFilter && normalizeAreaName(item.area, item.park) !== relatedAreaFilter) return false
       return !normalizedQuery || normalizeSearchText(item.name).includes(normalizedQuery)
     })
-  }, [facility.relatedFacilityIds, relatedCandidates, relatedParkFilter, relatedQuery])
+  }, [facility.relatedFacilityIds, relatedCandidates, relatedAreaFilter, relatedParkFilter, relatedQuery])
+
+  const relatedAreaOptions = useMemo(() => {
+    const sourceParks = relatedParkFilter === 'all'
+      ? parks
+      : [getParkById(relatedParkFilter)]
+    return Array.from(new Set(sourceParks.flatMap((park) => PARK_AREAS[park])))
+  }, [relatedParkFilter])
+
+  const handleRelatedParkFilterChange = (value: ParkId | 'all') => {
+    setRelatedParkFilter(value)
+    setRelatedAreaFilter('')
+  }
 
   const renderRelatedOption = (item: Facility) => (
     <label className="check-row" key={item.id}>
@@ -3330,9 +3344,22 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
                   key={value}
                   className={relatedParkFilter === value ? 'active' : ''}
                   aria-pressed={relatedParkFilter === value}
-                  onClick={() => setRelatedParkFilter(value)}
+                  onClick={() => handleRelatedParkFilterChange(value)}
                 >
                   {label}
+                </button>
+              ))}
+            </div>
+            <div className="related-area-filter" role="group" aria-label="エリアで絞り込み">
+              {['', ...relatedAreaOptions].map((value) => (
+                <button
+                  type="button"
+                  key={value || 'all'}
+                  className={relatedAreaFilter === value ? 'active' : ''}
+                  aria-pressed={relatedAreaFilter === value}
+                  onClick={() => setRelatedAreaFilter(value)}
+                >
+                  {value || 'エリアすべて'}
                 </button>
               ))}
             </div>

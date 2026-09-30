@@ -894,6 +894,9 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .related-park-filter { display: flex; flex-wrap: wrap; gap: 7px; }
 .related-park-filter button { min-height: 36px; padding: 7px 14px; border: 1px solid #d4cabb; border-radius: 18px; background: #fff; color: #52656d; font-size: 11px; font-weight: 800; }
 .related-park-filter button.active { border-color: #2c6178; background: #153e5c; color: #fff; }
+.related-area-filter { display: flex; flex-wrap: wrap; gap: 7px; }
+.related-area-filter button { min-height: 36px; padding: 7px 14px; border: 1px solid #d4cabb; border-radius: 18px; background: #fff; color: #52656d; font-size: 11px; font-weight: 800; }
+.related-area-filter button.active { border-color: #2c6178; background: #153e5c; color: #fff; }
 .related-picker-group { display: grid; gap: 8px; }
 .related-picker-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .related-picker-heading > span { color: #758188; font-size: 11px; font-weight: 700; }
@@ -1387,8 +1390,8 @@ fieldset { margin: 0; padding: 0; border: 0; }
   .view-section-heading > span { background: #354d57; color: #ffd18a; }
   .text-entry-card h3 { border-color: #40535c; color: #efc582; }
   .prop-placeholder { background: #354d57; color: #ffd18a; }
-  .related-park-filter button { border-color: #40535c; background: #1b2d37; color: #c4cfd3; }
-  .related-park-filter button.active { border-color: #6b9bb0; background: #24556b; color: #fff; }
+  .related-park-filter button, .related-area-filter button { border-color: #40535c; background: #1b2d37; color: #c4cfd3; }
+  .related-park-filter button.active, .related-area-filter button.active { border-color: #6b9bb0; background: #24556b; color: #fff; }
   .related-picker-search > span, .related-picker-heading > span { color: #a9b7bd; }
   .delete-button { border-color: #c47567; color: #e69b8e; }
   .park-switch button, .map-selected-card, .coordinate-inputs input { border-color: #40535c; background: #1b2d37; color: #dce8ed; }
