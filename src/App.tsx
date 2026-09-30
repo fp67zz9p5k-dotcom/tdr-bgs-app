@@ -2101,7 +2101,13 @@ export default function App() {
       <PrimaryBottomNavigation
         active="home"
         onNavigate={(page) => {
-          if (page === 'home') return
+          if (page === 'home') {
+            const scrollContainer = document.scrollingElement
+            if (scrollContainer && scrollContainer.scrollTop > 0) {
+              scrollContainer.scrollTo({ top: 0, behavior: 'smooth' })
+            }
+            return
+          }
           if (page === 'map') resetMapExploration()
           captureHomeReturnState()
           navigateForward({ page })
