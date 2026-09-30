@@ -3232,6 +3232,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
       ? parks
       : [getParkById(relatedParkFilter)]
     return Array.from(new Set(sourceParks.flatMap((park) => PARK_AREAS[park])))
+      .filter((area) => area !== 'エントランス')
   }, [relatedParkFilter])
 
   const handleRelatedParkFilterChange = (value: ParkId | 'all') => {
@@ -3350,19 +3351,21 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
                 </button>
               ))}
             </div>
-            <div className="related-area-filter" role="group" aria-label="エリアで絞り込み">
-              {['', ...relatedAreaOptions].map((value) => (
-                <button
-                  type="button"
-                  key={value || 'all'}
-                  className={relatedAreaFilter === value ? 'active' : ''}
-                  aria-pressed={relatedAreaFilter === value}
-                  onClick={() => setRelatedAreaFilter(value)}
-                >
-                  {value || 'エリアすべて'}
-                </button>
-              ))}
-            </div>
+            {relatedParkFilter !== 'all' && (
+              <div className="related-area-filter" role="group" aria-label="エリアで絞り込み">
+                {['', ...relatedAreaOptions].map((value) => (
+                  <button
+                    type="button"
+                    key={value || 'all'}
+                    className={relatedAreaFilter === value ? 'active' : ''}
+                    aria-pressed={relatedAreaFilter === value}
+                    onClick={() => setRelatedAreaFilter(value)}
+                  >
+                    {value || 'エリアすべて'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {selectedRelatedFacilities.length > 0 && (
             <div className="related-picker-group">
