@@ -74,7 +74,7 @@ type NavigationTimeline = {
   index: number
 }
 
-type HomeSortOrder = 'default' | 'name' | 'category' | 'updated'
+type HomeSortOrder = 'default' | 'category' | 'updated'
 
 const MAX_NAVIGATION_HISTORY = 20
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
@@ -905,9 +905,6 @@ export default function App() {
     return visibleFacilities
       .map((facility, index) => ({ facility, index }))
       .sort((a, b) => {
-        if (homeSortOrder === 'name') {
-          return a.facility.name.localeCompare(b.facility.name, 'ja') || a.index - b.index
-        }
         if (homeSortOrder === 'category') {
           const categoryOrder = (facility: Facility) => CATEGORY_DEFINITIONS.findIndex((definition) => definition.value === facility.category)
           return categoryOrder(a.facility) - categoryOrder(b.facility)
@@ -915,10 +912,10 @@ export default function App() {
             || a.index - b.index
         }
         const timestamp = (facility: Facility) => {
-          const values = [facility.createdAt, facility.updatedAt]
-            .map((value) => Date.parse(value))
-            .filter((value) => Number.isFinite(value))
-          return values.length > 0 ? Math.max(...values) : null
+          const updatedTimestamp = Date.parse(facility.updatedAt)
+          if (Number.isFinite(updatedTimestamp)) return updatedTimestamp
+          const createdTimestamp = Date.parse(facility.createdAt)
+          return Number.isFinite(createdTimestamp) ? createdTimestamp : null
         }
         const aTimestamp = timestamp(a.facility)
         const bTimestamp = timestamp(b.facility)
@@ -1062,7 +1059,6 @@ export default function App() {
         <span>並び替え</span>
         <select value={homeSortOrder} onChange={(event) => setHomeSortOrder(event.target.value as HomeSortOrder)} aria-label="一覧の並び替え">
           <option value="default">標準</option>
-          <option value="name">50音順</option>
           <option value="category">カテゴリ順</option>
           <option value="updated">登録・更新順</option>
         </select>
@@ -1138,7 +1134,14 @@ export default function App() {
     </section>
   )
 
-  const groupedFacilities = useMemo(() => parks.map((park) => {
+  const groupedFacilities = useMemo(() => {
+    if (homeSortOrder === 'updated') {
+      return [{
+        park: '',
+        areas: [{ area: '', facilities: filteredFacilities }],
+      }]
+    }
+    return parks.map((park) => {
     const parkFacilities = filteredFacilities.filter((facility) => facility.park === park)
     const areas = Array.from(new Set(parkFacilities.map((facility) => facility.area || 'エリア未設定')))
     const orderedAreas = areas.sort((a, b) => {
@@ -1158,7 +1161,8 @@ export default function App() {
         facilities: parkFacilities.filter((facility) => (facility.area || 'エリア未設定') === area),
       })),
     }
-  }).filter((group) => group.areas.length > 0), [filteredFacilities])
+    }).filter((group) => group.areas.length > 0)
+  }, [filteredFacilities, homeSortOrder])
 
   const handleSave = async (facility: Facility, initialRelatedIds: string[]) => {
     const updatedAt = new Date().toISOString()
@@ -2078,16 +2082,19 @@ export default function App() {
           <div className="park-facility-groups">
             {groupedFacilities.map((parkGroup) => (
               <section className="park-facility-group" key={parkGroup.park}>
-                <h3>{parkGroup.park}</h3>
+                {parkGroup.park && <h3>{parkGroup.park}</h3>}
                 {parkGroup.areas.map((areaGroup) => (
                   <section className="area-facility-group" key={areaGroup.area}>
-                    <div className="area-heading">
-                      <h4>{areaGroup.area}</h4>
-                      <span>{areaGroup.facilities.length}件</span>
-                    </div>
+                    {areaGroup.area && (
+                      <div className="area-heading">
+                        <h4>{areaGroup.area}</h4>
+                        <span>{areaGroup.facilities.length}件</span>
+                      </div>
+                    )}
                     <div className="facility-list">
                       {areaGroup.facilities.map((facility) => {
                         const searchMatch = query.trim() ? searchMatchByFacilityId.get(facility.id) : undefined
+                        const displayArea = areaGroup.area || facility.area || 'エリア未設定'
                         return (
                         <article className="facility-card" key={facility.id}>
                           <button className="facility-card-link" onClick={() => openFacility(facility, 'home')}>
@@ -2102,7 +2109,7 @@ export default function App() {
                             )}
                             <span className="facility-card-body">
                               <strong><HighlightedText text={facility.name} query={query} /></strong>
-                              <span className="facility-meta"><HighlightedText text={`${facility.park}・${areaGroup.area}`} query={query} /></span>
+                              <span className="facility-meta"><HighlightedText text={`${facility.park}・${displayArea}`} query={query} /></span>
                               {searchMatch?.snippet && (
                                 <span className="facility-search-match">
                                   <b>本文一致</b>
