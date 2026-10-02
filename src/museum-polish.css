@@ -1042,4 +1042,12 @@
 
 .relationship-page.is-node-mode .relationship-scroll-region {
   padding-top: var(--relationship-header-expanded-height);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.relationship-page.is-node-mode {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
 }

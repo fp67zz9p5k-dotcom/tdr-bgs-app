@@ -370,7 +370,6 @@ function RelationshipGraphInner({
       onSettingsChange({ selectedId: initialCenter.id })
     }
   }
-  const resetNodeGraph = () => clearHistory()
   const interpolate = (expanded: number, compact: number) => expanded + ((compact - expanded) * compactProgress)
   const relationshipStyle = {
     '--relationship-compact-progress': compactProgress,
@@ -428,7 +427,7 @@ function RelationshipGraphInner({
 
         {fallbackCenter ? (
           viewMode === 'node'
-            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onSelectCenter={selectCenter} onReset={resetNodeGraph} onOpenFacility={onOpenFacility} />
+            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onOpenFacility={onOpenFacility} />
             : <CenterRelationshipView
                 facilities={facilities}
                 center={fallbackCenter}
@@ -468,13 +467,15 @@ function NodeRelationshipView({
   facilities,
   center,
   onSelectCenter,
-  onReset,
+  canGoBack,
+  onBack,
   onOpenFacility,
 }: {
   facilities: Facility[]
   center: Facility
   onSelectCenter: (facility: Facility) => void
-  onReset: () => void
+  canGoBack: boolean
+  onBack: () => void
   onOpenFacility: (facility: Facility) => void
 }) {
   const nodes = useMemo(() => {
@@ -607,13 +608,11 @@ function NodeRelationshipView({
     pointersRef.current.delete(event.pointerId)
     if (pointersRef.current.size === 0) gestureRef.current = null
   }
-  const resetViewport = () => setViewport({ x: 8, y: 8, scale: .72 })
-
   return (
     <section className="node-relationship-view" aria-label="ノード型関係図">
       <div className="node-relationship-toolbar">
         <span>関連施設を2階層まで表示</span>
-        <button type="button" onClick={() => { resetViewport(); onReset() }}>表示をリセット</button>
+        <button type="button" onClick={onBack} disabled={!canGoBack}>‹ 前の中心へ戻る</button>
       </div>
       <div
         className="node-relationship-viewport"
