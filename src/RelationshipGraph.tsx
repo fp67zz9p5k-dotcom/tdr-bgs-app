@@ -491,8 +491,8 @@ function NodeRelationshipView({
     const gapX = 48
     const gapY = 22
     const maxCount = Math.max(...byLevel.map((level) => level.length), 1)
-    const width = Math.max(920, 3 * nodeWidth + 2 * gapX)
-    const height = Math.max(520, maxCount * (nodeHeight + gapY) + 80)
+    const width = Math.max(720, 3 * nodeWidth + 2 * gapX)
+    const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64)
     const result: NodeGraphNode[] = []
     byLevel.forEach((levelFacilities, level) => {
       const x = level * (nodeWidth + gapX) + 24
@@ -521,7 +521,7 @@ function NodeRelationshipView({
     return { nodes: result, edges, width, height }
   }, [center.id, facilities])
 
-  const [viewport, setViewport] = useState({ x: 12, y: 0, scale: 1 })
+  const [viewport, setViewport] = useState({ x: 8, y: 8, scale: .72 })
   const viewportRef = useRef<HTMLDivElement>(null)
   const pointersRef = useRef(new Map<number, { x: number; y: number }>())
   const gestureRef = useRef<{ moved: boolean; startX: number; startY: number; originX: number; originY: number; distance: number; scale: number } | null>(null)
@@ -548,7 +548,7 @@ function NodeRelationshipView({
       const [first, second] = points
       const distance = Math.hypot(second.x - first.x, second.y - first.y)
       if (gesture.distance > 0) setViewport((current) => {
-        const scale = Math.min(2.2, Math.max(.55, gesture.scale * distance / gesture.distance))
+        const scale = Math.min(2.2, Math.max(.3, gesture.scale * distance / gesture.distance))
         const rect = viewportRef.current?.getBoundingClientRect()
         const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * scale - 20)
         const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * scale - 20)
@@ -574,7 +574,7 @@ function NodeRelationshipView({
     pointersRef.current.delete(event.pointerId)
     if (pointersRef.current.size === 0) gestureRef.current = null
   }
-  const resetViewport = () => setViewport({ x: 12, y: 0, scale: 1 })
+  const resetViewport = () => setViewport({ x: 8, y: 8, scale: .72 })
 
   return (
     <section className="node-relationship-view" aria-label="ノード型関係図">
