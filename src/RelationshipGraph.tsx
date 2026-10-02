@@ -548,6 +548,11 @@ function NodeRelationshipView({
     result.forEach((node) => {
       getBidirectionalRelatedFacilityIds(facilities, node.facility.id).forEach((relatedId) => {
         if (!nodeIds.has(relatedId)) return
+        const relatedLevel = levels.get(relatedId)
+        // Keep the visual graph hierarchical: only adjacent levels are drawn.
+        // Same-level and level-skipping links create long crossing lines without
+        // improving the two-level exploration view.
+        if (relatedLevel === undefined || Math.abs(node.level - relatedLevel) !== 1) return
         const key = [node.facility.id, relatedId].sort().join(':')
         if (seenEdges.has(key)) return
         seenEdges.add(key)
