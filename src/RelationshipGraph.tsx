@@ -500,16 +500,30 @@ function NodeRelationshipView({
     const nodeHeight = 72
     const gapX = 48
     const gapY = 22
-    const levelOneIndex = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
-    const relatedIndexAverage = (facility: Facility) => {
-      const parentIndexes = getBidirectionalRelatedFacilityIds(facilities, facility.id)
-        .map((id) => levelOneIndex.get(id))
-        .filter((index): index is number => index !== undefined)
-      return parentIndexes.length > 0
-        ? parentIndexes.reduce((sum, index) => sum + index, 0) / parentIndexes.length
-        : Number.MAX_SAFE_INTEGER
+    const originalIndex = new Map(byLevel.flat().map((facility, index) => [facility.id, index]))
+    const neighborsInLevel = (facility: Facility, level: number) => getBidirectionalRelatedFacilityIds(facilities, facility.id)
+      .filter((id) => levels.get(id) === level)
+    const orderByBarycenter = (facilitiesAtLevel: Facility[], neighborLevel: number, positions: Map<string, number>) => {
+      const ranked = facilitiesAtLevel.map((facility, index) => {
+        const neighborPositions = neighborsInLevel(facility, neighborLevel)
+          .map((id) => positions.get(id))
+          .filter((position): position is number => position !== undefined)
+        const barycenter = neighborPositions.length > 0
+          ? neighborPositions.reduce((sum, position) => sum + position, 0) / neighborPositions.length
+          : Number.MAX_SAFE_INTEGER
+        return { facility, index, barycenter }
+      })
+      ranked.sort((a, b) => a.barycenter - b.barycenter || (originalIndex.get(a.facility.id) ?? a.index) - (originalIndex.get(b.facility.id) ?? b.index))
+      return ranked.map(({ facility }) => facility)
     }
-    byLevel[2].sort((a, b) => relatedIndexAverage(a) - relatedIndexAverage(b))
+
+    // Repeated downward/upward barycenter sweeps reduce crossings without shrinking cards.
+    for (let pass = 0; pass < 4; pass += 1) {
+      const levelTwoPositions = new Map(byLevel[2].map((facility, index) => [facility.id, index]))
+      byLevel[1] = orderByBarycenter(byLevel[1], 2, levelTwoPositions)
+      const levelOnePositions = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
+      byLevel[2] = orderByBarycenter(byLevel[2], 1, levelOnePositions)
+    }
     const maxCount = Math.max(...byLevel.map((level) => level.length), 1)
     const width = Math.max(720, 3 * nodeWidth + 2 * gapX)
     const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64)
