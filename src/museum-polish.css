@@ -1034,3 +1034,12 @@
     padding-inline: 18px;
   }
 }
+
+/* The node view does not use the vertical view's reserved center-card dock. */
+.relationship-page.is-node-mode .relationship-center-dock-slot {
+  display: none;
+}
+
+.relationship-page.is-node-mode .relationship-scroll-region {
+  padding-top: var(--relationship-header-expanded-height);
+}
