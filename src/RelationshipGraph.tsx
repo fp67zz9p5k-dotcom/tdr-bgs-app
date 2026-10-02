@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { Category, Facility, RelationshipGraphSettings } from './types'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition, type CategoryId } from './categories'
@@ -310,6 +310,7 @@ function RelationshipGraphInner({
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const relationshipScrollRef = useRef<HTMLDivElement>(null)
   const [compactProgress, setCompactProgress] = useState(0)
+  const [viewMode, setViewMode] = useState<RelationshipViewMode>('vertical')
   const [centerDockHost, setCenterDockHost] = useState<HTMLDivElement | null>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
@@ -410,23 +411,29 @@ function RelationshipGraphInner({
         <div className="relationship-header-copy">
           <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
         </div>
+        <div className="relationship-view-switch" role="group" aria-label="関係図表示形式">
+          <button type="button" className={viewMode === 'vertical' ? 'active' : ''} onClick={() => setViewMode('vertical')}>縦型</button>
+          <button type="button" className={viewMode === 'node' ? 'active' : ''} onClick={() => setViewMode('node')}>ノード型</button>
+        </div>
       </header>
       <div ref={setCenterDockHost} className="relationship-center-dock-slot" />
       <div ref={relationshipScrollRef} className="relationship-scroll-region">
-        <p className="relationship-description">中心施設と直接関係する施設を、カテゴリ別に表示しています。</p>
+        <p className="relationship-description">{viewMode === 'node' ? '中心施設からつながる関連施設を、ノードと線で表示しています。' : '中心施設と直接関係する施設を、カテゴリ別に表示しています。'}</p>
 
         {fallbackCenter ? (
-          <CenterRelationshipView
-            facilities={facilities}
-            center={fallbackCenter}
-            history={history}
-            onSelectCenter={selectCenter}
-            onOpenFacility={onOpenFacility}
-            onHistoryBack={historyBack}
-            onClearHistory={clearHistory}
-            dockHost={isMobileLayout ? centerDockHost : null}
-            useDock={isMobileLayout}
-          />
+          viewMode === 'node'
+            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onOpenFacility={onOpenFacility} />
+            : <CenterRelationshipView
+                facilities={facilities}
+                center={fallbackCenter}
+                history={history}
+                onSelectCenter={selectCenter}
+                onOpenFacility={onOpenFacility}
+                onHistoryBack={historyBack}
+                onClearHistory={clearHistory}
+                dockHost={isMobileLayout ? centerDockHost : null}
+                useDock={isMobileLayout}
+              />
         ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>}
       </div>
     </main>
@@ -435,4 +442,164 @@ function RelationshipGraphInner({
 
 export function RelationshipGraph(props: RelationshipGraphProps) {
   return <RelationshipGraphInner {...props} />
+}
+
+type RelationshipViewMode = 'vertical' | 'node'
+
+type NodeGraphNode = {
+  facility: Facility
+  level: number
+  x: number
+  y: number
+}
+
+type NodeGraphEdge = {
+  source: string
+  target: string
+}
+
+function NodeRelationshipView({
+  facilities,
+  center,
+  onOpenFacility,
+}: {
+  facilities: Facility[]
+  center: Facility
+  onOpenFacility: (facility: Facility) => void
+}) {
+  const nodes = useMemo(() => {
+    const byId = new Map(facilities.map((facility) => [facility.id, facility]))
+    const levels = new Map<string, number>([[center.id, 0]])
+    const queue = [center.id]
+    while (queue.length > 0) {
+      const id = queue.shift()!
+      const level = levels.get(id) ?? 0
+      if (level >= 2) continue
+      for (const relatedId of getBidirectionalRelatedFacilityIds(facilities, id)) {
+        if (!byId.has(relatedId) || levels.has(relatedId)) continue
+        levels.set(relatedId, level + 1)
+        queue.push(relatedId)
+      }
+    }
+
+    const byLevel = [0, 1, 2].map((level) => [...levels.entries()]
+      .filter(([, nodeLevel]) => nodeLevel === level)
+      .map(([id]) => byId.get(id))
+      .filter((facility): facility is Facility => Boolean(facility)))
+    const nodeWidth = 188
+    const nodeHeight = 72
+    const gapX = 48
+    const gapY = 22
+    const maxCount = Math.max(...byLevel.map((level) => level.length), 1)
+    const width = Math.max(920, 3 * nodeWidth + 2 * gapX)
+    const height = Math.max(520, maxCount * (nodeHeight + gapY) + 80)
+    const result: NodeGraphNode[] = []
+    byLevel.forEach((levelFacilities, level) => {
+      const x = level * (nodeWidth + gapX) + 24
+      const totalHeight = levelFacilities.length * nodeHeight + Math.max(0, levelFacilities.length - 1) * gapY
+      const startY = (height - totalHeight) / 2
+      levelFacilities.forEach((facility, index) => result.push({
+        facility,
+        level,
+        x,
+        y: startY + index * (nodeHeight + gapY),
+      }))
+    })
+    const nodeIds = new Set(result.map((node) => node.facility.id))
+    const edges: NodeGraphEdge[] = []
+    const seenEdges = new Set<string>()
+    result.forEach((node) => {
+      getBidirectionalRelatedFacilityIds(facilities, node.facility.id).forEach((relatedId) => {
+        if (!nodeIds.has(relatedId)) return
+        const key = [node.facility.id, relatedId].sort().join(':')
+        if (seenEdges.has(key)) return
+        seenEdges.add(key)
+        edges.push({ source: node.facility.id, target: relatedId })
+      })
+    })
+    return { nodes: result, edges, width, height }
+  }, [center.id, facilities])
+
+  const [viewport, setViewport] = useState({ x: 12, y: 0, scale: 1 })
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>())
+  const gestureRef = useRef<{ moved: boolean; startX: number; startY: number; originX: number; originY: number; distance: number; scale: number } | null>(null)
+  const suppressClickRef = useRef(false)
+  const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
+
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId)
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    const points = [...pointersRef.current.values()]
+    if (points.length === 1) {
+      gestureRef.current = { moved: false, startX: event.clientX, startY: event.clientY, originX: viewport.x, originY: viewport.y, distance: 0, scale: viewport.scale }
+    } else if (points.length === 2) {
+      const [first, second] = points
+      gestureRef.current = { moved: true, startX: 0, startY: 0, originX: viewport.x, originY: viewport.y, distance: Math.hypot(second.x - first.x, second.y - first.y), scale: viewport.scale }
+    }
+  }
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current
+    if (!gesture || !pointersRef.current.has(event.pointerId)) return
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    const points = [...pointersRef.current.values()]
+    if (points.length >= 2) {
+      const [first, second] = points
+      const distance = Math.hypot(second.x - first.x, second.y - first.y)
+      if (gesture.distance > 0) setViewport((current) => ({ ...current, scale: Math.min(2.2, Math.max(.55, gesture.scale * distance / gesture.distance)) }))
+      return
+    }
+    const dx = event.clientX - gesture.startX
+    const dy = event.clientY - gesture.startY
+    if (Math.abs(dx) + Math.abs(dy) > 6) gesture.moved = true
+    if (gesture.moved) setViewport((current) => ({ ...current, x: gesture.originX + dx, y: gesture.originY + dy }))
+  }
+  const onPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (gestureRef.current?.moved) {
+      suppressClickRef.current = true
+      window.setTimeout(() => { suppressClickRef.current = false }, 0)
+    }
+    pointersRef.current.delete(event.pointerId)
+    if (pointersRef.current.size === 0) gestureRef.current = null
+  }
+  const resetViewport = () => setViewport({ x: 12, y: 0, scale: 1 })
+
+  return (
+    <section className="node-relationship-view" aria-label="ノード型関係図">
+      <div className="node-relationship-toolbar">
+        <span>関連施設を2階層まで表示</span>
+        <button type="button" onClick={resetViewport}>表示をリセット</button>
+      </div>
+      <div
+        className="node-relationship-viewport"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+      >
+        <div className="node-relationship-stage" style={{ width: nodes.width, height: nodes.height, transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}>
+          <svg className="node-relationship-lines" viewBox={`0 0 ${nodes.width} ${nodes.height}`} aria-hidden="true">
+            {nodes.edges.map((edge) => {
+              const source = nodeById.get(edge.source)
+              const target = nodeById.get(edge.target)
+              if (!source || !target) return null
+              return <line key={`${edge.source}-${edge.target}`} x1={source.x + 188} y1={source.y + 36} x2={target.x} y2={target.y + 36} />
+            })}
+          </svg>
+          {nodes.nodes.map((node) => (
+            <button
+              type="button"
+              key={node.facility.id}
+              className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}`}
+              style={{ left: node.x, top: node.y }}
+              onClick={() => { if (!suppressClickRef.current) onOpenFacility(node.facility) }}
+            >
+              <span className="node-relationship-node-icon" aria-hidden="true">{getCategoryDefinition(node.facility.category).icon}</span>
+              <span className="node-relationship-node-copy"><strong>{node.facility.name}</strong><small>{getCategoryDefinition(node.facility.category).label}</small></span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="node-relationship-hint">ドラッグで移動、ピンチで拡大縮小。ノードをタップすると施設詳細を開きます。</p>
+    </section>
+  )
 }
