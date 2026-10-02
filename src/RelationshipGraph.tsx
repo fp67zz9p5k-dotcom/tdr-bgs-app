@@ -308,6 +308,7 @@ function RelationshipGraphInner({
     [facilities, settings.selectedId],
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
+  const initialCenterIdRef = useRef<string | null>(fallbackCenter?.id ?? null)
   const relationshipScrollRef = useRef<HTMLDivElement>(null)
   const [compactProgress, setCompactProgress] = useState(0)
   const [viewMode, setViewMode] = useState<RelationshipViewMode>('vertical')
@@ -363,8 +364,13 @@ function RelationshipGraphInner({
     })
   }
   const clearHistory = () => {
-    if (fallbackCenter) setHistory([fallbackCenter.id])
+    const initialCenter = facilities.find((facility) => facility.id === initialCenterIdRef.current) ?? fallbackCenter
+    if (initialCenter) {
+      setHistory([initialCenter.id])
+      onSettingsChange({ selectedId: initialCenter.id })
+    }
   }
+  const resetNodeGraph = () => clearHistory()
   const interpolate = (expanded: number, compact: number) => expanded + ((compact - expanded) * compactProgress)
   const relationshipStyle = {
     '--relationship-compact-progress': compactProgress,
@@ -422,7 +428,7 @@ function RelationshipGraphInner({
 
         {fallbackCenter ? (
           viewMode === 'node'
-            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onSelectCenter={selectCenter} onOpenFacility={onOpenFacility} />
+            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onSelectCenter={selectCenter} onReset={resetNodeGraph} onOpenFacility={onOpenFacility} />
             : <CenterRelationshipView
                 facilities={facilities}
                 center={fallbackCenter}
@@ -462,11 +468,13 @@ function NodeRelationshipView({
   facilities,
   center,
   onSelectCenter,
+  onReset,
   onOpenFacility,
 }: {
   facilities: Facility[]
   center: Facility
   onSelectCenter: (facility: Facility) => void
+  onReset: () => void
   onOpenFacility: (facility: Facility) => void
 }) {
   const nodes = useMemo(() => {
@@ -492,6 +500,16 @@ function NodeRelationshipView({
     const nodeHeight = 72
     const gapX = 48
     const gapY = 22
+    const levelOneIndex = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
+    const relatedIndexAverage = (facility: Facility) => {
+      const parentIndexes = getBidirectionalRelatedFacilityIds(facilities, facility.id)
+        .map((id) => levelOneIndex.get(id))
+        .filter((index): index is number => index !== undefined)
+      return parentIndexes.length > 0
+        ? parentIndexes.reduce((sum, index) => sum + index, 0) / parentIndexes.length
+        : Number.MAX_SAFE_INTEGER
+    }
+    byLevel[2].sort((a, b) => relatedIndexAverage(a) - relatedIndexAverage(b))
     const maxCount = Math.max(...byLevel.map((level) => level.length), 1)
     const width = Math.max(720, 3 * nodeWidth + 2 * gapX)
     const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64)
@@ -499,8 +517,7 @@ function NodeRelationshipView({
     byLevel.forEach((levelFacilities, level) => {
       const x = level * (nodeWidth + gapX) + 24
       const totalHeight = levelFacilities.length * nodeHeight + Math.max(0, levelFacilities.length - 1) * gapY
-      // Keep the first nodes near the visible top; the viewport itself fills the page.
-      const startY = levelFacilities.length > 4 ? 32 : 56 + level * 24
+      const startY = Math.max(40, (height - totalHeight) / 2)
       levelFacilities.forEach((facility, index) => result.push({
         facility,
         level,
@@ -582,7 +599,7 @@ function NodeRelationshipView({
     <section className="node-relationship-view" aria-label="ノード型関係図">
       <div className="node-relationship-toolbar">
         <span>関連施設を2階層まで表示</span>
-        <button type="button" onClick={resetViewport}>表示をリセット</button>
+        <button type="button" onClick={() => { resetViewport(); onReset() }}>表示をリセット</button>
       </div>
       <div
         className="node-relationship-viewport"
