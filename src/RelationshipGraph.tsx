@@ -405,7 +405,7 @@ function RelationshipGraphInner({
   const isCompactHeader = compactProgress >= .995
 
   return (
-    <main style={relationshipStyle} className={`relationship-page relationship-screen-enter is-center-mode${isCompactHeader ? ' is-compact' : ''}`}>
+    <main style={relationshipStyle} className={`relationship-page relationship-screen-enter is-center-mode${isCompactHeader ? ' is-compact' : ''}${viewMode === 'node' ? ' is-node-mode' : ''}`}>
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
@@ -497,7 +497,8 @@ function NodeRelationshipView({
     byLevel.forEach((levelFacilities, level) => {
       const x = level * (nodeWidth + gapX) + 24
       const totalHeight = levelFacilities.length * nodeHeight + Math.max(0, levelFacilities.length - 1) * gapY
-      const startY = (height - totalHeight) / 2
+      // Keep the first nodes near the visible top; the viewport itself fills the page.
+      const startY = levelFacilities.length > 4 ? 32 : 56 + level * 24
       levelFacilities.forEach((facility, index) => result.push({
         facility,
         level,
@@ -521,6 +522,7 @@ function NodeRelationshipView({
   }, [center.id, facilities])
 
   const [viewport, setViewport] = useState({ x: 12, y: 0, scale: 1 })
+  const viewportRef = useRef<HTMLDivElement>(null)
   const pointersRef = useRef(new Map<number, { x: number; y: number }>())
   const gestureRef = useRef<{ moved: boolean; startX: number; startY: number; originX: number; originY: number; distance: number; scale: number } | null>(null)
   const suppressClickRef = useRef(false)
@@ -545,13 +547,24 @@ function NodeRelationshipView({
     if (points.length >= 2) {
       const [first, second] = points
       const distance = Math.hypot(second.x - first.x, second.y - first.y)
-      if (gesture.distance > 0) setViewport((current) => ({ ...current, scale: Math.min(2.2, Math.max(.55, gesture.scale * distance / gesture.distance)) }))
+      if (gesture.distance > 0) setViewport((current) => {
+        const scale = Math.min(2.2, Math.max(.55, gesture.scale * distance / gesture.distance))
+        const rect = viewportRef.current?.getBoundingClientRect()
+        const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * scale - 20)
+        const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * scale - 20)
+        return { ...current, scale, x: Math.min(20, Math.max(minX, current.x)), y: Math.min(20, Math.max(minY, current.y)) }
+      })
       return
     }
     const dx = event.clientX - gesture.startX
     const dy = event.clientY - gesture.startY
     if (Math.abs(dx) + Math.abs(dy) > 6) gesture.moved = true
-    if (gesture.moved) setViewport((current) => ({ ...current, x: gesture.originX + dx, y: gesture.originY + dy }))
+    if (gesture.moved) setViewport((current) => {
+      const rect = viewportRef.current?.getBoundingClientRect()
+      const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * current.scale - 20)
+      const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * current.scale - 20)
+      return { ...current, x: Math.min(20, Math.max(minX, gesture.originX + dx)), y: Math.min(20, Math.max(minY, gesture.originY + dy)) }
+    })
   }
   const onPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
     if (gestureRef.current?.moved) {
@@ -571,6 +584,7 @@ function NodeRelationshipView({
       </div>
       <div
         className="node-relationship-viewport"
+        ref={viewportRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
