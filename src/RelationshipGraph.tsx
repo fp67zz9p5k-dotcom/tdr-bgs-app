@@ -422,7 +422,7 @@ function RelationshipGraphInner({
 
         {fallbackCenter ? (
           viewMode === 'node'
-            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onOpenFacility={onOpenFacility} />
+            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onSelectCenter={selectCenter} onOpenFacility={onOpenFacility} />
             : <CenterRelationshipView
                 facilities={facilities}
                 center={fallbackCenter}
@@ -461,10 +461,12 @@ type NodeGraphEdge = {
 function NodeRelationshipView({
   facilities,
   center,
+  onSelectCenter,
   onOpenFacility,
 }: {
   facilities: Facility[]
   center: Facility
+  onSelectCenter: (facility: Facility) => void
   onOpenFacility: (facility: Facility) => void
 }) {
   const nodes = useMemo(() => {
@@ -600,20 +602,23 @@ function NodeRelationshipView({
             })}
           </svg>
           {nodes.nodes.map((node) => (
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               key={node.facility.id}
               className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}`}
               style={{ left: node.x, top: node.y }}
-              onClick={() => { if (!suppressClickRef.current) onOpenFacility(node.facility) }}
+              onClick={() => { if (!suppressClickRef.current) onSelectCenter(node.facility) }}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelectCenter(node.facility) }}
             >
               <span className="node-relationship-node-icon" aria-hidden="true">{getCategoryDefinition(node.facility.category).icon}</span>
               <span className="node-relationship-node-copy"><strong>{node.facility.name}</strong><small>{getCategoryDefinition(node.facility.category).label}</small></span>
-            </button>
+              <button type="button" className="node-relationship-detail-button" onClick={(event) => { event.stopPropagation(); onOpenFacility(node.facility) }}>詳細</button>
+            </div>
           ))}
         </div>
       </div>
-      <p className="node-relationship-hint">ドラッグで移動、ピンチで拡大縮小。ノードをタップすると施設詳細を開きます。</p>
+      <p className="node-relationship-hint">カードをタップして関係を探索。詳細を見る場合はカード内の「詳細」を押します。</p>
     </section>
   )
 }
