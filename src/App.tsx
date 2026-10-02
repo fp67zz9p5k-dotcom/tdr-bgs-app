@@ -81,7 +81,7 @@ const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
 
 const blocksHorizontalSwipe = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false
-  if (target.closest('input, textarea, select, [contenteditable="true"], .search-suggestions, .park-map-canvas, .coordinate-canvas, [data-swipe-navigation-ignore]')) return true
+  if (target.closest('input, textarea, select, [contenteditable="true"], .search-suggestions, .park-map-canvas, .coordinate-canvas, .node-relationship-viewport, [data-swipe-navigation-ignore]')) return true
   let element: Element | null = target
   while (element && element !== document.body) {
     if (element instanceof HTMLElement && element.scrollWidth > element.clientWidth + 1) {
