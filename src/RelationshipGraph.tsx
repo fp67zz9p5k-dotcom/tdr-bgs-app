@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { Category, Facility, RelationshipGraphSettings } from './types'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition, type CategoryId } from './categories'
@@ -309,43 +309,6 @@ function RelationshipGraphInner({
   )
   const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
   const initialCenterIdRef = useRef<string | null>(fallbackCenter?.id ?? null)
-  const relationshipScrollRef = useRef<HTMLDivElement>(null)
-  const [compactProgress, setCompactProgress] = useState(0)
-  const [viewMode, setViewMode] = useState<RelationshipViewMode>('vertical')
-  const [centerDockHost, setCenterDockHost] = useState<HTMLDivElement | null>(null)
-  const [isMobileLayout, setIsMobileLayout] = useState(() => (
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
-  ))
-
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 767px)')
-    const updateLayout = () => setIsMobileLayout(media.matches)
-    updateLayout()
-    media.addEventListener('change', updateLayout)
-    return () => media.removeEventListener('change', updateLayout)
-  }, [])
-
-  useEffect(() => {
-    const root = relationshipScrollRef.current
-    if (!root) return
-
-    let animationFrame = 0
-    const updateCompactProgress = () => {
-      cancelAnimationFrame(animationFrame)
-      animationFrame = requestAnimationFrame(() => {
-        const progress = Math.min(1, Math.max(0, root.scrollTop / 104))
-        setCompactProgress((current) => Math.abs(current - progress) < .005 ? current : progress)
-      })
-    }
-
-    updateCompactProgress()
-    root.addEventListener('scroll', updateCompactProgress, { passive: true })
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      root.removeEventListener('scroll', updateCompactProgress)
-    }
-  }, [])
-
   useEffect(() => {
     if (!fallbackCenter) return
     setHistory((current) => current.at(-1) === fallbackCenter.id ? current : [...current, fallbackCenter.id])
@@ -363,82 +326,20 @@ function RelationshipGraphInner({
       return next
     })
   }
-  const clearHistory = () => {
-    const initialCenter = facilities.find((facility) => facility.id === initialCenterIdRef.current) ?? fallbackCenter
-    if (initialCenter) {
-      setHistory([initialCenter.id])
-      onSettingsChange({ selectedId: initialCenter.id })
-    }
-  }
-  const interpolate = (expanded: number, compact: number) => expanded + ((compact - expanded) * compactProgress)
-  const relationshipStyle = {
-    '--relationship-compact-progress': compactProgress,
-    '--relationship-header-current-height': `calc(${interpolate(128, 80)}px + var(--relationship-safe-top))`,
-    '--relationship-header-current-padding-top': `calc(${interpolate(14, 8)}px + var(--relationship-safe-top))`,
-    '--relationship-header-current-padding-bottom': `${interpolate(12, 8)}px`,
-    '--relationship-header-current-gap': `${interpolate(12, 8)}px`,
-    '--relationship-header-leading-width': `${interpolate(44, 36)}px`,
-    '--relationship-header-copy-height': `${interpolate(48, 40)}px`,
-    '--relationship-eyebrow-height': `${interpolate(24, 0)}px`,
-    '--relationship-eyebrow-opacity': 1 - compactProgress,
-    '--relationship-title-size': `${interpolate(22, 16)}px`,
-    '--relationship-title-line-height': interpolate(1.35, 1.2),
-    '--relationship-dock-current-top': `calc(${interpolate(128, 80)}px + var(--relationship-safe-top))`,
-    '--relationship-dock-current-height': `${interpolate(214, 100)}px`,
-    '--relationship-summary-height': `${interpolate(18, 0)}px`,
-    '--relationship-summary-max-height': `${interpolate(24, 0)}px`,
-    '--relationship-summary-margin': `${interpolate(4, 0)}px`,
-    '--relationship-summary-opacity': 1 - compactProgress,
-    '--relationship-card-image-width': `${interpolate(92, 58)}px`,
-    '--relationship-card-height': `${interpolate(100, 58)}px`,
-    '--relationship-card-radius': `${interpolate(18, 14)}px`,
-    '--relationship-card-copy-gap': `${interpolate(2, 1)}px`,
-    '--relationship-card-copy-padding-y': `${interpolate(6, 4)}px`,
-    '--relationship-card-copy-padding-x': `${interpolate(9, 7)}px`,
-    '--relationship-card-title-size': `${interpolate(15, 13)}px`,
-    '--relationship-card-title-line-height': interpolate(1.2, 1.15),
-    '--relationship-category-size': `${interpolate(10, 9)}px`,
-    '--relationship-related-count-size': `${interpolate(9, 8)}px`,
-    '--relationship-category-margin': `${interpolate(5, 4)}px`,
-    '--relationship-category-padding-top': `${interpolate(4, 0)}px`,
-    '--relationship-category-padding-x': `${interpolate(4, 0)}px`,
-    '--relationship-category-padding-bottom': `${interpolate(4, 2)}px`,
-    '--relationship-category-button-height': `${interpolate(28, 27)}px`,
-    '--relationship-tree-height': `${interpolate(18, 0)}px`,
-    '--relationship-tree-opacity': 1 - compactProgress,
-  } as CSSProperties
-  const isCompactHeader = compactProgress >= .995
 
   return (
-    <main style={relationshipStyle} className={`relationship-page relationship-screen-enter is-center-mode${isCompactHeader ? ' is-compact' : ''}${viewMode === 'node' ? ' is-node-mode' : ''}`}>
+    <main className="relationship-page relationship-screen-enter is-node-mode">
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
           <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
         </div>
-        <div className="relationship-view-switch" role="group" aria-label="関係図表示形式">
-          <button type="button" className={viewMode === 'vertical' ? 'active' : ''} onClick={() => setViewMode('vertical')}>縦型</button>
-          <button type="button" className={viewMode === 'node' ? 'active' : ''} onClick={() => setViewMode('node')}>ノード型</button>
-        </div>
       </header>
-      <div ref={setCenterDockHost} className="relationship-center-dock-slot" />
-      <div ref={relationshipScrollRef} className="relationship-scroll-region">
-        <p className="relationship-description">{viewMode === 'node' ? '中心施設からつながる関連施設を、ノードと線で表示しています。' : '中心施設と直接関係する施設を、カテゴリ別に表示しています。'}</p>
+      <div className="relationship-scroll-region">
+        <p className="relationship-description">中心施設からつながる関連施設を、ノードと線で表示しています。</p>
 
         {fallbackCenter ? (
-          viewMode === 'node'
-            ? <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onOpenFacility={onOpenFacility} />
-            : <CenterRelationshipView
-                facilities={facilities}
-                center={fallbackCenter}
-                history={history}
-                onSelectCenter={selectCenter}
-                onOpenFacility={onOpenFacility}
-                onHistoryBack={historyBack}
-                onClearHistory={clearHistory}
-                dockHost={isMobileLayout ? centerDockHost : null}
-                useDock={isMobileLayout}
-              />
+          <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onOpenFacility={onOpenFacility} />
         ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>}
       </div>
     </main>
@@ -448,8 +349,6 @@ function RelationshipGraphInner({
 export function RelationshipGraph(props: RelationshipGraphProps) {
   return <RelationshipGraphInner {...props} />
 }
-
-type RelationshipViewMode = 'vertical' | 'node'
 
 type NodeGraphNode = {
   facility: Facility
