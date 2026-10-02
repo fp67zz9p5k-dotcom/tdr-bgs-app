@@ -427,7 +427,7 @@ function RelationshipGraphInner({
 
         {fallbackCenter ? (
           viewMode === 'node'
-            ? <NodeRelationshipView facilities={facilities} center={fallbackCenter} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onOpenFacility={onOpenFacility} />
+            ? <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onOpenFacility={onOpenFacility} />
             : <CenterRelationshipView
                 facilities={facilities}
                 center={fallbackCenter}
@@ -466,6 +466,7 @@ type NodeGraphEdge = {
 function NodeRelationshipView({
   facilities,
   center,
+  trail,
   onSelectCenter,
   canGoBack,
   onBack,
@@ -473,6 +474,7 @@ function NodeRelationshipView({
 }: {
   facilities: Facility[]
   center: Facility
+  trail: Facility[]
   onSelectCenter: (facility: Facility) => void
   canGoBack: boolean
   onBack: () => void
@@ -610,6 +612,13 @@ function NodeRelationshipView({
   }
   return (
     <section className="node-relationship-view" aria-label="ノード型関係図">
+      <div className="node-relationship-exploration" aria-live="polite">
+        <span className="node-relationship-exploration-label">探索中の中心</span>
+        <strong>{center.name}</strong>
+        {trail.length > 1 && <div className="node-relationship-trail" aria-label="探索履歴">
+          {trail.map((facility, index) => <span key={`${facility.id}-${index}`} className={facility.id === center.id ? 'current' : ''}>{facility.name}</span>)}
+        </div>}
+      </div>
       <div className="node-relationship-toolbar">
         <span>関連施設を2階層まで表示</span>
         <button type="button" onClick={onBack} disabled={!canGoBack}>‹ 前の中心へ戻る</button>
@@ -637,6 +646,7 @@ function NodeRelationshipView({
               tabIndex={0}
               key={node.facility.id}
               className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}`}
+              data-level={node.level}
               style={{ left: node.x, top: node.y }}
               onClick={() => { if (!suppressClickRef.current) onSelectCenter(node.facility) }}
               onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelectCenter(node.facility) }}
