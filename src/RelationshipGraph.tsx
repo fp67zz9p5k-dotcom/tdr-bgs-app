@@ -488,7 +488,7 @@ function NodeRelationshipView({
       .filter(([, nodeLevel]) => nodeLevel === level)
       .map(([id]) => byId.get(id))
       .filter((facility): facility is Facility => Boolean(facility)))
-    const nodeWidth = 188
+    const nodeWidth = 238
     const nodeHeight = 72
     const gapX = 48
     const gapY = 22
@@ -598,7 +598,7 @@ function NodeRelationshipView({
               const source = nodeById.get(edge.source)
               const target = nodeById.get(edge.target)
               if (!source || !target) return null
-              return <line key={`${edge.source}-${edge.target}`} x1={source.x + 188} y1={source.y + 36} x2={target.x} y2={target.y + 36} />
+              return <line key={`${edge.source}-${edge.target}`} x1={source.x + 238} y1={source.y + 36} x2={target.x} y2={target.y + 36} />
             })}
           </svg>
           {nodes.nodes.map((node) => (
