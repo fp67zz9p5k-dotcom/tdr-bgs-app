@@ -945,10 +945,10 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .lightbox-close { position: fixed; z-index: 101; top: max(16px, env(safe-area-inset-top)); right: 16px; width: 42px; height: 42px; border: 1px solid #ffffff80; border-radius: 50%; background: #172b38bb; color: white; font-size: 26px; }
 
 .view-page { padding-bottom: calc(204px + env(safe-area-inset-bottom)); }
-.view-header { position: sticky; z-index: 20; top: 0; align-items: center; height: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); padding-top: calc(var(--detail-header-padding-top, 30px) + env(safe-area-inset-top)); padding-bottom: var(--detail-header-padding-bottom, 25px); overflow: hidden; }
+.view-header { position: sticky; z-index: 20; top: 0; align-items: center; height: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); padding-top: calc(var(--detail-header-padding-top, 30px) + env(safe-area-inset-top)); padding-bottom: var(--detail-header-padding-bottom, 25px); overflow: visible; }
 .view-header-copy { min-width: 0; flex: 1; }
 .view-header h1 { overflow-wrap: anywhere; font-size: clamp(25px, 6.5vw, 36px); line-height: 1.25; }
-.view-header h1 { display: flex; align-items: center; height: 42px; min-width: 0; max-width: 100%; margin: 0; font-size: var(--detail-header-title-size, clamp(25px, 6.5vw, 36px)); transform: scale(var(--detail-header-title-scale, 1)); transform-origin: left center; white-space: nowrap; }
+.view-header h1 { display: flex; align-items: center; min-width: 0; max-width: 100%; min-height: 42px; margin: 0; font-size: var(--detail-header-title-size, clamp(25px, 6.5vw, 36px)); line-height: 1.15; transform: scale(var(--detail-header-title-scale, 1)); transform-origin: left center; overflow-wrap: anywhere; white-space: normal; }
 .detail-favorite { width: 44px; height: 44px; flex: 0 0 auto; margin-left: auto; border: 1px solid #ffffff55; border-radius: 50%; background: #ffffff12; color: #dce8ed; font-size: 26px; line-height: 1; }
 .detail-favorite.active { border-color: #e6b966; background: #e6b96622; color: #f4c66f; }
 .view-subtitle { margin: 7px 0 0; color: #d6e3e8; font-size: 12px; }

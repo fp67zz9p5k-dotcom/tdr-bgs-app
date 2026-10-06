@@ -2937,14 +2937,14 @@ function FacilityView({
         const tocPadding = 7 - (compactProgress * 3)
         const header = detailHeaderRef.current
         if (!header) return
+        const layout = header.parentElement
+        if (!layout) return
         header.style.setProperty('--detail-header-title-scale', String(titleScale))
-        header.style.setProperty('--detail-header-height', `${headerHeight}px`)
-        header.style.setProperty('--detail-header-padding-top', `${headerPaddingTop}px`)
-        header.style.setProperty('--detail-header-padding-bottom', `${headerPaddingBottom}px`)
+        layout.style.setProperty('--detail-header-height', `${headerHeight}px`)
+        layout.style.setProperty('--detail-header-padding-top', `${headerPaddingTop}px`)
+        layout.style.setProperty('--detail-header-padding-bottom', `${headerPaddingBottom}px`)
+        layout.style.setProperty('--detail-toc-padding', `${tocPadding}px`)
         header.classList.toggle('is-detail-compact', compactProgress > 0)
-        const toc = header.nextElementSibling as HTMLElement | null
-        toc?.style.setProperty('--detail-header-height', `${headerHeight}px`)
-        toc?.style.setProperty('--detail-toc-padding', `${tocPadding}px`)
       })
     }
     updateHeaderProgress()
@@ -2964,7 +2964,7 @@ function FacilityView({
     '--detail-header-padding-top': '30px',
     '--detail-header-padding-bottom': '25px',
   } as CSSProperties
-  const detailHeaderHeightStyle = { '--detail-header-height': '176px', '--detail-toc-padding': '7px' } as CSSProperties
+  const detailHeaderHeightStyle = {} as CSSProperties
 
   return (
     <main className="app-shell view-page screen-enter">
