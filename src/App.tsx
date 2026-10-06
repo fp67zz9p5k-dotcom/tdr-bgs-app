@@ -2909,7 +2909,8 @@ function FacilityView({
   onOpenFacility: (facility: Facility) => void
   onOpenMap: (facility: Facility) => void
 }) {
-  const [detailHeaderProgress, setDetailHeaderProgress] = useState(0)
+  const detailHeaderRef = useRef<HTMLElement>(null)
+  const detailTocRef = useRef<HTMLElement>(null)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
   const tableOfContents = [
@@ -2928,7 +2929,16 @@ function FacilityView({
       cancelAnimationFrame(animationFrame)
       animationFrame = requestAnimationFrame(() => {
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
-        setDetailHeaderProgress((current) => Math.abs(current - progress) < .005 ? current : progress)
+        const compactProgress = getCompactProgress(progress)
+        const titleScale = 1 - (compactProgress * (1 - DETAIL_COMPACT_TITLE_SCALE))
+        const isCompact = compactProgress > 0
+        const header = detailHeaderRef.current
+        const toc = detailTocRef.current
+        if (!header || !toc) return
+        header.style.setProperty('--detail-header-title-scale', String(titleScale))
+        header.style.setProperty('--detail-header-height', isCompact ? '92px' : '176px')
+        toc.style.setProperty('--detail-header-height', isCompact ? '92px' : '176px')
+        header.classList.toggle('is-detail-compact', isCompact)
       })
     }
     updateHeaderProgress()
@@ -2943,14 +2953,14 @@ function FacilityView({
 
   const detailHeaderStyle = {
     '--detail-header-title-size': '30px',
-    '--detail-header-title-scale': 1 - (getCompactProgress(detailHeaderProgress) * (1 - DETAIL_COMPACT_TITLE_SCALE)),
+    '--detail-header-title-scale': 1,
+    '--detail-header-height': '176px',
   } as CSSProperties
-  const isDetailCompact = getCompactProgress(detailHeaderProgress) > 0
-  const detailHeaderHeightStyle = { '--detail-header-height': isDetailCompact ? '92px' : '176px' } as CSSProperties
+  const detailHeaderHeightStyle = { '--detail-header-height': '176px' } as CSSProperties
 
   return (
     <main className="app-shell view-page screen-enter">
-      <header className={`detail-header view-header${isDetailCompact ? ' is-detail-compact' : ''}`} style={{ ...detailHeaderStyle, ...detailHeaderHeightStyle }}>
+      <header ref={detailHeaderRef} className="detail-header view-header" style={{ ...detailHeaderStyle, ...detailHeaderHeightStyle }}>
         <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
         <div className="view-header-copy">
           <p className="eyebrow">{category.englishLabel}</p>
@@ -2968,7 +2978,7 @@ function FacilityView({
         </button>
       </header>
 
-      <nav className="detail-toc detail-toc-top" style={detailHeaderHeightStyle} aria-label="ページ内目次">
+      <nav ref={detailTocRef} className="detail-toc detail-toc-top" style={detailHeaderHeightStyle} aria-label="ページ内目次">
         {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
       </nav>
 
