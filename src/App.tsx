@@ -2936,8 +2936,8 @@ function FacilityView({
   }, [])
 
   const detailHeaderStyle = {
-    '--detail-header-title-size': `${36 - (detailHeaderProgress * 16)}px`,
-    '--detail-header-title-scale': 1 - (detailHeaderProgress * .18),
+    '--detail-header-title-size': `${22 - (detailHeaderProgress * 6)}px`,
+    '--detail-header-title-scale': 1 - (detailHeaderProgress * .08),
   } as CSSProperties
 
   return (
@@ -2960,14 +2960,14 @@ function FacilityView({
         </button>
       </header>
 
+      <nav className="detail-toc detail-toc-top" aria-label="ページ内目次">
+        {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
+      </nav>
+
       <div className="view-content">
         <section id="photos" className="detail-gallery-section" aria-label="施設写真">
           <DetailPhotoGallery photos={facility.photos} facilityName={facility.name} categoryIcon={category.icon} />
         </section>
-
-        <nav className="detail-toc" aria-label="ページ内目次">
-          {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
-        </nav>
 
         <section id="overview" className="view-section">
           <div className="view-section-heading"><span aria-hidden="true">01</span><h2>概要・基本情報</h2></div>
