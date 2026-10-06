@@ -76,6 +76,12 @@ type NavigationTimeline = {
 
 type HomeSortOrder = 'default' | 'category' | 'updated'
 
+const HEADER_COMPACT_START = 0.7
+const HEADER_COMPACT_RANGE = 0.3
+const DETAIL_COMPACT_TITLE_SCALE = 17 / 30
+
+const getCompactProgress = (progress: number) => Math.min(1, Math.max(0, (progress - HEADER_COMPACT_START) / HEADER_COMPACT_RANGE))
+
 const MAX_NAVIGATION_HISTORY = 20
 const MAP_RETURN_STATE_KEY = 'tdr-map-return-state'
 
@@ -1032,7 +1038,7 @@ export default function App() {
     }
     return `絞り込み結果　${filteredFacilities.length}件`
   })()
-  const compactTitleProgress = Math.min(1, Math.max(0, (homeHeaderProgress - .7) / .3))
+  const compactTitleProgress = getCompactProgress(homeHeaderProgress)
   const homeHeaderStyle = {
     '--home-hero-progress': homeHeaderProgress,
     '--home-hero-opacity': 1 - (homeHeaderProgress * .28),
@@ -2937,9 +2943,9 @@ function FacilityView({
 
   const detailHeaderStyle = {
     '--detail-header-title-size': '30px',
-    '--detail-header-title-scale': 1 - (Math.min(1, Math.max(0, (detailHeaderProgress - .7) / .3)) * .433333),
+    '--detail-header-title-scale': 1 - (getCompactProgress(detailHeaderProgress) * (1 - DETAIL_COMPACT_TITLE_SCALE)),
   } as CSSProperties
-  const isDetailCompact = detailHeaderProgress > .7
+  const isDetailCompact = getCompactProgress(detailHeaderProgress) > 0
   const detailHeaderHeightStyle = { '--detail-header-height': isDetailCompact ? '92px' : '176px' } as CSSProperties
 
   return (
