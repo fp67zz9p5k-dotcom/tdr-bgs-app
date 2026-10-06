@@ -78,8 +78,8 @@ type HomeSortOrder = 'default' | 'category' | 'updated'
 
 const HEADER_COMPACT_START = 0.7
 const HEADER_COMPACT_RANGE = 0.3
-const DETAIL_TITLE_SIZE = 17
-const DETAIL_EXPANDED_TITLE_SCALE = 26 / DETAIL_TITLE_SIZE
+const DETAIL_TITLE_SIZE = 30
+const DETAIL_COMPACT_TITLE_SCALE = 17 / DETAIL_TITLE_SIZE
 
 const getCompactProgress = (progress: number) => Math.min(1, Math.max(0, (progress - HEADER_COMPACT_START) / HEADER_COMPACT_RANGE))
 
@@ -2930,7 +2930,7 @@ function FacilityView({
       animationFrame = requestAnimationFrame(() => {
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
         const compactProgress = getCompactProgress(progress)
-        const titleScale = DETAIL_EXPANDED_TITLE_SCALE - (compactProgress * (DETAIL_EXPANDED_TITLE_SCALE - 1))
+        const titleScale = 1 - (compactProgress * (1 - DETAIL_COMPACT_TITLE_SCALE))
         const header = detailHeaderRef.current
         if (!header) return
         header.style.setProperty('--detail-header-title-scale', String(titleScale))
