@@ -2941,10 +2941,19 @@ function FacilityView({
     updateHeaderProgress()
     window.addEventListener('scroll', updateHeaderProgress, { passive: true })
     window.addEventListener('resize', updateHeaderProgress)
+    const compactHeader = detailCompactHeaderRef.current
+    const layout = detailHeaderRef.current?.parentElement
+    const resizeObserver = compactHeader && layout
+      ? new ResizeObserver(([entry]) => {
+        layout.style.setProperty('--detail-compact-header-height', `${entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height}px`)
+      })
+      : null
+    if (resizeObserver && compactHeader) resizeObserver.observe(compactHeader)
     return () => {
       cancelAnimationFrame(animationFrame)
       window.removeEventListener('scroll', updateHeaderProgress)
       window.removeEventListener('resize', updateHeaderProgress)
+      resizeObserver?.disconnect()
     }
   }, [])
 
