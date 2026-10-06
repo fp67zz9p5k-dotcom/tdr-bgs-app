@@ -78,7 +78,8 @@ type HomeSortOrder = 'default' | 'category' | 'updated'
 
 const HEADER_COMPACT_START = 0.7
 const HEADER_COMPACT_RANGE = 0.3
-const DETAIL_COMPACT_TITLE_SCALE = 17 / 30
+const DETAIL_TITLE_SIZE = 26
+const DETAIL_COMPACT_TITLE_SCALE = 17 / DETAIL_TITLE_SIZE
 
 const getCompactProgress = (progress: number) => Math.min(1, Math.max(0, (progress - HEADER_COMPACT_START) / HEADER_COMPACT_RANGE))
 
@@ -2946,7 +2947,7 @@ function FacilityView({
   }, [])
 
   const detailHeaderStyle = {
-    '--detail-header-title-size': '30px',
+    '--detail-header-title-size': `${DETAIL_TITLE_SIZE}px`,
     '--detail-header-title-scale': 1,
     '--detail-header-height': '176px',
   } as CSSProperties

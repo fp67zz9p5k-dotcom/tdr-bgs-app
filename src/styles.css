@@ -948,7 +948,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .view-header { position: sticky; z-index: 20; top: 0; align-items: center; height: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); padding-top: calc(30px + env(safe-area-inset-top)); padding-bottom: 25px; overflow: hidden; }
 .view-header-copy { min-width: 0; flex: 1; }
 .view-header h1 { overflow-wrap: anywhere; font-size: clamp(25px, 6.5vw, 36px); line-height: 1.25; }
-.view-header h1 { display: flex; align-items: center; height: 42px; margin: 0; font-size: var(--detail-header-title-size, clamp(25px, 6.5vw, 36px)); transform: scale(var(--detail-header-title-scale, 1)); transform-origin: left center; }
+.view-header h1 { display: flex; align-items: center; height: 42px; margin: 0; overflow: hidden; font-size: var(--detail-header-title-size, clamp(25px, 6.5vw, 36px)); transform: scale(var(--detail-header-title-scale, 1)); transform-origin: left center; white-space: nowrap; text-overflow: ellipsis; }
 .detail-favorite { width: 44px; height: 44px; flex: 0 0 auto; margin-left: auto; border: 1px solid #ffffff55; border-radius: 50%; background: #ffffff12; color: #dce8ed; font-size: 26px; line-height: 1; }
 .detail-favorite.active { border-color: #e6b966; background: #e6b96622; color: #f4c66f; }
 .view-subtitle { margin: 7px 0 0; color: #d6e3e8; font-size: 12px; }
