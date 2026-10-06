@@ -2903,6 +2903,7 @@ function FacilityView({
   onOpenFacility: (facility: Facility) => void
   onOpenMap: (facility: Facility) => void
 }) {
+  const [detailHeaderProgress, setDetailHeaderProgress] = useState(0)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
   const tableOfContents = [
@@ -2915,9 +2916,32 @@ function FacilityView({
     { id: 'photos', label: '写真', visible: facility.photos.length > 0 },
   ].filter((item) => item.visible)
 
+  useEffect(() => {
+    let animationFrame = 0
+    const updateHeaderProgress = () => {
+      cancelAnimationFrame(animationFrame)
+      animationFrame = requestAnimationFrame(() => {
+        const progress = Math.min(1, Math.max(0, window.scrollY / 104))
+        setDetailHeaderProgress((current) => Math.abs(current - progress) < .005 ? current : progress)
+      })
+    }
+    updateHeaderProgress()
+    window.addEventListener('scroll', updateHeaderProgress, { passive: true })
+    window.addEventListener('resize', updateHeaderProgress)
+    return () => {
+      cancelAnimationFrame(animationFrame)
+      window.removeEventListener('scroll', updateHeaderProgress)
+      window.removeEventListener('resize', updateHeaderProgress)
+    }
+  }, [])
+
+  const detailHeaderStyle = {
+    '--detail-header-title-size': `${36 - (detailHeaderProgress * 12)}px`,
+  } as CSSProperties
+
   return (
     <main className="app-shell view-page screen-enter">
-      <header className="detail-header view-header">
+      <header className="detail-header view-header" style={detailHeaderStyle}>
         <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
         <div className="view-header-copy">
           <p className="eyebrow">{category.englishLabel}</p>
