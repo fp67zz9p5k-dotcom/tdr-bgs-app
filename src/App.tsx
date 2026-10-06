@@ -2910,7 +2910,6 @@ function FacilityView({
   onOpenMap: (facility: Facility) => void
 }) {
   const detailHeaderRef = useRef<HTMLElement>(null)
-  const detailTocRef = useRef<HTMLElement>(null)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
   const tableOfContents = [
@@ -2931,14 +2930,9 @@ function FacilityView({
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
         const compactProgress = getCompactProgress(progress)
         const titleScale = 1 - (compactProgress * (1 - DETAIL_COMPACT_TITLE_SCALE))
-        const isCompact = compactProgress > 0
         const header = detailHeaderRef.current
-        const toc = detailTocRef.current
-        if (!header || !toc) return
+        if (!header) return
         header.style.setProperty('--detail-header-title-scale', String(titleScale))
-        header.style.setProperty('--detail-header-height', isCompact ? '92px' : '176px')
-        toc.style.setProperty('--detail-header-height', isCompact ? '92px' : '176px')
-        header.classList.toggle('is-detail-compact', isCompact)
       })
     }
     updateHeaderProgress()
@@ -2978,7 +2972,7 @@ function FacilityView({
         </button>
       </header>
 
-      <nav ref={detailTocRef} className="detail-toc detail-toc-top" style={detailHeaderHeightStyle} aria-label="ページ内目次">
+      <nav className="detail-toc detail-toc-top" style={detailHeaderHeightStyle} aria-label="ページ内目次">
         {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
       </nav>
 
