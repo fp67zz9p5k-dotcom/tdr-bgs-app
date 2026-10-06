@@ -2938,15 +2938,13 @@ function FacilityView({
   const detailHeaderStyle = {
     '--detail-header-title-size': `${34 - (detailHeaderProgress * 16)}px`,
     '--detail-header-title-scale': 1 - (detailHeaderProgress * .08),
-    '--detail-header-height': `calc(${176 - (detailHeaderProgress * 112)}px + env(safe-area-inset-top))`,
-    '--detail-header-padding-top': `calc(${30 - (detailHeaderProgress * 22)}px + env(safe-area-inset-top))`,
-    '--detail-header-info-opacity': 1 - detailHeaderProgress,
-    '--detail-header-info-height': `${(1 - detailHeaderProgress) * 32}px`,
   } as CSSProperties
+  const isDetailCompact = detailHeaderProgress >= .7
+  const detailHeaderHeightStyle = { '--detail-header-height': isDetailCompact ? '64px' : '176px' } as CSSProperties
 
   return (
     <main className="app-shell view-page screen-enter">
-      <header className="detail-header view-header" style={detailHeaderStyle}>
+      <header className={`detail-header view-header${isDetailCompact ? ' is-detail-compact' : ''}`} style={{ ...detailHeaderStyle, ...detailHeaderHeightStyle }}>
         <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
         <div className="view-header-copy">
           <p className="eyebrow">{category.englishLabel}</p>
@@ -2964,7 +2962,7 @@ function FacilityView({
         </button>
       </header>
 
-      <nav className="detail-toc detail-toc-top" aria-label="ページ内目次">
+      <nav className="detail-toc detail-toc-top" style={detailHeaderHeightStyle} aria-label="ページ内目次">
         {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
       </nav>
 
