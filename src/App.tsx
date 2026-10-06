@@ -2931,7 +2931,7 @@ function FacilityView({
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
         const compactProgress = getCompactProgress(progress)
         const titleScale = 1 - (compactProgress * (1 - DETAIL_COMPACT_TITLE_SCALE))
-        const headerHeight = 176 - (compactProgress * 84)
+        const headerHeight = 176 - (compactProgress * 112)
         const headerPaddingTop = 30 - (compactProgress * 22)
         const headerPaddingBottom = 25 - (compactProgress * 17)
         const tocPadding = 7 - (compactProgress * 3)

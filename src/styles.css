@@ -975,7 +975,8 @@ fieldset { margin: 0; padding: 0; border: 0; }
 }
 .detail-toc { position: sticky; z-index: 4; top: 6px; display: flex; gap: 6px; margin: -4px -8px 0; padding: var(--detail-toc-padding, 7px) 8px; overflow-x: auto; border: 1px solid #ded5c6; border-radius: 15px; background: #fffdf9e8; box-shadow: 0 5px 18px #172b3815; backdrop-filter: blur(12px); scrollbar-width: none; }
 .detail-toc-top { position: sticky; top: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); z-index: 19; margin: 0; border-radius: 0; }
-.view-header.is-detail-compact { align-items: center; height: calc(92px + env(safe-area-inset-top)); padding-top: calc(8px + env(safe-area-inset-top)); padding-bottom: 8px; }
+.view-header.is-detail-compact { align-items: center; }
+.view-header.is-detail-compact h1 { white-space: nowrap; }
 .view-header.is-detail-compact .eyebrow,
 .view-header.is-detail-compact .view-subtitle,
 .view-header.is-detail-compact .view-category { display: none; }
