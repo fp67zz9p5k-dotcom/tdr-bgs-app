@@ -1194,7 +1194,6 @@ export default function App() {
           relatedFacilityIds: shouldBeRelated
             ? [...new Set([...item.relatedFacilityIds, facility.id])]
             : item.relatedFacilityIds.filter((id) => id !== facility.id),
-          updatedAt,
         }
       })
       .filter((item): item is Facility => item !== null)
