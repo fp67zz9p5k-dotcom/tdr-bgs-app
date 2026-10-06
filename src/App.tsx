@@ -2904,6 +2904,7 @@ function FacilityView({
   onOpenMap: (facility: Facility) => void
 }) {
   const [detailHeaderProgress, setDetailHeaderProgress] = useState(0)
+  const [isDetailCompact, setIsDetailCompact] = useState(false)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
   const tableOfContents = [
@@ -2923,6 +2924,7 @@ function FacilityView({
       animationFrame = requestAnimationFrame(() => {
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
         setDetailHeaderProgress((current) => Math.abs(current - progress) < .005 ? current : progress)
+        setIsDetailCompact((current) => progress >= .8 ? true : progress <= .55 ? false : current)
       })
     }
     updateHeaderProgress()
@@ -2937,9 +2939,8 @@ function FacilityView({
 
   const detailHeaderStyle = {
     '--detail-header-title-size': '30px',
-    '--detail-header-title-scale': 1 - (detailHeaderProgress * .47),
+    '--detail-header-title-scale': 1 - (detailHeaderProgress * .433333),
   } as CSSProperties
-  const isDetailCompact = detailHeaderProgress >= .7
   const detailHeaderHeightStyle = { '--detail-header-height': isDetailCompact ? '92px' : '176px' } as CSSProperties
 
   return (
