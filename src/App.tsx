@@ -2936,8 +2936,12 @@ function FacilityView({
   }, [])
 
   const detailHeaderStyle = {
-    '--detail-header-title-size': `${20 - (detailHeaderProgress * 4)}px`,
-    '--detail-header-title-scale': 1 - (detailHeaderProgress * .06),
+    '--detail-header-title-size': `${34 - (detailHeaderProgress * 16)}px`,
+    '--detail-header-title-scale': 1 - (detailHeaderProgress * .08),
+    '--detail-header-height': `calc(${176 - (detailHeaderProgress * 112)}px + env(safe-area-inset-top))`,
+    '--detail-header-padding-top': `calc(${30 - (detailHeaderProgress * 22)}px + env(safe-area-inset-top))`,
+    '--detail-header-info-opacity': 1 - detailHeaderProgress,
+    '--detail-header-info-height': `${(1 - detailHeaderProgress) * 32}px`,
   } as CSSProperties
 
   return (
