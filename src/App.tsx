@@ -2952,6 +2952,7 @@ function FacilityView({
   const detailHeaderStyle = {
     '--detail-header-title-size': '30px',
     '--detail-header-title-scale': 1,
+    '--detail-header-height': '220px',
   } as CSSProperties
 
   return (
