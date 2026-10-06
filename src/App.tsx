@@ -78,8 +78,6 @@ type HomeSortOrder = 'default' | 'category' | 'updated'
 
 const HEADER_COMPACT_START = 0.7
 const HEADER_COMPACT_RANGE = 0.3
-const DETAIL_TITLE_SIZE = 30
-const DETAIL_COMPACT_TITLE_SCALE = 17 / DETAIL_TITLE_SIZE
 
 const getCompactProgress = (progress: number) => Math.min(1, Math.max(0, (progress - HEADER_COMPACT_START) / HEADER_COMPACT_RANGE))
 
@@ -2911,6 +2909,7 @@ function FacilityView({
   onOpenMap: (facility: Facility) => void
 }) {
   const detailHeaderRef = useRef<HTMLElement>(null)
+  const detailCompactHeaderRef = useRef<HTMLElement>(null)
   const category = getCategoryDefinition(facility.category)
   const relatedFacilities = getBidirectionalRelatedFacilities(allFacilities, facility.id)
   const tableOfContents = [
@@ -2930,22 +2929,14 @@ function FacilityView({
       animationFrame = requestAnimationFrame(() => {
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
         const compactProgress = getCompactProgress(progress)
-        const titleScale = 1 - (compactProgress * (1 - DETAIL_COMPACT_TITLE_SCALE))
-        const headerHeight = 176 - (compactProgress * 112)
-        const headerPaddingTop = 30 - (compactProgress * 22)
-        const headerPaddingBottom = 25 - (compactProgress * 17)
-        const tocPadding = 7 - (compactProgress * 3)
         const auxiliaryOpacity = 1 - compactProgress
         const header = detailHeaderRef.current
-        if (!header) return
+        const compactHeader = detailCompactHeaderRef.current
+        if (!header || !compactHeader) return
         const layout = header.parentElement
         if (!layout) return
-        header.style.setProperty('--detail-header-title-scale', String(titleScale))
-        layout.style.setProperty('--detail-header-height', `${headerHeight}px`)
-        layout.style.setProperty('--detail-header-padding-top', `${headerPaddingTop}px`)
-        layout.style.setProperty('--detail-header-padding-bottom', `${headerPaddingBottom}px`)
-        layout.style.setProperty('--detail-toc-padding', `${tocPadding}px`)
         layout.style.setProperty('--detail-auxiliary-opacity', String(auxiliaryOpacity))
+        compactHeader.classList.toggle('is-visible', compactProgress > 0)
       })
     }
     updateHeaderProgress()
@@ -2959,14 +2950,13 @@ function FacilityView({
   }, [])
 
   const detailHeaderStyle = {
-    '--detail-header-title-size': `${DETAIL_TITLE_SIZE}px`,
+    '--detail-header-title-size': '30px',
     '--detail-header-title-scale': 1,
   } as CSSProperties
-  const detailHeaderHeightStyle = {} as CSSProperties
 
   return (
     <main className="app-shell view-page screen-enter">
-      <header ref={detailHeaderRef} className="detail-header view-header" style={{ ...detailHeaderStyle, ...detailHeaderHeightStyle }}>
+      <header ref={detailHeaderRef} className="detail-header view-header" style={detailHeaderStyle}>
         <button className="back-button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
         <div className="view-header-copy">
           <p className="eyebrow">{category.englishLabel}</p>
@@ -2984,9 +2974,14 @@ function FacilityView({
         </button>
       </header>
 
-      <nav className="detail-toc detail-toc-top" style={detailHeaderHeightStyle} aria-label="ページ内目次">
+      <nav className="detail-toc detail-toc-top" aria-label="ページ内目次">
         {tableOfContents.map((item) => <a href={`#${item.id}`} key={item.id}>{item.label}</a>)}
       </nav>
+
+      <header ref={detailCompactHeaderRef} className="detail-compact-title" aria-hidden="true">
+        <button type="button" onClick={onBack} aria-label="施設一覧に戻る">‹</button>
+        <strong>{facility.name}</strong>
+      </header>
 
       <div className="view-content">
         <section id="photos" className="detail-gallery-section" aria-label="施設写真">
