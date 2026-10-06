@@ -2935,6 +2935,7 @@ function FacilityView({
         const headerPaddingTop = 30 - (compactProgress * 22)
         const headerPaddingBottom = 25 - (compactProgress * 17)
         const tocPadding = 7 - (compactProgress * 3)
+        const auxiliaryOpacity = 1 - compactProgress
         const header = detailHeaderRef.current
         if (!header) return
         const layout = header.parentElement
@@ -2944,7 +2945,7 @@ function FacilityView({
         layout.style.setProperty('--detail-header-padding-top', `${headerPaddingTop}px`)
         layout.style.setProperty('--detail-header-padding-bottom', `${headerPaddingBottom}px`)
         layout.style.setProperty('--detail-toc-padding', `${tocPadding}px`)
-        header.classList.toggle('is-detail-compact', compactProgress > 0)
+        layout.style.setProperty('--detail-auxiliary-opacity', String(auxiliaryOpacity))
       })
     }
     updateHeaderProgress()
