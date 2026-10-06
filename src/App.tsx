@@ -2931,9 +2931,19 @@ function FacilityView({
         const progress = Math.min(1, Math.max(0, window.scrollY / 104))
         const compactProgress = getCompactProgress(progress)
         const titleScale = 1 - (compactProgress * (1 - DETAIL_COMPACT_TITLE_SCALE))
+        const headerHeight = 176 - (compactProgress * 84)
+        const headerPaddingTop = 30 - (compactProgress * 22)
+        const headerPaddingBottom = 25 - (compactProgress * 17)
+        const tocPadding = 7 - (compactProgress * 3)
         const header = detailHeaderRef.current
         if (!header) return
         header.style.setProperty('--detail-header-title-scale', String(titleScale))
+        header.style.setProperty('--detail-header-height', `${headerHeight}px`)
+        header.style.setProperty('--detail-header-padding-top', `${headerPaddingTop}px`)
+        header.style.setProperty('--detail-header-padding-bottom', `${headerPaddingBottom}px`)
+        const toc = header.nextElementSibling as HTMLElement | null
+        toc?.style.setProperty('--detail-header-height', `${headerHeight}px`)
+        toc?.style.setProperty('--detail-toc-padding', `${tocPadding}px`)
       })
     }
     updateHeaderProgress()
@@ -2950,8 +2960,10 @@ function FacilityView({
     '--detail-header-title-size': `${DETAIL_TITLE_SIZE}px`,
     '--detail-header-title-scale': 1,
     '--detail-header-height': '176px',
+    '--detail-header-padding-top': '30px',
+    '--detail-header-padding-bottom': '25px',
   } as CSSProperties
-  const detailHeaderHeightStyle = { '--detail-header-height': '176px' } as CSSProperties
+  const detailHeaderHeightStyle = { '--detail-header-height': '176px', '--detail-toc-padding': '7px' } as CSSProperties
 
   return (
     <main className="app-shell view-page screen-enter">
