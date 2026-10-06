@@ -945,7 +945,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .lightbox-close { position: fixed; z-index: 101; top: max(16px, env(safe-area-inset-top)); right: 16px; width: 42px; height: 42px; border: 1px solid #ffffff80; border-radius: 50%; background: #172b38bb; color: white; font-size: 26px; }
 
 .view-page { padding-bottom: calc(204px + env(safe-area-inset-bottom)); }
-.view-header { position: sticky; z-index: 20; top: 0; align-items: center; height: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); padding-top: calc(var(--detail-header-padding-top, 30px) + env(safe-area-inset-top)); padding-bottom: var(--detail-header-padding-bottom, 25px); overflow: visible; }
+.view-header { position: sticky; z-index: 20; top: 0; align-items: center; height: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); padding-top: calc(var(--detail-header-padding-top, 30px) + env(safe-area-inset-top)); padding-bottom: var(--detail-header-padding-bottom, 25px); overflow: visible; overflow-anchor: none; }
 .view-header-copy { min-width: 0; flex: 1; }
 .view-header h1 { overflow-wrap: anywhere; font-size: clamp(25px, 6.5vw, 36px); line-height: 1.25; }
 .view-header h1 { display: flex; align-items: center; min-width: 0; max-width: 100%; min-height: 42px; margin: 0; font-size: var(--detail-header-title-size, clamp(25px, 6.5vw, 36px)); line-height: 1.15; transform: scale(var(--detail-header-title-scale, 1)); transform-origin: left center; overflow-wrap: anywhere; white-space: normal; }
@@ -975,7 +975,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
   to { opacity: 1; }
 }
 .detail-toc { position: sticky; z-index: 4; top: 6px; display: flex; gap: 6px; margin: -4px -8px 0; padding: var(--detail-toc-padding, 7px) 8px; overflow-x: auto; border: 1px solid #ded5c6; border-radius: 15px; background: #fffdf9e8; box-shadow: 0 5px 18px #172b3815; backdrop-filter: blur(12px); scrollbar-width: none; }
-.detail-toc-top { position: sticky; top: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); z-index: 19; margin: 0; border-radius: 0; }
+.detail-toc-top { position: sticky; top: calc(var(--detail-header-height, 176px) + env(safe-area-inset-top)); z-index: 19; margin: 0; border-radius: 0; overflow-anchor: none; }
 .view-header.is-detail-compact { align-items: center; }
 .view-header.is-detail-compact h1 { white-space: nowrap; }
 .view-header .view-subtitle,
