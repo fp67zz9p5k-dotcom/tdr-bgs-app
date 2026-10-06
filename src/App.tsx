@@ -2936,8 +2936,8 @@ function FacilityView({
   }, [])
 
   const detailHeaderStyle = {
-    '--detail-header-title-size': `${22 - (detailHeaderProgress * 6)}px`,
-    '--detail-header-title-scale': 1 - (detailHeaderProgress * .08),
+    '--detail-header-title-size': `${20 - (detailHeaderProgress * 4)}px`,
+    '--detail-header-title-scale': 1 - (detailHeaderProgress * .06),
   } as CSSProperties
 
   return (
