@@ -1,5 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;500;600;700&display=swap');
+
 :root {
-  font-family: "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif;
+  --font-ui: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --font-content: "Noto Serif JP", "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-family: var(--font-ui);
   color: #172b38;
   background: #eee9de;
   font-synthesis: none;
@@ -1293,6 +1297,54 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .node-relationship-detail-button { flex: 0 0 auto; margin-left: auto; padding: 4px 6px; border: 1px solid #c8b594; border-radius: 6px; background: #fffaf1; color: #36515c; font-size: 9px; font-weight: 800; }
 .node-relationship-node.is-center .node-relationship-detail-button { border-color: #d9b77f; background: #d9b77f; color: #173f5a; }
 .node-relationship-hint { margin: 8px 2px 0; color: #737a78; font-size: 10px; text-align: center; }
+
+/* Typography roles: readable archive content versus actionable interface text. */
+h1,
+h2,
+h3,
+.compact-heading h2,
+.section-heading h2,
+.park-facility-group > h3,
+.form-section h2,
+.view-section h2,
+.text-entry-card h3,
+.center-summary h2,
+.center-card-copy strong,
+.related-card-main strong,
+.related-view-card strong,
+.facility-card-body > strong,
+.recent-card-body strong,
+.map-facility-popup-text strong,
+.relationship-header h1,
+.node-relationship-exploration strong,
+.bgs-section .text-entry-card p {
+  font-family: var(--font-content);
+}
+
+button,
+input,
+textarea,
+select,
+label,
+.search-area,
+.category-filter,
+.expanded-category-grid,
+.home-sort-control,
+.primary-bottom-nav,
+.filter-summary,
+.relationship-view-switch,
+.node-relationship-toolbar,
+.node-relationship-detail-button {
+  font-family: var(--font-ui);
+}
+
+.bgs-section .text-entry-card p,
+.trivia-section p,
+.view-content > p,
+.detail-description {
+  font-family: var(--font-content);
+  font-weight: 400;
+}
 .relationship-page.is-node-mode .relationship-scroll-region { min-height: calc(100dvh - 92px - env(safe-area-inset-bottom)); }
 .relationship-page.is-node-mode .relationship-description { display: none; }
 .relationship-page.is-node-mode .node-relationship-view { display: flex; width: 100%; min-height: calc(100dvh - 92px - env(safe-area-inset-bottom)); flex: 1 1 auto; flex-direction: column; padding: 10px 12px calc(92px + env(safe-area-inset-bottom)); }
