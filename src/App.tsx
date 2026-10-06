@@ -2941,6 +2941,7 @@ function FacilityView({
         header.style.setProperty('--detail-header-height', `${headerHeight}px`)
         header.style.setProperty('--detail-header-padding-top', `${headerPaddingTop}px`)
         header.style.setProperty('--detail-header-padding-bottom', `${headerPaddingBottom}px`)
+        header.classList.toggle('is-detail-compact', compactProgress > 0)
         const toc = header.nextElementSibling as HTMLElement | null
         toc?.style.setProperty('--detail-header-height', `${headerHeight}px`)
         toc?.style.setProperty('--detail-toc-padding', `${tocPadding}px`)
