@@ -402,7 +402,7 @@ function NodeRelationshipView({
       .filter((facility): facility is Facility => Boolean(facility)))
     const nodeWidth = 238
     const nodeHeight = 72
-    const gapX = 64
+    const gapX = 88
     const gapY = 22
     const originalIndex = new Map(byLevel.flat().map((facility, index) => [facility.id, index]))
     const neighborsInLevel = (facility: Facility, level: number) => getBidirectionalRelatedFacilityIds(facilities, facility.id)
@@ -428,9 +428,9 @@ function NodeRelationshipView({
       const levelOnePositions = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
       byLevel[2] = orderByBarycenter(byLevel[2], 1, levelOnePositions)
     }
-    // Keep each level in a compact grid. The previous parent-group/fan layout
-    // made the second level grow disproportionately to the right.
-    const levelTwoColumns = Math.max(1, Math.ceil(Math.sqrt(Math.max(byLevel[2].length, 1))))
+    // Keep the second level in one ordered vertical lane. This avoids the
+    // grid wrapping that makes orthogonal connections difficult to follow.
+    const levelTwoColumns = 1
     const levelTwoRows = Math.ceil(Math.max(byLevel[2].length, 1) / levelTwoColumns)
     const maxRows = Math.max(byLevel[1].length, levelTwoRows, 1)
     const width = Math.max(720, 24 + (nodeWidth + gapX) * (2 + levelTwoColumns) + 24)
