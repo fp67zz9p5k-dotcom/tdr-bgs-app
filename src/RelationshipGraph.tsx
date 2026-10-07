@@ -516,6 +516,7 @@ function NodeRelationshipView({
   const gestureRef = useRef<{ moved: boolean; startX: number; startY: number; originX: number; originY: number; distance: number; scale: number } | null>(null)
   const suppressClickRef = useRef(false)
   const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
+  const [selectedLevelOneId, setSelectedLevelOneId] = useState<string | null>(null)
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -603,7 +604,13 @@ function NodeRelationshipView({
               const sourceY = source.y + (edge.sourceOffset ?? 36)
               const targetY = target.y + (edge.targetOffset ?? 36)
               const points = `${startX},${sourceY} ${laneX},${sourceY} ${laneX},${targetY} ${endX},${targetY}`
-              return <polyline key={`${edge.source}-${edge.target}`} points={points} />
+              const highlightsPath = selectedLevelOneId !== null && (
+                (source.facility.id === center.id && target.facility.id === selectedLevelOneId)
+                || (target.facility.id === center.id && source.facility.id === selectedLevelOneId)
+                || (source.facility.id === selectedLevelOneId && target.level === 2)
+                || (target.facility.id === selectedLevelOneId && source.level === 2)
+              )
+              return <polyline className={highlightsPath ? 'is-highlighted' : undefined} key={`${edge.source}-${edge.target}`} points={points} />
             })}
           </svg>
           {nodes.nodes.map((node) => (
@@ -611,20 +618,28 @@ function NodeRelationshipView({
               role="button"
               tabIndex={0}
               key={node.facility.id}
-              className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}`}
+              className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}${node.facility.id === selectedLevelOneId ? ' is-selected' : ''}`}
               data-level={node.level}
               style={{ left: node.x, top: node.y }}
-              onClick={() => { if (!suppressClickRef.current) onSelectCenter(node.facility) }}
-              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelectCenter(node.facility) }}
+              onClick={() => {
+                if (suppressClickRef.current) return
+                if (node.level === 1) setSelectedLevelOneId((current) => current === node.facility.id ? null : node.facility.id)
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                if (node.level === 1) setSelectedLevelOneId((current) => current === node.facility.id ? null : node.facility.id)
+              }}
             >
               <span className="node-relationship-node-icon" aria-hidden="true">{getCategoryDefinition(node.facility.category).icon}</span>
               <span className="node-relationship-node-copy"><strong>{node.facility.name}</strong><small>{getCategoryDefinition(node.facility.category).label}</small></span>
               <button type="button" className="node-relationship-detail-button" onClick={(event) => { event.stopPropagation(); onOpenFacility(node.facility) }}>詳細</button>
+              {node.level !== 0 && <button type="button" className="node-relationship-center-button" onClick={(event) => { event.stopPropagation(); onSelectCenter(node.facility) }}>中心</button>}
             </div>
           ))}
         </div>
       </div>
-      <p className="node-relationship-hint">カードをタップして関係を探索。詳細を見る場合はカード内の「詳細」を押します。</p>
+      <p className="node-relationship-hint">第1層カードをタップして経路を強調。「中心」で中心を変更できます。</p>
     </section>
   )
 }
