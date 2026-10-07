@@ -402,7 +402,7 @@ function NodeRelationshipView({
       .filter((facility): facility is Facility => Boolean(facility)))
     const nodeWidth = 238
     const nodeHeight = 72
-    const gapX = 88
+    const gapX = 120
     const gapY = 22
     const originalIndex = new Map(byLevel.flat().map((facility, index) => [facility.id, index]))
     const neighborsInLevel = (facility: Facility, level: number) => getBidirectionalRelatedFacilityIds(facilities, facility.id)
