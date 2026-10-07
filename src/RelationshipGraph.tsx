@@ -441,7 +441,7 @@ function NodeRelationshipView({
     ]
     byLevel[2] = groupedLevelTwo
     const levelTwoLayouts = levelTwoGroups.map((group) => {
-      const columns = Math.max(1, Math.ceil(Math.sqrt(group.facilities.length)))
+      const columns = Math.min(2, Math.max(1, Math.ceil(Math.sqrt(group.facilities.length))))
       const rows = Math.ceil(group.facilities.length / columns)
       return {
         ...group,
@@ -450,10 +450,11 @@ function NodeRelationshipView({
         width: columns * nodeWidth + Math.max(0, columns - 1) * gapX,
       }
     })
-    const levelTwoSpreadWidth = levelTwoLayouts.reduce((sum, group) => sum + group.width + gapX, 0)
+    const levelTwoSpreadWidth = Math.max(...levelTwoLayouts.map((group) => group.width), 0)
+    const levelTwoTotalHeight = levelTwoLayouts.reduce((sum, group) => sum + group.rows * nodeHeight + Math.max(0, group.rows - 1) * gapY + gapY, 0)
     const maxCount = Math.max(byLevel[1].length, groupedLevelTwo.length, 1)
     const width = Math.max(720, 24 + (nodeWidth + gapX) * 2 + levelTwoSpreadWidth + 24)
-    const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64)
+    const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64, levelTwoTotalHeight + 80)
     const result: NodeGraphNode[] = []
     byLevel.forEach((levelFacilities, level) => {
       const x = level * (nodeWidth + gapX) + 24
@@ -467,12 +468,14 @@ function NodeRelationshipView({
       }))
     })
     const nodeById = new Map(result.map((node) => [node.facility.id, node]))
-    let levelTwoX = (nodeWidth + gapX) * 2 + 24
-    levelTwoLayouts.forEach(({ parent, facilities: children, columns, rows, width: groupWidth }) => {
+    const levelTwoX = (nodeWidth + gapX) * 2 + 24
+    let levelTwoCursor = 40
+    levelTwoLayouts.forEach(({ parent, facilities: children, columns, rows }) => {
       const parentNode = nodeById.get(parent.id)
       if (!parentNode) return
       const groupHeight = rows * nodeHeight + Math.max(0, rows - 1) * gapY
-      const groupStart = Math.max(40, Math.min(height - groupHeight - 40, parentNode.y + (nodeHeight - groupHeight) / 2))
+      const desiredStart = parentNode.y + (nodeHeight - groupHeight) / 2
+      const groupStart = Math.max(levelTwoCursor, Math.max(40, Math.min(height - groupHeight - 40, desiredStart)))
       children.forEach((child, index) => {
         const childNode = nodeById.get(child.id)
         if (!childNode) return
@@ -481,7 +484,7 @@ function NodeRelationshipView({
         childNode.x = levelTwoX + column * (nodeWidth + gapX)
         childNode.y = groupStart + row * (nodeHeight + gapY)
       })
-      levelTwoX += groupWidth + gapX
+      levelTwoCursor = groupStart + groupHeight + gapY
     })
     const nodeIds = new Set(result.map((node) => node.facility.id))
     const edges: NodeGraphEdge[] = []
