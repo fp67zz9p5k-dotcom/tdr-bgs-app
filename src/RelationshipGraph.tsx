@@ -428,6 +428,21 @@ function NodeRelationshipView({
       const levelOnePositions = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
       byLevel[2] = orderByBarycenter(byLevel[2], 1, levelOnePositions)
     }
+    // The second level is displayed as one vertical lane. Order it by the
+    // average position of its first-level parents so orthogonal routes stay
+    // close to their source instead of making large vertical excursions.
+    const levelOnePositions = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
+    const originalLevelTwoOrder = new Map(byLevel[2].map((facility, index) => [facility.id, index]))
+    const levelTwoAnchor = (facility: Facility) => {
+      const parentPositions = getBidirectionalRelatedFacilityIds(facilities, facility.id)
+        .map((id) => levelOnePositions.get(id))
+        .filter((position): position is number => position !== undefined)
+      return parentPositions.length > 0
+        ? parentPositions.reduce((sum, position) => sum + position, 0) / parentPositions.length
+        : Number.MAX_SAFE_INTEGER
+    }
+    byLevel[2].sort((a, b) => levelTwoAnchor(a) - levelTwoAnchor(b)
+      || (originalLevelTwoOrder.get(a.id) ?? 0) - (originalLevelTwoOrder.get(b.id) ?? 0))
     // Keep the second level in one ordered vertical lane. This avoids the
     // grid wrapping that makes orthogonal connections difficult to follow.
     const levelTwoColumns = 1
