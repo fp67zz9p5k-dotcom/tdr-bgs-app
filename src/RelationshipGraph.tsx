@@ -360,6 +360,8 @@ type NodeGraphNode = {
 type NodeGraphEdge = {
   source: string
   target: string
+  sourceOffset?: number
+  targetOffset?: number
 }
 
 function NodeRelationshipView({
@@ -426,7 +428,19 @@ function NodeRelationshipView({
       const levelOnePositions = new Map(byLevel[1].map((facility, index) => [facility.id, index]))
       byLevel[2] = orderByBarycenter(byLevel[2], 1, levelOnePositions)
     }
-    const maxCount = Math.max(...byLevel.map((level) => level.length), 1)
+    const originalLevelTwoIndex = new Map(byLevel[2].map((facility, index) => [facility.id, index]))
+    const levelTwoGroups = byLevel[1].map((parent) => ({
+      parent,
+      facilities: byLevel[2]
+        .filter((facility) => getBidirectionalRelatedFacilityIds(facilities, parent.id).includes(facility.id))
+        .sort((a, b) => (originalLevelTwoIndex.get(a.id) ?? 0) - (originalLevelTwoIndex.get(b.id) ?? 0)),
+    })).filter((group) => group.facilities.length > 0)
+    const groupedLevelTwo = [
+      ...levelTwoGroups.flatMap((group) => group.facilities),
+      ...byLevel[2].filter((facility) => !levelTwoGroups.some((group) => group.facilities.some((item) => item.id === facility.id))),
+    ]
+    byLevel[2] = groupedLevelTwo
+    const maxCount = Math.max(byLevel[1].length, groupedLevelTwo.length, 1)
     const width = Math.max(720, 3 * nodeWidth + 2 * gapX)
     const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64)
     const result: NodeGraphNode[] = []
@@ -440,6 +454,17 @@ function NodeRelationshipView({
         x,
         y: startY + index * (nodeHeight + gapY),
       }))
+    })
+    const nodeById = new Map(result.map((node) => [node.facility.id, node]))
+    levelTwoGroups.forEach(({ parent, facilities: children }) => {
+      const parentNode = nodeById.get(parent.id)
+      if (!parentNode) return
+      const groupHeight = children.length * nodeHeight + Math.max(0, children.length - 1) * gapY
+      const groupStart = Math.max(40, Math.min(height - groupHeight - 40, parentNode.y + (nodeHeight - groupHeight) / 2))
+      children.forEach((child, index) => {
+        const childNode = nodeById.get(child.id)
+        if (childNode) childNode.y = groupStart + index * (nodeHeight + gapY)
+      })
     })
     const nodeIds = new Set(result.map((node) => node.facility.id))
     const edges: NodeGraphEdge[] = []
@@ -457,6 +482,17 @@ function NodeRelationshipView({
         seenEdges.add(key)
         edges.push({ source: node.facility.id, target: relatedId })
       })
+    })
+    edges.forEach((edge) => {
+      const source = nodeById.get(edge.source)
+      const target = nodeById.get(edge.target)
+      if (!source || !target) return
+      const sourceChildren = edges.filter((candidate) => candidate.source === edge.source)
+        .sort((a, b) => (nodeById.get(a.target)?.y ?? 0) - (nodeById.get(b.target)?.y ?? 0))
+      const targetParents = edges.filter((candidate) => candidate.target === edge.target)
+        .sort((a, b) => (nodeById.get(a.source)?.y ?? 0) - (nodeById.get(b.source)?.y ?? 0))
+      edge.sourceOffset = 36 + (sourceChildren.indexOf(edge) - (sourceChildren.length - 1) / 2) * 16
+      edge.targetOffset = 36 + (targetParents.indexOf(edge) - (targetParents.length - 1) / 2) * 16
     })
     return { nodes: result, edges, width, height }
   }, [center.id, facilities])
@@ -541,7 +577,7 @@ function NodeRelationshipView({
               const source = nodeById.get(edge.source)
               const target = nodeById.get(edge.target)
               if (!source || !target) return null
-              return <line key={`${edge.source}-${edge.target}`} x1={source.x + 238} y1={source.y + 36} x2={target.x} y2={target.y + 36} />
+              return <line key={`${edge.source}-${edge.target}`} x1={source.x + 238} y1={source.y + (edge.sourceOffset ?? 36)} x2={target.x} y2={target.y + (edge.targetOffset ?? 36)} />
             })}
           </svg>
           {nodes.nodes.map((node) => (
