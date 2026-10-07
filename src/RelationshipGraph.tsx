@@ -440,8 +440,19 @@ function NodeRelationshipView({
       ...byLevel[2].filter((facility) => !levelTwoGroups.some((group) => group.facilities.some((item) => item.id === facility.id))),
     ]
     byLevel[2] = groupedLevelTwo
+    const levelTwoLayouts = levelTwoGroups.map((group) => {
+      const columns = Math.max(1, Math.ceil(Math.sqrt(group.facilities.length)))
+      const rows = Math.ceil(group.facilities.length / columns)
+      return {
+        ...group,
+        columns,
+        rows,
+        width: columns * nodeWidth + Math.max(0, columns - 1) * gapX,
+      }
+    })
+    const levelTwoSpreadWidth = levelTwoLayouts.reduce((sum, group) => sum + group.width + gapX, 0)
     const maxCount = Math.max(byLevel[1].length, groupedLevelTwo.length, 1)
-    const width = Math.max(720, 3 * nodeWidth + 2 * gapX)
+    const width = Math.max(720, 24 + (nodeWidth + gapX) * 2 + levelTwoSpreadWidth + 24)
     const height = Math.max(420, maxCount * (nodeHeight + gapY) + 64)
     const result: NodeGraphNode[] = []
     byLevel.forEach((levelFacilities, level) => {
@@ -456,15 +467,21 @@ function NodeRelationshipView({
       }))
     })
     const nodeById = new Map(result.map((node) => [node.facility.id, node]))
-    levelTwoGroups.forEach(({ parent, facilities: children }) => {
+    let levelTwoX = (nodeWidth + gapX) * 2 + 24
+    levelTwoLayouts.forEach(({ parent, facilities: children, columns, rows, width: groupWidth }) => {
       const parentNode = nodeById.get(parent.id)
       if (!parentNode) return
-      const groupHeight = children.length * nodeHeight + Math.max(0, children.length - 1) * gapY
+      const groupHeight = rows * nodeHeight + Math.max(0, rows - 1) * gapY
       const groupStart = Math.max(40, Math.min(height - groupHeight - 40, parentNode.y + (nodeHeight - groupHeight) / 2))
       children.forEach((child, index) => {
         const childNode = nodeById.get(child.id)
-        if (childNode) childNode.y = groupStart + index * (nodeHeight + gapY)
+        if (!childNode) return
+        const column = Math.floor(index / rows)
+        const row = index % rows
+        childNode.x = levelTwoX + column * (nodeWidth + gapX)
+        childNode.y = groupStart + row * (nodeHeight + gapY)
       })
+      levelTwoX += groupWidth + gapX
     })
     const nodeIds = new Set(result.map((node) => node.facility.id))
     const edges: NodeGraphEdge[] = []
