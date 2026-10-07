@@ -517,6 +517,7 @@ function NodeRelationshipView({
   const suppressClickRef = useRef(false)
   const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
   const [selectedLevelOneId, setSelectedLevelOneId] = useState<string | null>(null)
+  const [isCenterChangeMode, setIsCenterChangeMode] = useState(false)
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -575,7 +576,11 @@ function NodeRelationshipView({
       </div>
       <div className="node-relationship-toolbar">
         <span>関連施設を2階層まで表示</span>
+        {isCenterChangeMode && <span className="node-relationship-mode-hint">カードを選択</span>}
         <button type="button" onClick={onBack} disabled={!canGoBack}>‹ 前の中心へ戻る</button>
+        {isCenterChangeMode
+          ? <button type="button" onClick={() => setIsCenterChangeMode(false)}>中心変更をキャンセル</button>
+          : <button type="button" onClick={() => { setSelectedLevelOneId(null); setIsCenterChangeMode(true) }}>中心を変更</button>}
       </div>
       <div
         className="node-relationship-viewport"
@@ -623,18 +628,27 @@ function NodeRelationshipView({
               style={{ left: node.x, top: node.y }}
               onClick={() => {
                 if (suppressClickRef.current) return
+                if (isCenterChangeMode) {
+                  onSelectCenter(node.facility)
+                  setIsCenterChangeMode(false)
+                  return
+                }
                 if (node.level === 1) setSelectedLevelOneId((current) => current === node.facility.id ? null : node.facility.id)
               }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') return
                 event.preventDefault()
+                if (isCenterChangeMode) {
+                  onSelectCenter(node.facility)
+                  setIsCenterChangeMode(false)
+                  return
+                }
                 if (node.level === 1) setSelectedLevelOneId((current) => current === node.facility.id ? null : node.facility.id)
               }}
             >
               <span className="node-relationship-node-icon" aria-hidden="true">{getCategoryDefinition(node.facility.category).icon}</span>
               <span className="node-relationship-node-copy"><strong>{node.facility.name}</strong><small>{getCategoryDefinition(node.facility.category).label}</small></span>
               <button type="button" className="node-relationship-detail-button" onClick={(event) => { event.stopPropagation(); onOpenFacility(node.facility) }}>詳細</button>
-              {node.level !== 0 && <button type="button" className="node-relationship-center-button" onClick={(event) => { event.stopPropagation(); onSelectCenter(node.facility) }}>中心</button>}
             </div>
           ))}
         </div>
