@@ -513,7 +513,18 @@ function NodeRelationshipView({
   const [viewport, setViewport] = useState({ x: 8, y: 8, scale: .72 })
   const viewportRef = useRef<HTMLDivElement>(null)
   const pointersRef = useRef(new Map<number, { x: number; y: number }>())
-  const gestureRef = useRef<{ moved: boolean; startX: number; startY: number; originX: number; originY: number; distance: number; scale: number } | null>(null)
+  const gestureRef = useRef<{
+    moved: boolean
+    blocked: boolean
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+    startMidX: number
+    startMidY: number
+    distance: number
+    scale: number
+  } | null>(null)
   const suppressClickRef = useRef(false)
   const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
   const [selectedLevelOneId, setSelectedLevelOneId] = useState<string | null>(null)
@@ -524,37 +535,53 @@ function NodeRelationshipView({
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
     const points = [...pointersRef.current.values()]
     if (points.length === 1) {
-      gestureRef.current = { moved: false, startX: event.clientX, startY: event.clientY, originX: viewport.x, originY: viewport.y, distance: 0, scale: viewport.scale }
+      const startedOnCard = event.target instanceof Element && Boolean(event.target.closest('.node-relationship-node'))
+      gestureRef.current = { moved: false, blocked: startedOnCard, startX: event.clientX, startY: event.clientY, originX: viewport.x, originY: viewport.y, startMidX: event.clientX, startMidY: event.clientY, distance: 0, scale: viewport.scale }
     } else if (points.length === 2) {
       const [first, second] = points
-      gestureRef.current = { moved: true, startX: 0, startY: 0, originX: viewport.x, originY: viewport.y, distance: Math.hypot(second.x - first.x, second.y - first.y), scale: viewport.scale }
+      gestureRef.current = {
+        moved: true,
+        blocked: false,
+        startX: 0,
+        startY: 0,
+        originX: viewport.x,
+        originY: viewport.y,
+        startMidX: (first.x + second.x) / 2,
+        startMidY: (first.y + second.y) / 2,
+        distance: Math.hypot(second.x - first.x, second.y - first.y),
+        scale: viewport.scale,
+      }
     }
   }
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current
     if (!gesture || !pointersRef.current.has(event.pointerId)) return
+    if (gesture.blocked) return
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
     const points = [...pointersRef.current.values()]
     if (points.length >= 2) {
       const [first, second] = points
       const distance = Math.hypot(second.x - first.x, second.y - first.y)
-      if (gesture.distance > 0) setViewport((current) => {
-        const scale = Math.min(2.2, Math.max(.3, gesture.scale * distance / gesture.distance))
-        const rect = viewportRef.current?.getBoundingClientRect()
-        const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * scale - 20)
-        const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * scale - 20)
-        return { ...current, scale, x: Math.min(20, Math.max(minX, current.x)), y: Math.min(20, Math.max(minY, current.y)) }
-      })
+      if (gesture.distance > 0) {
+        const midX = (first.x + second.x) / 2
+        const midY = (first.y + second.y) / 2
+        const nextScale = Math.min(2.2, Math.max(.3, gesture.scale * distance / gesture.distance))
+        const anchorX = (gesture.startMidX - gesture.originX) / gesture.scale
+        const anchorY = (gesture.startMidY - gesture.originY) / gesture.scale
+        const nextX = midX - anchorX * nextScale
+        const nextY = midY - anchorY * nextScale
+        setViewport({ x: nextX, y: nextY, scale: nextScale })
+      }
       return
     }
     const dx = event.clientX - gesture.startX
     const dy = event.clientY - gesture.startY
     if (Math.abs(dx) + Math.abs(dy) > 6) gesture.moved = true
-    if (gesture.moved) setViewport((current) => {
+    if (gesture.moved) setViewport(() => {
       const rect = viewportRef.current?.getBoundingClientRect()
-      const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * current.scale - 20)
-      const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * current.scale - 20)
-      return { ...current, x: Math.min(20, Math.max(minX, gesture.originX + dx)), y: Math.min(20, Math.max(minY, gesture.originY + dy)) }
+      const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * gesture.scale - 20)
+      const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * gesture.scale - 20)
+      return { scale: gesture.scale, x: Math.min(20, Math.max(minX, gesture.originX + dx)), y: Math.min(20, Math.max(minY, gesture.originY + dy)) }
     })
   }
   const onPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
