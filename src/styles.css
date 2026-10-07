@@ -1297,7 +1297,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .node-relationship-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .node-relationship-lines line,
 .node-relationship-lines polyline { stroke: #b6a17d; stroke-width: 1.5; opacity: .72; fill: none; }
-.node-relationship-node { position: absolute; display: flex; align-items: center; gap: 9px; width: 238px; min-height: 72px; padding: 10px 11px; border: 1px solid #cdb78e; border-radius: 12px; background: #fffdf8; box-shadow: 0 3px 10px #19384a14; color: #254858; cursor: pointer; text-align: left; }
+.node-relationship-node { position: absolute; display: flex; align-items: center; gap: 9px; width: 238px; height: 72px; min-height: 72px; padding: 10px 11px; border: 1px solid #cdb78e; border-radius: 12px; background: #fffdf8; box-shadow: 0 3px 10px #19384a14; color: #254858; cursor: pointer; text-align: left; }
 .node-relationship-node.is-center { border: 2px solid #b68a48; background: #173f5a; color: #fffaf1; box-shadow: 0 5px 15px #19384a2b; }
 .node-relationship-node-icon { flex: 0 0 auto; font-size: 22px; }
 .node-relationship-node-copy { display: grid; min-width: 0; flex: 1 1 auto; gap: 3px; }

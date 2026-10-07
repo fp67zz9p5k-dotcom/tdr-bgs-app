@@ -402,7 +402,7 @@ function NodeRelationshipView({
       .filter((facility): facility is Facility => Boolean(facility)))
     const nodeWidth = 238
     const nodeHeight = 72
-    const gapX = 48
+    const gapX = 64
     const gapY = 22
     const originalIndex = new Map(byLevel.flat().map((facility, index) => [facility.id, index]))
     const neighborsInLevel = (facility: Facility, level: number) => getBidirectionalRelatedFacilityIds(facilities, facility.id)
@@ -484,8 +484,13 @@ function NodeRelationshipView({
         .sort((a, b) => (nodeById.get(a.target)?.y ?? 0) - (nodeById.get(b.target)?.y ?? 0))
       const targetParents = edges.filter((candidate) => candidate.target === edge.target)
         .sort((a, b) => (nodeById.get(a.source)?.y ?? 0) - (nodeById.get(b.source)?.y ?? 0))
-      edge.sourceOffset = 36 + (sourceChildren.indexOf(edge) - (sourceChildren.length - 1) / 2) * 16
-      edge.targetOffset = 36 + (targetParents.indexOf(edge) - (targetParents.length - 1) / 2) * 16
+      const distributeOnEdge = (index: number, count: number) => {
+        const edgePadding = 12
+        if (count <= 1) return nodeHeight / 2
+        return edgePadding + (nodeHeight - edgePadding * 2) * (index / (count - 1))
+      }
+      edge.sourceOffset = distributeOnEdge(sourceChildren.indexOf(edge), sourceChildren.length)
+      edge.targetOffset = distributeOnEdge(targetParents.indexOf(edge), targetParents.length)
     })
     return { nodes: result, edges, width, height }
   }, [center.id, facilities])
