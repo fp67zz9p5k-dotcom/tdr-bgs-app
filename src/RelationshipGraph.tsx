@@ -590,7 +590,26 @@ function NodeRelationshipView({
       window.setTimeout(() => { suppressClickRef.current = false }, 0)
     }
     pointersRef.current.delete(event.pointerId)
-    if (pointersRef.current.size === 0) gestureRef.current = null
+    if (pointersRef.current.size === 1 && gestureRef.current) {
+      // Transitioning from pinch to one-finger pan must not reuse the pinch's
+      // synthetic (0, 0) start coordinates. Rebase only the gesture origin;
+      // do not change the viewport at pointer-up time.
+      const [remaining] = [...pointersRef.current.values()]
+      gestureRef.current = {
+        moved: false,
+        blocked: false,
+        startX: remaining.x,
+        startY: remaining.y,
+        originX: viewport.x,
+        originY: viewport.y,
+        startMidX: remaining.x,
+        startMidY: remaining.y,
+        distance: 0,
+        scale: viewport.scale,
+      }
+    } else if (pointersRef.current.size === 0) {
+      gestureRef.current = null
+    }
   }
   return (
     <section className="node-relationship-view" aria-label="ノード型関係図">
