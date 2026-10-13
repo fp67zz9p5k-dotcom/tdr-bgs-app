@@ -606,15 +606,21 @@ function NodeRelationshipView({
   const searchInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const navigation = document.querySelector<HTMLElement>('.primary-bottom-nav')
-    if (!navigation) return
+    const header = document.querySelector<HTMLElement>('.relationship-page.is-node-mode .relationship-header')
+    if (!navigation && !header) return
     const root = document.documentElement
-    const updateNavigationHeight = () => root.style.setProperty('--primary-bottom-nav-height', `${navigation.getBoundingClientRect().height}px`)
-    updateNavigationHeight()
-    const observer = new ResizeObserver(updateNavigationHeight)
-    observer.observe(navigation)
+    const updateBarHeights = () => {
+      root.style.setProperty('--primary-bottom-nav-height', `${navigation?.getBoundingClientRect().height ?? 0}px`)
+      root.style.setProperty('--relationship-header-height', `${header?.getBoundingClientRect().height ?? 0}px`)
+    }
+    updateBarHeights()
+    const observer = new ResizeObserver(updateBarHeights)
+    if (navigation) observer.observe(navigation)
+    if (header) observer.observe(header)
     return () => {
       observer.disconnect()
       root.style.removeProperty('--primary-bottom-nav-height')
+      root.style.removeProperty('--relationship-header-height')
     }
   }, [])
   const areas = useMemo(() => [...new Set(facilities.map((facility) => facility.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')), [facilities])
