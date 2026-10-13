@@ -6,6 +6,7 @@ import {
   getBidirectionalRelatedFacilities,
   getBidirectionalRelatedFacilityIds,
 } from './relationships'
+import { HighlightedSearchText, searchFacility } from './search'
 
 const degreeOf = (facility: Facility, facilities: Facility[]) =>
   getBidirectionalRelatedFacilityIds(facilities, facility.id).length
@@ -606,15 +607,8 @@ function NodeRelationshipView({
   const areas = useMemo(() => [...new Set(facilities.map((facility) => facility.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')), [facilities])
   const categories = useMemo(() => CATEGORY_DEFINITIONS.filter((definition) => facilities.some((facility) => facility.category === definition.value)), [facilities])
   const searchResults = useMemo(() => {
-    const query = searchQuery.trim().toLocaleLowerCase('ja')
-    if (!query) return []
-    return facilities.map((facility) => {
-      const body = [...facility.bgs, ...facility.trivia].map((entry) => entry.text).find((text) => text.toLocaleLowerCase('ja').includes(query))
-      const matches = facility.name.toLocaleLowerCase('ja').includes(query)
-        || facility.area.toLocaleLowerCase('ja').includes(query)
-        || Boolean(body)
-      return matches ? { facility, excerpt: body ? body.slice(Math.max(0, body.toLocaleLowerCase('ja').indexOf(query) - 18), body.toLocaleLowerCase('ja').indexOf(query) + query.length + 32) : '' } : null
-    }).filter((item): item is { facility: Facility; excerpt: string } => Boolean(item)).slice(0, 50)
+    if (!searchQuery.trim()) return []
+    return facilities.map((facility) => searchFacility(facility, searchQuery)).filter((item): item is { facility: Facility; keywords: string[]; excerpt: string } => Boolean(item)).slice(0, 50)
   }, [facilities, searchQuery])
   const listResults = useMemo(() => facilities
     .filter((facility) => (!selectedArea || facility.area === selectedArea) && (!selectedCategory || facility.category === selectedCategory))
@@ -875,7 +869,7 @@ function NodeRelationshipView({
         {searchQuery.trim() && <div className="search-suggestions node-relationship-search-results" id="relationship-search-suggestions" role={searchResults.length > 0 ? 'listbox' : 'region'} aria-label="検索結果">
           {searchResults.length > 0 ? searchResults.map(({ facility, excerpt }) => <button type="button" className="search-suggestion" role="option" key={facility.id} onClick={() => chooseFromExplorer(facility)}>
             <span className="search-suggestion-icon" aria-hidden="true">⌕</span>
-            <span className="search-suggestion-copy"><strong>{facility.name}</strong><small><b>{facility.category}</b><span>{facility.area || 'エリア未設定'}</span></small>{excerpt && <span className="search-suggestion-match"><b>本文一致</b><span>{excerpt}</span></span>}</span>
+            <span className="search-suggestion-copy"><strong><HighlightedSearchText text={facility.name} query={searchQuery} /></strong><small><b>{facility.category}</b><span><HighlightedSearchText text={facility.area || 'エリア未設定'} query={searchQuery} /></span></small>{excerpt && <span className="search-suggestion-match"><b>本文一致</b><span><HighlightedSearchText text={excerpt} query={searchQuery} /></span></span>}</span>
           </button>) : <div className="empty search-empty search-empty-exclusive"><span className="empty-icon" aria-hidden="true">⌕</span><h3>検索結果が見つかりませんでした</h3><p className="search-empty-query">入力した検索語：<strong>{searchQuery.trim()}</strong></p></div>}
         </div>}
       </div>}
