@@ -626,7 +626,7 @@ function NodeRelationshipView({
         <button type="button" onClick={onBack} disabled={!canGoBack}>‹ 前の中心へ戻る</button>
         {isCenterChangeMode
           ? <button type="button" onClick={() => setIsCenterChangeMode(false)}>中心変更をキャンセル</button>
-          : <button type="button" onClick={() => { setSelectedLevelOneId(null); setIsCenterChangeMode(true) }}>中心を変更</button>}
+          : <button type="button" onClick={() => { setSelectedNodeId(null); setIsCenterChangeMode(true) }}>中心を変更</button>}
       </div>
       <div
         className="node-relationship-viewport"
