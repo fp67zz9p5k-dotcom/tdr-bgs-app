@@ -634,10 +634,12 @@ function NodeRelationshipView({
     if (path[0] && !positions[path[0].id]) positions[path[0].id] = { x: 680, y: 500 }
     for (let index = 1; index < path.length; index += 1) {
       const facility = path[index]
-      if (!positions[facility.id]) {
-        const confirmedOccupied = path.slice(0, index)
-          .map((item) => positions[item.id])
-          .filter((position): position is { x: number; y: number } => Boolean(position))
+      const confirmedOccupied = path.slice(0, index)
+        .map((item) => positions[item.id])
+        .filter((position): position is { x: number; y: number } => Boolean(position))
+      const currentPosition = positions[facility.id]
+      const positionIsFree = currentPosition !== undefined && !confirmedOccupied.some((other) => overlaps(currentPosition.x, currentPosition.y, other))
+      if (!positionIsFree) {
         positions[facility.id] = placeAround(facility, positions[path[index - 1].id], confirmedOccupied)
       }
     }
