@@ -3236,6 +3236,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
   const [relatedQuery, setRelatedQuery] = useState('')
   const [relatedParkFilter, setRelatedParkFilter] = useState<ParkId | 'all'>('all')
   const [relatedAreaFilter, setRelatedAreaFilter] = useState('')
+  const [relatedExpanded, setRelatedExpanded] = useState(true)
   const initialFacilitySnapshot = useRef(JSON.stringify(initialEditableFacility))
   const initialRelatedIds = useRef([...initialEditableFacility.relatedFacilityIds])
   const savingRef = useRef(false)
@@ -3428,8 +3429,17 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
         <MultiTextEditor label="トリビア" hint="小ネタや豆知識" entries={facility.trivia} onChange={(value) => update('trivia', value)} />
         <PropsEditor props={facility.props} onChange={(value) => update('props', value)} />
 
-        <section className="form-section">
-          <h2>関連項目</h2>
+        <section className={`form-section related-picker-section${relatedExpanded ? ' is-expanded' : ' is-collapsed'}`}>
+          <button
+            type="button"
+            className="related-picker-section-toggle"
+            aria-expanded={relatedExpanded}
+            onClick={() => setRelatedExpanded((expanded) => !expanded)}
+          >
+            <h2>関連施設（{selectedRelatedFacilities.length}件）</h2>
+            <span className="related-picker-section-icon" aria-hidden="true">{relatedExpanded ? '⌃' : '⌄'}</span>
+          </button>
+          {relatedExpanded && <div className="related-picker-content">
           <div className="related-picker-controls">
             <label className="related-picker-search">
               <span>施設名で検索</span>
@@ -3497,6 +3507,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
               {availableRelatedFacilities.map(renderRelatedOption)}
             </div>
           </div>
+          </div>}
         </section>
 
         <section className="form-section">

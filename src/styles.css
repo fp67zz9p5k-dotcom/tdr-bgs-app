@@ -906,6 +906,10 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .check-row span { margin: 0 !important; }
 .check-row small { display: block; margin-top: 2px; color: #758188; font-weight: 400; }
 .related-picker-controls { display: grid; gap: 10px; }
+.related-picker-section-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.related-picker-section-toggle h2 { margin: 0; }
+.related-picker-section-icon { display: inline-grid; width: 28px; height: 28px; place-items: center; border: 1px solid #c8b594; border-radius: 50%; color: #8b6a3d; font-size: 18px; line-height: 1; }
+.related-picker-content { display: grid; gap: 16px; margin-top: 14px; }
 .related-picker-search { display: grid; gap: 6px; }
 .related-picker-search > span { margin: 0 !important; color: #52656d; font-size: 11px; font-weight: 800; }
 .related-park-filter { display: flex; flex-wrap: wrap; gap: 7px; }
