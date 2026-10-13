@@ -506,6 +506,14 @@ function NodeRelationshipView({
       })
       levelTwoCursor = groupStart + groupHeight + gapY
     })
+    // The layout calculation above uses the same compact group geometry as
+    // before. Rotate the resulting coordinate system so hierarchy flows from
+    // top to bottom while columns remain the within-level axis.
+    result.forEach((node) => {
+      const previousX = node.x
+      node.x = node.y
+      node.y = previousX
+    })
     const nodeIds = new Set(result.map((node) => node.facility.id))
     const edges: NodeGraphEdge[] = []
     const seenEdges = new Set<string>()
@@ -539,7 +547,7 @@ function NodeRelationshipView({
       edge.sourceOffset = distributeOnEdge(sourceChildren.indexOf(edge), sourceChildren.length)
       edge.targetOffset = distributeOnEdge(targetParents.indexOf(edge), targetParents.length)
     })
-    return { nodes: result, edges, width, height }
+    return { nodes: result, edges, width: height, height: width }
   }, [center.id, facilities])
 
   const [viewport, setViewport] = useState({ x: 8, y: 8, scale: .72 })
@@ -681,12 +689,14 @@ function NodeRelationshipView({
               })
               const laneIndex = Math.max(0, spanEdges.indexOf(edge))
               const laneCount = Math.max(1, spanEdges.length)
-              const startX = source.x + 238
-              const endX = target.x
-              const laneX = startX + (endX - startX) * ((laneIndex + 1) / (laneCount + 1))
-              const sourceY = source.y + (edge.sourceOffset ?? 36)
-              const targetY = target.y + (edge.targetOffset ?? 36)
-              const points = `${startX},${sourceY} ${laneX},${sourceY} ${laneX},${targetY} ${endX},${targetY}`
+              const sourceX = source.x + 119
+              const targetX = target.x + 119
+              const startY = source.y + 72
+              const endY = target.y
+              const laneY = startY + (endY - startY) * ((laneIndex + 1) / (laneCount + 1))
+              const sourceXOffset = sourceX + ((edge.sourceOffset ?? 36) - 36)
+              const targetXOffset = targetX + ((edge.targetOffset ?? 36) - 36)
+              const points = `${sourceXOffset},${startY} ${sourceXOffset},${laneY} ${targetXOffset},${laneY} ${targetXOffset},${endY}`
               const highlightsPath = selectedNodeId !== null && (
                 (source.facility.id === selectedNodeId && target.level !== 0)
                 || (target.facility.id === selectedNodeId && source.level !== 0)
