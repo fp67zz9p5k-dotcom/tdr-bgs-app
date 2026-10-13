@@ -865,7 +865,6 @@ function NodeRelationshipView({
         </div>}
       </div>
       <div className="node-relationship-toolbar">
-        <span>直接の関連施設を表示</span>
         <div className="node-relationship-toolbar-actions">
           <button type="button" className="node-relationship-back-button" onClick={onBack} disabled={!canGoBack} aria-label="前の探索地点へ戻る" title="前の探索地点へ戻る">‹</button>
           <button type="button" className="node-relationship-reset-button" onClick={onReset} disabled={!canGoBack} aria-label="探索をリセット" title="探索をリセット">↻</button>
@@ -988,7 +987,6 @@ function NodeRelationshipView({
           <div className="node-relationship-facility-list">{listResults.map((facility) => <button type="button" key={facility.id} onClick={() => chooseFromExplorer(facility)}>{facility.name}</button>)}</div>
         </section>
       </div>}
-      <p className="node-relationship-hint">候補カードをタップして足跡をたどります。‹ で戻り、↻ で最初から探索できます。</p>
     </section>
   )
 }
