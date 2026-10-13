@@ -567,6 +567,21 @@ function NodeRelationshipView({
   } | null>(null)
   const suppressClickRef = useRef(false)
   const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
+
+  useEffect(() => {
+    const viewportElement = viewportRef.current
+    if (!viewportElement || !Number.isFinite(nodes.width) || !Number.isFinite(nodes.height)) return
+    const rect = viewportElement.getBoundingClientRect()
+    const fitScale = Math.min(
+      .72,
+      Math.max(.3, Math.min((rect.width - 24) / nodes.width, (rect.height - 24) / nodes.height)),
+    )
+    setViewport({
+      scale: fitScale,
+      x: (rect.width - nodes.width * fitScale) / 2,
+      y: (rect.height - nodes.height * fitScale) / 2,
+    })
+  }, [nodes.width, nodes.height])
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [isCenterChangeMode, setIsCenterChangeMode] = useState(false)
 
