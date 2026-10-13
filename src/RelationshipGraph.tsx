@@ -604,6 +604,19 @@ function NodeRelationshipView({
   const [selectedArea, setSelectedArea] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const navigation = document.querySelector<HTMLElement>('.primary-bottom-nav')
+    if (!navigation) return
+    const root = document.documentElement
+    const updateNavigationHeight = () => root.style.setProperty('--primary-bottom-nav-height', `${navigation.getBoundingClientRect().height}px`)
+    updateNavigationHeight()
+    const observer = new ResizeObserver(updateNavigationHeight)
+    observer.observe(navigation)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--primary-bottom-nav-height')
+    }
+  }, [])
   const areas = useMemo(() => [...new Set(facilities.map((facility) => facility.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')), [facilities])
   const categories = useMemo(() => CATEGORY_DEFINITIONS.filter((definition) => facilities.some((facility) => facility.category === definition.value)), [facilities])
   const searchResults = useMemo(() => {
