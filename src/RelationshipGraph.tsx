@@ -14,7 +14,7 @@ const isCategoryId = (value: string): value is CategoryId =>
   CATEGORY_DEFINITIONS.some((category) => category.id === value)
 
 type RelationshipViewport = { x: number; y: number; scale: number }
-let relationshipExplorationCache: { history: string[]; viewport: RelationshipViewport } | null = null
+let relationshipExplorationCache: { history: string[]; viewport: RelationshipViewport; positions: Record<string, { x: number; y: number }> } | null = null
 
 type RelationshipGraphProps = {
   facilities: Facility[]
@@ -323,7 +323,7 @@ function RelationshipGraphInner({
   const selectCenter = (facility: Facility) => {
     setHistory((current) => {
       const next = current.at(-1) === facility.id ? current : [...current, facility.id]
-      relationshipExplorationCache = { history: next, viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 } }
+      relationshipExplorationCache = { history: next, viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 }, positions: relationshipExplorationCache?.positions ?? {} }
       return next
     })
     onSettingsChange({ selectedId: facility.id })
@@ -332,7 +332,7 @@ function RelationshipGraphInner({
     setHistory((current) => {
       if (current.length < 2) return current
       const next = current.slice(0, -1)
-      relationshipExplorationCache = { history: next, viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 } }
+      relationshipExplorationCache = { history: next, viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 }, positions: relationshipExplorationCache?.positions ?? {} }
       onSettingsChange({ selectedId: next.at(-1) ?? null })
       return next
     })
@@ -600,31 +600,51 @@ function NodeRelationshipView({
     const gapY = 54
     const candidateColumns = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(candidates.length, 1)))))
     const candidateRows = Math.ceil(Math.max(candidates.length, 1) / candidateColumns)
-    const width = Math.max(640, candidateColumns * (nodeWidth + 56) + 48)
-    const pathStartX = (index: number) => {
-      const facility = path[index]
-      const hash = [...facility.id].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7)
-      const drift = ((hash % 1000) / 1000 - .5) * .72
-      const wave = Math.sin(index * 1.7 + (hash % 37)) * .12
-      return Math.max(24, Math.min(width - nodeWidth - 24, (width - nodeWidth) * (.5 + drift + wave)))
+    const width = 1600
+    const height = Math.max(1200, 620 + candidateRows * (nodeHeight + gapY))
+    const layoutCache = relationshipExplorationCache?.history[0] === path[0]?.id ? relationshipExplorationCache : null
+    const positions = layoutCache?.positions ?? {}
+    const hashOf = (id: string) => [...id].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 17)
+    const overlaps = (x: number, y: number, other: { x: number; y: number }) => Math.abs(x - other.x) < nodeWidth + 34 && Math.abs(y - other.y) < nodeHeight + 34
+    const placeAround = (facility: Facility, anchor: { x: number; y: number }, occupied: { x: number; y: number }[]) => {
+      const hash = hashOf(facility.id)
+      const angles = [0.32, 2.18, 4.52, 5.72, 1.18, 3.42, 0.86, 4.02]
+      const start = hash % angles.length
+      for (let attempt = 0; attempt < angles.length * 3; attempt += 1) {
+        const angle = angles[(start + attempt) % angles.length] + (attempt >= angles.length ? .24 * Math.floor(attempt / angles.length) : 0)
+        const radius = 230 + ((hash + attempt * 47) % 150)
+        const x = Math.max(32, Math.min(width - nodeWidth - 32, anchor.x + Math.cos(angle) * radius))
+        const y = Math.max(32, Math.min(height - nodeHeight - 32, anchor.y + Math.sin(angle) * radius))
+        if (!occupied.some((other) => overlaps(x, y, other))) return { x, y }
+      }
+      return { x: Math.max(32, Math.min(width - nodeWidth - 32, anchor.x + 260)), y: Math.max(32, Math.min(height - nodeHeight - 32, anchor.y + 120)) }
     }
-    const pathStartY = 40
-    const pathY = path.map((_, index) => pathStartY + path.slice(0, index).reduce((total, facility, previousIndex) => {
-      const hash = [...facility.id].reduce((value, character) => (value * 33 + character.charCodeAt(0)) >>> 0, 11)
-      return total + nodeHeight + gapY + 8 + (hash % 24) + (previousIndex > 0 && previousIndex % 3 === 0 ? 14 : 0)
-    }, 0))
-    const candidatesStartY = (pathY.at(-1) ?? pathStartY) + nodeHeight + 70
+    if (path[0] && !positions[path[0].id]) positions[path[0].id] = { x: 680, y: 500 }
+    for (let index = 1; index < path.length; index += 1) {
+      const facility = path[index]
+      if (!positions[facility.id]) positions[facility.id] = placeAround(facility, positions[path[index - 1].id], Object.values(positions).filter((_, positionIndex) => positionIndex < index))
+    }
+    if (layoutCache) layoutCache.positions = positions
+    const candidatePositions: Record<string, { x: number; y: number }> = {}
+    const candidateOccupied = Object.values(positions)
+    candidates.forEach((facility) => {
+      const point = positions[facility.id] ?? placeAround(facility, positions[center.id] ?? positions[path.at(-1)?.id ?? ''] ?? { x: 680, y: 500 }, candidateOccupied)
+      candidatePositions[facility.id] = point
+      positions[facility.id] = point
+      candidateOccupied.push(point)
+    })
+    if (!layoutCache) {
+      relationshipExplorationCache = { history: path.map((facility) => facility.id), viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 }, positions }
+    }
     const nodes: NodeGraphNode[] = [
-      ...path.map((facility, index) => ({ facility, level: index, x: pathStartX(index), y: pathY[index] })),
+      ...path.map((facility, index) => ({ facility, level: index, x: positions[facility.id].x, y: positions[facility.id].y })),
       ...candidates.map((facility, index) => ({
         facility,
         level: path.length,
-        x: 24 + (index % candidateColumns) * (nodeWidth + 56),
-        y: candidatesStartY + Math.floor(index / candidateColumns) * (nodeHeight + gapY),
+        ...candidatePositions[facility.id],
       })),
     ]
     const edges: NodeGraphEdge[] = path.slice(1).map((facility, index) => ({ source: path[index].id, target: facility.id }))
-    const height = Math.max(520, candidates.length > 0 ? candidatesStartY + candidateRows * (nodeHeight + gapY) : pathStartY + path.length * (nodeHeight + gapY) + 40)
     return { nodes, edges, width, height }
   }, [center.id, facilities, trail])
 
@@ -634,7 +654,7 @@ function NodeRelationshipView({
   const shouldRestoreViewportRef = useRef(Boolean(cachedViewport))
   const [viewport, setViewport] = useState(cachedViewport ?? { x: 8, y: 8, scale: .72 })
   useEffect(() => {
-    relationshipExplorationCache = { history: trail.map((facility) => facility.id), viewport }
+    relationshipExplorationCache = { history: trail.map((facility) => facility.id), viewport, positions: relationshipExplorationCache?.positions ?? {} }
   }, [trail, viewport])
   const nodeById = new Map(explorationNodes.nodes.map((node) => [node.facility.id, node]))
 
