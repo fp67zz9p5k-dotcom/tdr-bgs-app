@@ -569,24 +569,52 @@ function NodeRelationshipView({
     scale: number
   } | null>(null)
   const suppressClickRef = useRef(false)
-  const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
+  const nodeById = new Map(explorationNodes.nodes.map((node) => [node.facility.id, node]))
 
   useEffect(() => {
     const viewportElement = viewportRef.current
-    if (!viewportElement || !Number.isFinite(nodes.width) || !Number.isFinite(nodes.height)) return
+    if (!viewportElement || !Number.isFinite(explorationNodes.width) || !Number.isFinite(explorationNodes.height)) return
     const rect = viewportElement.getBoundingClientRect()
     const fitScale = Math.min(
       .72,
-      Math.max(.3, Math.min((rect.width - 24) / nodes.width, (rect.height - 24) / nodes.height)),
+      Math.max(.3, Math.min((rect.width - 24) / explorationNodes.width, (rect.height - 24) / explorationNodes.height)),
     )
     setViewport({
       scale: fitScale,
-      x: (rect.width - nodes.width * fitScale) / 2,
-      y: (rect.height - nodes.height * fitScale) / 2,
+      x: (rect.width - explorationNodes.width * fitScale) / 2,
+      y: (rect.height - explorationNodes.height * fitScale) / 2,
     })
-  }, [nodes.width, nodes.height])
+  }, [explorationNodes.width, explorationNodes.height])
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [isCenterChangeMode, setIsCenterChangeMode] = useState(false)
+  const explorationNodes = useMemo(() => {
+    const byId = new Map(facilities.map((facility) => [facility.id, facility]))
+    const path = trail.map((item) => byId.get(item.id)).filter((item): item is Facility => Boolean(item))
+    const pathIds = new Set(path.map((item) => item.id))
+    const candidates = getBidirectionalRelatedFacilities(facilities, center.id)
+      .filter((facility) => !pathIds.has(facility.id))
+    const nodeWidth = 238
+    const nodeHeight = 72
+    const gapY = 54
+    const candidateColumns = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(candidates.length, 1)))))
+    const candidateRows = Math.ceil(Math.max(candidates.length, 1) / candidateColumns)
+    const width = Math.max(640, candidateColumns * (nodeWidth + 56) + 48)
+    const pathStartX = (width - nodeWidth) / 2
+    const pathStartY = 40
+    const candidatesStartY = pathStartY + path.length * (nodeHeight + gapY) + 70
+    const nodes: NodeGraphNode[] = [
+      ...path.map((facility, index) => ({ facility, level: index, x: pathStartX, y: pathStartY + index * (nodeHeight + gapY) })),
+      ...candidates.map((facility, index) => ({
+        facility,
+        level: path.length,
+        x: 24 + (index % candidateColumns) * (nodeWidth + 56),
+        y: candidatesStartY + Math.floor(index / candidateColumns) * (nodeHeight + gapY),
+      })),
+    ]
+    const edges: NodeGraphEdge[] = path.slice(1).map((facility, index) => ({ source: path[index].id, target: facility.id }))
+    const height = Math.max(520, candidates.length > 0 ? candidatesStartY + candidateRows * (nodeHeight + gapY) : pathStartY + path.length * (nodeHeight + gapY) + 40)
+    return { nodes, edges, width, height }
+  }, [center.id, facilities, trail])
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -637,8 +665,8 @@ function NodeRelationshipView({
     if (Math.abs(dx) + Math.abs(dy) > 6) gesture.moved = true
     if (gesture.moved) setViewport(() => {
       const rect = viewportRef.current?.getBoundingClientRect()
-      const minX = Math.min(20, (rect?.width ?? 320) - nodes.width * gesture.scale - 20)
-      const minY = Math.min(20, (rect?.height ?? 450) - nodes.height * gesture.scale - 20)
+      const minX = Math.min(20, (rect?.width ?? 320) - explorationNodes.width * gesture.scale - 20)
+      const minY = Math.min(20, (rect?.height ?? 450) - explorationNodes.height * gesture.scale - 20)
       return { scale: gesture.scale, x: Math.min(20, Math.max(minX, gesture.originX + dx)), y: Math.min(20, Math.max(minY, gesture.originY + dy)) }
     })
   }
@@ -694,13 +722,13 @@ function NodeRelationshipView({
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
       >
-        <div className="node-relationship-stage" style={{ width: nodes.width, height: nodes.height, transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}>
-          <svg className="node-relationship-lines" viewBox={`0 0 ${nodes.width} ${nodes.height}`} aria-hidden="true">
-            {nodes.edges.map((edge) => {
+        <div className="node-relationship-stage" style={{ width: explorationNodes.width, height: explorationNodes.height, transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}>
+          <svg className="node-relationship-lines" viewBox={`0 0 ${explorationNodes.width} ${explorationNodes.height}`} aria-hidden="true">
+            {explorationNodes.edges.map((edge) => {
               const source = nodeById.get(edge.source)
               const target = nodeById.get(edge.target)
               if (!source || !target) return null
-              const spanEdges = nodes.edges.filter((candidate) => {
+              const spanEdges = explorationNodes.edges.filter((candidate) => {
                 const candidateSource = nodeById.get(candidate.source)
                 const candidateTarget = nodeById.get(candidate.target)
                 return candidateSource && candidateTarget && candidateSource.level === source.level && candidateTarget.level === target.level
@@ -733,7 +761,7 @@ function NodeRelationshipView({
               return <g className={highlightsPath ? 'is-highlighted' : undefined} key={`${edge.source}-${edge.target}`}>{footprints}</g>
             })}
           </svg>
-          {nodes.nodes.map((node) => (
+          {explorationNodes.nodes.map((node) => (
             <div
               role="button"
               tabIndex={0}
@@ -748,7 +776,7 @@ function NodeRelationshipView({
                   setIsCenterChangeMode(false)
                   return
                 }
-                if (node.level === 1 || node.level === 2) {
+                if (node.level === trail.length) {
                   setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
                   if (!isCenterChangeMode) onSelectCenter(node.facility)
                 }
@@ -761,7 +789,7 @@ function NodeRelationshipView({
                   setIsCenterChangeMode(false)
                   return
                 }
-                if (node.level === 1 || node.level === 2) {
+                if (node.level === trail.length) {
                   setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
                   if (!isCenterChangeMode) onSelectCenter(node.facility)
                 }
