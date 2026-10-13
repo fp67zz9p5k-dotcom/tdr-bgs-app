@@ -465,39 +465,47 @@ function NodeRelationshipView({
     })
     const levelTwoMaxColumns = Math.max(...levelTwoLayouts.map((group) => group.columns), 1)
     const levelTwoTotalHeight = levelTwoLayouts.reduce((sum, group) => sum + group.rows * nodeHeight + Math.max(0, group.rows - 1) * gapY + gapY, 0)
-    const maxRows = Math.max(byLevel[1].length, 1)
-    const width = Math.max(720, 24 + (nodeWidth + gapX) * (2 + levelTwoMaxColumns) + 24)
-    const height = Math.max(420, maxRows * (nodeHeight + gapY) + 64, levelTwoTotalHeight + 80)
+    const firstLevelColumns = byLevel[1].length <= 4 ? 1 : Math.min(5, Math.ceil(Math.sqrt(byLevel[1].length)))
+    const firstLevelRows = Math.ceil(Math.max(byLevel[1].length, 1) / firstLevelColumns)
+    const firstLevelGroupWidth = levelTwoMaxColumns * nodeWidth + Math.max(0, levelTwoMaxColumns - 1) * gapX
+    const columnWidth = nodeWidth + gapX + firstLevelGroupWidth + gapX
+    const firstLevelX = 24 + nodeWidth + gapX
+    const width = Math.max(720, firstLevelX + columnWidth * firstLevelColumns + 24)
+    const height = Math.max(420, firstLevelRows * (nodeHeight + gapY) + 64, levelTwoTotalHeight + 80)
     const result: NodeGraphNode[] = []
-    byLevel.forEach((levelFacilities, level) => {
-      const x = level * (nodeWidth + gapX) + 24
-      const totalHeight = levelFacilities.length * nodeHeight + Math.max(0, levelFacilities.length - 1) * gapY
-      const startY = Math.max(40, (height - totalHeight) / 2)
-      levelFacilities.forEach((facility, index) => result.push({
+    const centerNode = byLevel[0][0]
+    if (centerNode) result.push({ facility: centerNode, level: 0, x: 24, y: (height - nodeHeight) / 2 })
+    byLevel[1].forEach((facility, index) => {
+      const column = Math.floor(index / firstLevelRows)
+      const row = index % firstLevelRows
+      result.push({
         facility,
-        level,
-        x,
-        y: startY + index * (nodeHeight + gapY),
-      }))
+        level: 1,
+        x: firstLevelX + column * columnWidth,
+        y: Math.max(40, (height - firstLevelRows * nodeHeight - Math.max(0, firstLevelRows - 1) * gapY) / 2) + row * (nodeHeight + gapY),
+      })
     })
+    byLevel[2].forEach((facility) => result.push({ facility, level: 2, x: 0, y: 0 }))
     const nodeById = new Map(result.map((node) => [node.facility.id, node]))
-    const levelTwoX = (nodeWidth + gapX) * 2 + 24
-    let levelTwoCursor = 40
+    const levelTwoCursors = new Map<number, number>()
     levelTwoLayouts.forEach(({ parent, facilities: children, columns, rows }) => {
       const parentNode = nodeById.get(parent.id)
       if (!parentNode) return
       const groupHeight = rows * nodeHeight + Math.max(0, rows - 1) * gapY
       const desiredStart = parentNode.y + (nodeHeight - groupHeight) / 2
-      const groupStart = Math.max(levelTwoCursor, Math.max(40, Math.min(height - groupHeight - 40, desiredStart)))
+      const parentColumn = Math.round((parentNode.x - firstLevelX) / columnWidth)
+      const cursor = levelTwoCursors.get(parentColumn) ?? 40
+      const groupStart = Math.max(cursor, Math.max(40, Math.min(height - groupHeight - 40, desiredStart)))
+      const groupX = parentNode.x + nodeWidth + gapX
       children.forEach((child, index) => {
         const childNode = nodeById.get(child.id)
         if (!childNode) return
         const column = Math.floor(index / rows)
         const row = index % rows
-        childNode.x = levelTwoX + column * (nodeWidth + gapX)
+        childNode.x = groupX + column * (nodeWidth + gapX)
         childNode.y = groupStart + row * (nodeHeight + gapY)
       })
-      levelTwoCursor = groupStart + groupHeight + gapY
+      levelTwoCursors.set(parentColumn, groupStart + groupHeight + gapY)
     })
     const nodeIds = new Set(result.map((node) => node.facility.id))
     const edges: NodeGraphEdge[] = []
