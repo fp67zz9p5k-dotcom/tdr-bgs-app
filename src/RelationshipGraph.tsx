@@ -326,6 +326,12 @@ function RelationshipGraphInner({
       return next
     })
   }
+  const resetExploration = () => {
+    const initialId = initialCenterIdRef.current
+    if (!initialId) return
+    setHistory([initialId])
+    onSettingsChange({ selectedId: initialId })
+  }
 
   return (
     <main className="relationship-page relationship-screen-enter is-node-mode">
@@ -339,7 +345,7 @@ function RelationshipGraphInner({
         <p className="relationship-description">中心施設からつながる関連施設を、ノードと線で表示しています。</p>
 
         {fallbackCenter ? (
-          <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onOpenFacility={onOpenFacility} />
+          <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onReset={resetExploration} onOpenFacility={onOpenFacility} />
         ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>}
       </div>
     </main>
@@ -371,6 +377,7 @@ function NodeRelationshipView({
   onSelectCenter,
   canGoBack,
   onBack,
+  onReset,
   onOpenFacility,
 }: {
   facilities: Facility[]
@@ -379,6 +386,7 @@ function NodeRelationshipView({
   onSelectCenter: (facility: Facility) => void
   canGoBack: boolean
   onBack: () => void
+  onReset: () => void
   onOpenFacility: (facility: Facility) => void
 }) {
   const nodes = useMemo(() => {
@@ -570,7 +578,6 @@ function NodeRelationshipView({
   } | null>(null)
   const suppressClickRef = useRef(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [isCenterChangeMode, setIsCenterChangeMode] = useState(false)
   const explorationNodes = useMemo(() => {
     const byId = new Map(facilities.map((facility) => [facility.id, facility]))
     const path = trail.map((item) => byId.get(item.id)).filter((item): item is Facility => Boolean(item))
@@ -583,11 +590,13 @@ function NodeRelationshipView({
     const candidateColumns = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(candidates.length, 1)))))
     const candidateRows = Math.ceil(Math.max(candidates.length, 1) / candidateColumns)
     const width = Math.max(640, candidateColumns * (nodeWidth + 56) + 48)
-    const pathStartX = (width - nodeWidth) / 2
+    const snakeOffsets = [.5, .72, .32, .62, .42, .68, .28]
+    const pathStartX = (index: number) => Math.max(24, Math.min(width - nodeWidth - 24, snakeOffsets[index % snakeOffsets.length] * (width - nodeWidth)))
     const pathStartY = 40
-    const candidatesStartY = pathStartY + path.length * (nodeHeight + gapY) + 70
+    const pathY = path.map((_, index) => pathStartY + path.slice(0, index).reduce((total, __, previousIndex) => total + nodeHeight + gapY + (previousIndex % 3 === 1 ? 18 : previousIndex % 3 === 2 ? 8 : 0), 0))
+    const candidatesStartY = (pathY.at(-1) ?? pathStartY) + nodeHeight + 70
     const nodes: NodeGraphNode[] = [
-      ...path.map((facility, index) => ({ facility, level: index, x: pathStartX, y: pathStartY + index * (nodeHeight + gapY) })),
+      ...path.map((facility, index) => ({ facility, level: index, x: pathStartX(index), y: pathY[index] })),
       ...candidates.map((facility, index) => ({
         facility,
         level: path.length,
@@ -709,11 +718,10 @@ function NodeRelationshipView({
       </div>
       <div className="node-relationship-toolbar">
         <span>直接の関連施設を表示</span>
-        {isCenterChangeMode && <span className="node-relationship-mode-hint">カードを選択</span>}
-        <button type="button" onClick={onBack} disabled={!canGoBack}>‹ 前の中心へ戻る</button>
-        {isCenterChangeMode
-          ? <button type="button" onClick={() => setIsCenterChangeMode(false)}>中心変更をキャンセル</button>
-          : <button type="button" onClick={() => { setSelectedNodeId(null); setIsCenterChangeMode(true) }}>中心を変更</button>}
+        <div className="node-relationship-toolbar-actions">
+          <button type="button" className="node-relationship-back-button" onClick={onBack} disabled={!canGoBack} aria-label="前の探索地点へ戻る" title="前の探索地点へ戻る">‹</button>
+          <button type="button" className="node-relationship-reset-button" onClick={onReset} disabled={!canGoBack} aria-label="探索をリセット" title="探索をリセット">↻</button>
+        </div>
       </div>
       <div
         className="node-relationship-viewport"
@@ -772,27 +780,17 @@ function NodeRelationshipView({
               style={{ left: node.x, top: node.y }}
               onClick={() => {
                 if (suppressClickRef.current) return
-                if (isCenterChangeMode) {
-                  onSelectCenter(node.facility)
-                  setIsCenterChangeMode(false)
-                  return
-                }
                 if (node.level === trail.length) {
                   setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
-                  if (!isCenterChangeMode) onSelectCenter(node.facility)
+                  onSelectCenter(node.facility)
                 }
               }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') return
                 event.preventDefault()
-                if (isCenterChangeMode) {
-                  onSelectCenter(node.facility)
-                  setIsCenterChangeMode(false)
-                  return
-                }
                 if (node.level === trail.length) {
                   setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
-                  if (!isCenterChangeMode) onSelectCenter(node.facility)
+                  onSelectCenter(node.facility)
                 }
               }}
             >
@@ -803,7 +801,7 @@ function NodeRelationshipView({
           ))}
         </div>
       </div>
-      <p className="node-relationship-hint">第1層カードをタップして経路を強調。「中心を変更」から関係をたどれます。</p>
+      <p className="node-relationship-hint">候補カードをタップして足跡をたどります。‹ で戻り、↻ で最初から探索できます。</p>
     </section>
   )
 }
