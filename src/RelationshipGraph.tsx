@@ -569,22 +569,6 @@ function NodeRelationshipView({
     scale: number
   } | null>(null)
   const suppressClickRef = useRef(false)
-  const nodeById = new Map(explorationNodes.nodes.map((node) => [node.facility.id, node]))
-
-  useEffect(() => {
-    const viewportElement = viewportRef.current
-    if (!viewportElement || !Number.isFinite(explorationNodes.width) || !Number.isFinite(explorationNodes.height)) return
-    const rect = viewportElement.getBoundingClientRect()
-    const fitScale = Math.min(
-      .72,
-      Math.max(.3, Math.min((rect.width - 24) / explorationNodes.width, (rect.height - 24) / explorationNodes.height)),
-    )
-    setViewport({
-      scale: fitScale,
-      x: (rect.width - explorationNodes.width * fitScale) / 2,
-      y: (rect.height - explorationNodes.height * fitScale) / 2,
-    })
-  }, [explorationNodes.width, explorationNodes.height])
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [isCenterChangeMode, setIsCenterChangeMode] = useState(false)
   const explorationNodes = useMemo(() => {
@@ -615,6 +599,23 @@ function NodeRelationshipView({
     const height = Math.max(520, candidates.length > 0 ? candidatesStartY + candidateRows * (nodeHeight + gapY) : pathStartY + path.length * (nodeHeight + gapY) + 40)
     return { nodes, edges, width, height }
   }, [center.id, facilities, trail])
+
+  const nodeById = new Map(explorationNodes.nodes.map((node) => [node.facility.id, node]))
+
+  useEffect(() => {
+    const viewportElement = viewportRef.current
+    if (!viewportElement || !Number.isFinite(explorationNodes.width) || !Number.isFinite(explorationNodes.height)) return
+    const rect = viewportElement.getBoundingClientRect()
+    const fitScale = Math.min(
+      .72,
+      Math.max(.3, Math.min((rect.width - 24) / explorationNodes.width, (rect.height - 24) / explorationNodes.height)),
+    )
+    setViewport({
+      scale: fitScale,
+      x: (rect.width - explorationNodes.width * fitScale) / 2,
+      y: (rect.height - explorationNodes.height * fitScale) / 2,
+    })
+  }, [explorationNodes.width, explorationNodes.height])
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
