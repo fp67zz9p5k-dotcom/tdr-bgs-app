@@ -1304,14 +1304,8 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .node-relationship-reset-button:disabled { cursor: default; opacity: .42; }
 .node-relationship-search-button { width: 36px; height: 36px; padding: 0 !important; border-radius: 50% !important; font-size: 22px !important; line-height: 1; }
 .node-relationship-search-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.node-relationship-search-panel { margin: 0 0 8px; padding: 8px; border: 1px solid #c8b594; border-radius: 10px; background: #fffaf1cc; }
-.node-relationship-search-row { display: flex; gap: 6px; }
-.node-relationship-search-row input { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid #c8b594; border-radius: 7px; background: #fffdf8; color: #4d3926; font: inherit; }
-.node-relationship-search-row button { width: 34px; padding: 0 !important; }
-.node-relationship-search-results { display: grid; max-height: 220px; margin-top: 6px; overflow-y: auto; gap: 4px; }
-.node-relationship-search-results button { display: grid; gap: 2px; padding: 8px; border: 1px solid #d8c6a4; border-radius: 7px; background: #fffdf8; color: #4d3926; text-align: left; }
-.node-relationship-search-results small { color: #806e54; }
-.node-relationship-search-results span { color: #74634d; font-size: 11px; }
+.node-relationship-search-area { margin-bottom: 8px; }
+.node-relationship-search-area .search-suggestions { max-height: 220px; }
 .node-relationship-list-trigger { display: block; margin: 10px auto 0; padding: 8px 16px; border: 1px solid #c8b594; border-radius: 8px; background: #fffaf1; color: #36515c; font-size: 11px; font-weight: 800; }
 .node-relationship-sheet-backdrop { position: fixed; z-index: 30; inset: 0; display: flex; align-items: flex-end; background: #10202a66; }
 .node-relationship-facility-sheet { width: min(100%, 620px); max-height: 78vh; margin: 0 auto; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); border: 1px solid #c8b594; border-bottom: 0; border-radius: 18px 18px 0 0; background: #fffaf1; color: #4d3926; box-shadow: 0 -8px 30px #10202a33; }

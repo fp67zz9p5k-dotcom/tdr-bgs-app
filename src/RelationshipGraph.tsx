@@ -865,13 +865,17 @@ function NodeRelationshipView({
           <button type="button" className="node-relationship-search-button" onClick={() => setSearchOpen((open) => !open)} aria-label="施設を検索" title="施設を検索"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></button>
         </div>
       </div>
-      {searchOpen && <div className="node-relationship-search-panel">
-        <div className="node-relationship-search-row">
-          <input ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="施設名・エリア・本文を検索" aria-label="施設検索" />
-          <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery('') }} aria-label="検索を閉じる">×</button>
-        </div>
-        {searchQuery.trim() && <div className="node-relationship-search-results">
-          {searchResults.length > 0 ? searchResults.map(({ facility, excerpt }) => <button type="button" key={facility.id} onClick={() => chooseFromExplorer(facility)}><strong>{facility.name}</strong><small>{facility.area}</small>{excerpt && <span>{excerpt}</span>}</button>) : <p>該当する施設がありません</p>}
+      {searchOpen && <div className="search-area node-relationship-search-area">
+        <label className="search">
+          <span aria-hidden="true">⌕</span>
+          <input ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="タイトル・本文・カテゴリ・エリアを検索" aria-label="項目を検索" aria-autocomplete="list" aria-expanded={Boolean(searchQuery.trim())} aria-controls="relationship-search-suggestions" />
+          {(searchOpen || searchQuery) && <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery('') }} aria-label="検索を終了">×</button>}
+        </label>
+        {searchQuery.trim() && <div className="search-suggestions node-relationship-search-results" id="relationship-search-suggestions" role={searchResults.length > 0 ? 'listbox' : 'region'} aria-label="検索結果">
+          {searchResults.length > 0 ? searchResults.map(({ facility, excerpt }) => <button type="button" className="search-suggestion" role="option" key={facility.id} onClick={() => chooseFromExplorer(facility)}>
+            <span className="search-suggestion-icon" aria-hidden="true">⌕</span>
+            <span className="search-suggestion-copy"><strong>{facility.name}</strong><small><b>{facility.category}</b><span>{facility.area || 'エリア未設定'}</span></small>{excerpt && <span className="search-suggestion-match"><b>本文一致</b><span>{excerpt}</span></span>}</span>
+          </button>) : <div className="empty search-empty search-empty-exclusive"><span className="empty-icon" aria-hidden="true">⌕</span><h3>検索結果が見つかりませんでした</h3><p className="search-empty-query">入力した検索語：<strong>{searchQuery.trim()}</strong></p></div>}
         </div>}
       </div>}
       <div
