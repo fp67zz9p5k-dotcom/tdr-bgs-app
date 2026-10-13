@@ -13,6 +13,9 @@ const degreeOf = (facility: Facility, facilities: Facility[]) =>
 const isCategoryId = (value: string): value is CategoryId =>
   CATEGORY_DEFINITIONS.some((category) => category.id === value)
 
+type RelationshipViewport = { x: number; y: number; scale: number }
+let relationshipExplorationCache: { history: string[]; viewport: RelationshipViewport } | null = null
+
 type RelationshipGraphProps = {
   facilities: Facility[]
   settings: RelationshipGraphSettings
@@ -307,21 +310,29 @@ function RelationshipGraphInner({
       ?? [...facilities].sort((a, b) => degreeOf(b, facilities) - degreeOf(a, facilities))[0],
     [facilities, settings.selectedId],
   )
-  const [history, setHistory] = useState<string[]>(() => fallbackCenter ? [fallbackCenter.id] : [])
-  const initialCenterIdRef = useRef<string | null>(fallbackCenter?.id ?? null)
+  const [history, setHistory] = useState<string[]>(() => {
+    if (fallbackCenter && relationshipExplorationCache?.history.at(-1) === fallbackCenter.id) return relationshipExplorationCache.history
+    return fallbackCenter ? [fallbackCenter.id] : []
+  })
+  const initialCenterIdRef = useRef<string | null>(relationshipExplorationCache?.history[0] ?? fallbackCenter?.id ?? null)
   useEffect(() => {
     if (!fallbackCenter) return
     setHistory((current) => current.at(-1) === fallbackCenter.id ? current : [...current, fallbackCenter.id])
   }, [fallbackCenter])
 
   const selectCenter = (facility: Facility) => {
-    setHistory((current) => current.at(-1) === facility.id ? current : [...current, facility.id])
+    setHistory((current) => {
+      const next = current.at(-1) === facility.id ? current : [...current, facility.id]
+      relationshipExplorationCache = { history: next, viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 } }
+      return next
+    })
     onSettingsChange({ selectedId: facility.id })
   }
   const historyBack = () => {
     setHistory((current) => {
       if (current.length < 2) return current
       const next = current.slice(0, -1)
+      relationshipExplorationCache = { history: next, viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 } }
       onSettingsChange({ selectedId: next.at(-1) ?? null })
       return next
     })
@@ -330,6 +341,7 @@ function RelationshipGraphInner({
     const initialId = initialCenterIdRef.current
     if (!initialId) return
     setHistory([initialId])
+    relationshipExplorationCache = null
     onSettingsChange({ selectedId: initialId })
   }
 
@@ -561,7 +573,6 @@ function NodeRelationshipView({
     return { nodes: result, edges, width: height, height: width }
   }, [center.id, facilities])
 
-  const [viewport, setViewport] = useState({ x: 8, y: 8, scale: .72 })
   const viewportRef = useRef<HTMLDivElement>(null)
   const pointersRef = useRef(new Map<number, { x: number; y: number }>())
   const gestureRef = useRef<{
@@ -590,10 +601,18 @@ function NodeRelationshipView({
     const candidateColumns = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(candidates.length, 1)))))
     const candidateRows = Math.ceil(Math.max(candidates.length, 1) / candidateColumns)
     const width = Math.max(640, candidateColumns * (nodeWidth + 56) + 48)
-    const snakeOffsets = [.5, .72, .32, .62, .42, .68, .28]
-    const pathStartX = (index: number) => Math.max(24, Math.min(width - nodeWidth - 24, snakeOffsets[index % snakeOffsets.length] * (width - nodeWidth)))
+    const pathStartX = (index: number) => {
+      const facility = path[index]
+      const hash = [...facility.id].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7)
+      const drift = ((hash % 1000) / 1000 - .5) * .72
+      const wave = Math.sin(index * 1.7 + (hash % 37)) * .12
+      return Math.max(24, Math.min(width - nodeWidth - 24, (width - nodeWidth) * (.5 + drift + wave)))
+    }
     const pathStartY = 40
-    const pathY = path.map((_, index) => pathStartY + path.slice(0, index).reduce((total, __, previousIndex) => total + nodeHeight + gapY + (previousIndex % 3 === 1 ? 18 : previousIndex % 3 === 2 ? 8 : 0), 0))
+    const pathY = path.map((_, index) => pathStartY + path.slice(0, index).reduce((total, facility, previousIndex) => {
+      const hash = [...facility.id].reduce((value, character) => (value * 33 + character.charCodeAt(0)) >>> 0, 11)
+      return total + nodeHeight + gapY + 8 + (hash % 24) + (previousIndex > 0 && previousIndex % 3 === 0 ? 14 : 0)
+    }, 0))
     const candidatesStartY = (pathY.at(-1) ?? pathStartY) + nodeHeight + 70
     const nodes: NodeGraphNode[] = [
       ...path.map((facility, index) => ({ facility, level: index, x: pathStartX(index), y: pathY[index] })),
@@ -609,11 +628,23 @@ function NodeRelationshipView({
     return { nodes, edges, width, height }
   }, [center.id, facilities, trail])
 
+  const cachedViewport = relationshipExplorationCache?.history.join('|') === trail.map((facility) => facility.id).join('|')
+    ? relationshipExplorationCache.viewport
+    : null
+  const shouldRestoreViewportRef = useRef(Boolean(cachedViewport))
+  const [viewport, setViewport] = useState(cachedViewport ?? { x: 8, y: 8, scale: .72 })
+  useEffect(() => {
+    relationshipExplorationCache = { history: trail.map((facility) => facility.id), viewport }
+  }, [trail, viewport])
   const nodeById = new Map(explorationNodes.nodes.map((node) => [node.facility.id, node]))
 
   useEffect(() => {
     const viewportElement = viewportRef.current
     if (!viewportElement || !Number.isFinite(explorationNodes.width) || !Number.isFinite(explorationNodes.height)) return
+    if (shouldRestoreViewportRef.current) {
+      shouldRestoreViewportRef.current = false
+      return
+    }
     const rect = viewportElement.getBoundingClientRect()
     const fitScale = Math.min(
       .72,
@@ -759,11 +790,17 @@ function NodeRelationshipView({
                     || (target.facility.id === center.id && source.level === 1 && getBidirectionalRelatedFacilityIds(facilities, source.facility.id).includes(selectedNodeId))))
               )
               const footprintCount = Math.max(3, Math.min(10, Math.round(Math.abs(endY - startY) / 46)))
+              const curveDirection = laneIndex % 2 === 0 ? 1 : -1
+              const controlX = (sourceXOffset + targetXOffset) / 2 + curveDirection * Math.min(110, 34 + Math.abs(targetXOffset - sourceXOffset) * .18)
+              const controlY = (startY + endY) / 2
               const footprints = Array.from({ length: footprintCount }, (_, index) => {
                 const progress = (index + 1) / (footprintCount + 1)
-                const y = startY + (endY - startY) * progress
-                const x = sourceXOffset + (targetXOffset - sourceXOffset) * progress
-                const rotation = Math.atan2(endY - startY, targetXOffset - sourceXOffset) * 180 / Math.PI + 90
+                const inverse = 1 - progress
+                const x = inverse * inverse * sourceXOffset + 2 * inverse * progress * controlX + progress * progress * targetXOffset
+                const y = inverse * inverse * startY + 2 * inverse * progress * controlY + progress * progress * endY
+                const tangentX = 2 * inverse * (controlX - sourceXOffset) + 2 * progress * (targetXOffset - controlX)
+                const tangentY = 2 * inverse * (controlY - startY) + 2 * progress * (endY - controlY)
+                const rotation = Math.atan2(tangentY, tangentX) * 180 / Math.PI + 90
                 const side = index % 2 === 0 ? -7 : 7
                 return <path key={index} className="relationship-footprint" d="M -3 -8 C -6 -5 -5 1 -2 7 C 0 10 3 8 3 4 C 4 -1 2 -6 0 -8 Z" transform={`translate(${x + side},${y}) rotate(${rotation})`} />
               })
