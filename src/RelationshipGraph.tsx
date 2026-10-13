@@ -344,6 +344,11 @@ function RelationshipGraphInner({
     relationshipExplorationCache = null
     onSettingsChange({ selectedId: initialId })
   }
+  const selectNewCenter = (facility: Facility) => {
+    relationshipExplorationCache = null
+    setHistory([facility.id])
+    onSettingsChange({ selectedId: facility.id })
+  }
 
   return (
     <main className="relationship-page relationship-screen-enter is-node-mode">
@@ -357,7 +362,7 @@ function RelationshipGraphInner({
         <p className="relationship-description">中心施設からつながる関連施設を、ノードと線で表示しています。</p>
 
         {fallbackCenter ? (
-          <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} canGoBack={history.length > 1} onBack={historyBack} onReset={resetExploration} onOpenFacility={onOpenFacility} />
+          <NodeRelationshipView key={fallbackCenter.id} facilities={facilities} center={fallbackCenter} trail={history.map((id) => facilities.find((facility) => facility.id === id)).filter((facility): facility is Facility => Boolean(facility))} onSelectCenter={selectCenter} onSelectNewCenter={selectNewCenter} canGoBack={history.length > 1} onBack={historyBack} onReset={resetExploration} onOpenFacility={onOpenFacility} />
         ) : <div className="relationship-empty page-empty"><strong>施設がまだありません</strong></div>}
       </div>
     </main>
@@ -387,6 +392,7 @@ function NodeRelationshipView({
   center,
   trail,
   onSelectCenter,
+  onSelectNewCenter,
   canGoBack,
   onBack,
   onReset,
@@ -396,6 +402,7 @@ function NodeRelationshipView({
   center: Facility
   trail: Facility[]
   onSelectCenter: (facility: Facility) => void
+  onSelectNewCenter: (facility: Facility) => void
   canGoBack: boolean
   onBack: () => void
   onReset: () => void
@@ -589,6 +596,29 @@ function NodeRelationshipView({
   } | null>(null)
   const suppressClickRef = useRef(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [facilityListOpen, setFacilityListOpen] = useState(false)
+  const [facilityListExpanded, setFacilityListExpanded] = useState(false)
+  const [selectedArea, setSelectedArea] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<Category | ''>('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const areas = useMemo(() => [...new Set(facilities.map((facility) => facility.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')), [facilities])
+  const categories = useMemo(() => CATEGORY_DEFINITIONS.filter((definition) => facilities.some((facility) => facility.category === definition.value)), [facilities])
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase('ja')
+    if (!query) return []
+    return facilities.map((facility) => {
+      const body = [...facility.bgs, ...facility.trivia].map((entry) => entry.text).find((text) => text.toLocaleLowerCase('ja').includes(query))
+      const matches = facility.name.toLocaleLowerCase('ja').includes(query)
+        || facility.area.toLocaleLowerCase('ja').includes(query)
+        || Boolean(body)
+      return matches ? { facility, excerpt: body ? body.slice(Math.max(0, body.toLocaleLowerCase('ja').indexOf(query) - 18), body.toLocaleLowerCase('ja').indexOf(query) + query.length + 32) : '' } : null
+    }).filter((item): item is { facility: Facility; excerpt: string } => Boolean(item)).slice(0, 50)
+  }, [facilities, searchQuery])
+  const listResults = useMemo(() => facilities
+    .filter((facility) => (!selectedArea || facility.area === selectedArea) && (!selectedCategory || facility.category === selectedCategory))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ja')), [facilities, selectedArea, selectedCategory])
   const explorationNodes = useMemo(() => {
     const byId = new Map(facilities.map((facility) => [facility.id, facility]))
     const path = trail.map((item) => byId.get(item.id)).filter((item): item is Facility => Boolean(item))
@@ -797,6 +827,15 @@ function NodeRelationshipView({
       gestureRef.current = null
     }
   }
+  useEffect(() => {
+    if (searchOpen) requestAnimationFrame(() => searchInputRef.current?.focus())
+  }, [searchOpen])
+  const chooseFromExplorer = (facility: Facility) => {
+    onSelectNewCenter(facility)
+    setSearchOpen(false)
+    setFacilityListOpen(false)
+    setSearchQuery('')
+  }
   return (
     <section className="node-relationship-view" aria-label="ノード型関係図">
       <div className="node-relationship-exploration" aria-live="polite">
@@ -811,8 +850,18 @@ function NodeRelationshipView({
         <div className="node-relationship-toolbar-actions">
           <button type="button" className="node-relationship-back-button" onClick={onBack} disabled={!canGoBack} aria-label="前の探索地点へ戻る" title="前の探索地点へ戻る">‹</button>
           <button type="button" className="node-relationship-reset-button" onClick={onReset} disabled={!canGoBack} aria-label="探索をリセット" title="探索をリセット">↻</button>
+          <button type="button" className="node-relationship-search-button" onClick={() => setSearchOpen((open) => !open)} aria-label="施設を検索" title="施設を検索"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></button>
         </div>
       </div>
+      {searchOpen && <div className="node-relationship-search-panel">
+        <div className="node-relationship-search-row">
+          <input ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="施設名・エリア・本文を検索" aria-label="施設検索" />
+          <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery('') }} aria-label="検索を閉じる">×</button>
+        </div>
+        {searchQuery.trim() && <div className="node-relationship-search-results">
+          {searchResults.length > 0 ? searchResults.map(({ facility, excerpt }) => <button type="button" key={facility.id} onClick={() => chooseFromExplorer(facility)}><strong>{facility.name}</strong><small>{facility.area}</small>{excerpt && <span>{excerpt}</span>}</button>) : <p>該当する施設がありません</p>}
+        </div>}
+      </div>}
       <div
         className="node-relationship-viewport"
         ref={viewportRef}
@@ -905,6 +954,17 @@ function NodeRelationshipView({
           ))}
         </div>
       </div>
+      <button type="button" className="node-relationship-list-trigger" onClick={() => { setFacilityListExpanded(false); setFacilityListOpen(true) }}>施設一覧</button>
+      {facilityListOpen && <div className="node-relationship-sheet-backdrop" onClick={() => setFacilityListOpen(false)}>
+        <section className={`node-relationship-facility-sheet${facilityListExpanded ? ' is-expanded' : ''}`} role="dialog" aria-label="施設一覧" onClick={(event) => event.stopPropagation()}>
+          <div className="node-relationship-sheet-heading"><strong>施設一覧</strong><div><button type="button" onClick={() => setFacilityListExpanded((expanded) => !expanded)} aria-label={facilityListExpanded ? '施設一覧を縮小' : '施設一覧を展開'}>{facilityListExpanded ? '⌄' : '⌃'}</button><button type="button" onClick={() => setFacilityListOpen(false)} aria-label="施設一覧を閉じる">×</button></div></div>
+          <div className="node-relationship-list-filters">
+            <select value={selectedArea} onChange={(event) => setSelectedArea(event.target.value)} aria-label="エリアで絞り込み"><option value="">エリア：すべて</option>{areas.map((area) => <option key={area} value={area}>{area}</option>)}</select>
+            <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value as Category | '')} aria-label="カテゴリで絞り込み"><option value="">カテゴリ：すべて</option>{categories.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select>
+          </div>
+          <div className="node-relationship-facility-list">{listResults.map((facility) => <button type="button" key={facility.id} onClick={() => chooseFromExplorer(facility)}>{facility.name}</button>)}</div>
+        </section>
+      </div>}
       <p className="node-relationship-hint">候補カードをタップして足跡をたどります。‹ で戻り、↻ で最初から探索できます。</p>
     </section>
   )
