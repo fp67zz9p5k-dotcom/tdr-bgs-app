@@ -356,7 +356,7 @@ function RelationshipGraphInner({
       <header className="relationship-header">
         <button className="back-button" onClick={onBack} aria-label="ホームに戻る">‹</button>
         <div className="relationship-header-copy">
-          <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>施設関係図</h1></div>
+          <div className="relationship-large-title"><p className="eyebrow">RELATIONSHIP</p><h1>探索</h1></div>
         </div>
       </header>
       <div className="relationship-scroll-region">
