@@ -527,7 +527,7 @@ function NodeRelationshipView({
   } | null>(null)
   const suppressClickRef = useRef(false)
   const nodeById = new Map(nodes.nodes.map((node) => [node.facility.id, node]))
-  const [selectedLevelOneId, setSelectedLevelOneId] = useState<string | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [isCenterChangeMode, setIsCenterChangeMode] = useState(false)
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -655,11 +655,12 @@ function NodeRelationshipView({
               const sourceY = source.y + (edge.sourceOffset ?? 36)
               const targetY = target.y + (edge.targetOffset ?? 36)
               const points = `${startX},${sourceY} ${laneX},${sourceY} ${laneX},${targetY} ${endX},${targetY}`
-              const highlightsPath = selectedLevelOneId !== null && (
-                (source.facility.id === center.id && target.facility.id === selectedLevelOneId)
-                || (target.facility.id === center.id && source.facility.id === selectedLevelOneId)
-                || (source.facility.id === selectedLevelOneId && target.level === 2)
-                || (target.facility.id === selectedLevelOneId && source.level === 2)
+              const highlightsPath = selectedNodeId !== null && (
+                (source.facility.id === selectedNodeId && target.level !== 0)
+                || (target.facility.id === selectedNodeId && source.level !== 0)
+                || (selectedNodeId !== null && nodeById.get(selectedNodeId)?.level === 2
+                  && ((source.facility.id === center.id && target.level === 1 && getBidirectionalRelatedFacilityIds(facilities, target.facility.id).includes(selectedNodeId))
+                    || (target.facility.id === center.id && source.level === 1 && getBidirectionalRelatedFacilityIds(facilities, source.facility.id).includes(selectedNodeId))))
               )
               return <polyline className={highlightsPath ? 'is-highlighted' : undefined} key={`${edge.source}-${edge.target}`} points={points} />
             })}
@@ -669,7 +670,7 @@ function NodeRelationshipView({
               role="button"
               tabIndex={0}
               key={node.facility.id}
-              className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}${node.facility.id === selectedLevelOneId ? ' is-selected' : ''}`}
+              className={`node-relationship-node${node.level === 0 ? ' is-center' : ''}${node.facility.id === selectedNodeId ? ' is-selected' : ''}`}
               data-level={node.level}
               style={{ left: node.x, top: node.y }}
               onClick={() => {
@@ -679,7 +680,7 @@ function NodeRelationshipView({
                   setIsCenterChangeMode(false)
                   return
                 }
-                if (node.level === 1) setSelectedLevelOneId((current) => current === node.facility.id ? null : node.facility.id)
+                if (node.level === 1 || node.level === 2) setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
               }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') return
@@ -689,7 +690,7 @@ function NodeRelationshipView({
                   setIsCenterChangeMode(false)
                   return
                 }
-                if (node.level === 1) setSelectedLevelOneId((current) => current === node.facility.id ? null : node.facility.id)
+                if (node.level === 1 || node.level === 2) setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
               }}
             >
               <span className="node-relationship-node-icon" aria-hidden="true">{getCategoryDefinition(node.facility.category).icon}</span>
