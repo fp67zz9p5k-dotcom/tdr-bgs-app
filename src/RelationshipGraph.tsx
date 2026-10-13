@@ -612,21 +612,34 @@ function NodeRelationshipView({
     const overlaps = (x: number, y: number, other: { x: number; y: number }) => Math.abs(x - other.x) < nodeWidth + 34 && Math.abs(y - other.y) < nodeHeight + 34
     const placeAround = (facility: Facility, anchor: { x: number; y: number }, occupied: { x: number; y: number }[]) => {
       const hash = hashOf(facility.id)
-      const angles = [0.32, 2.18, 4.52, 5.72, 1.18, 3.42, 0.86, 4.02]
+      const angles = [0.32, 2.18, 4.52, 5.72, 1.18, 3.42, 0.86, 4.02, 2.76, 5.12, 1.82, 3.86]
       const start = hash % angles.length
-      for (let attempt = 0; attempt < angles.length * 3; attempt += 1) {
-        const angle = angles[(start + attempt) % angles.length] + (attempt >= angles.length ? .24 * Math.floor(attempt / angles.length) : 0)
-        const radius = 230 + ((hash + attempt * 47) % 150)
+      for (let attempt = 0; attempt < angles.length * 18; attempt += 1) {
+        const ring = Math.floor(attempt / angles.length)
+        const angle = angles[(start + attempt) % angles.length] + ring * .17
+        const radius = 210 + ring * 72 + ((hash + attempt * 47) % 42)
         const x = Math.max(32, Math.min(width - nodeWidth - 32, anchor.x + Math.cos(angle) * radius))
         const y = Math.max(32, Math.min(height - nodeHeight - 32, anchor.y + Math.sin(angle) * radius))
         if (!occupied.some((other) => overlaps(x, y, other))) return { x, y }
       }
-      return { x: Math.max(32, Math.min(width - nodeWidth - 32, anchor.x + 260)), y: Math.max(32, Math.min(height - nodeHeight - 32, anchor.y + 120)) }
+      // A final deterministic scan expands the map coordinate space instead of
+      // accepting an overlapping fallback position.
+      for (let y = 32; y <= height - nodeHeight - 32; y += nodeHeight + 34) {
+        for (let x = 32; x <= width - nodeWidth - 32; x += nodeWidth + 34) {
+          if (!occupied.some((other) => overlaps(x, y, other))) return { x, y }
+        }
+      }
+      return { x: width - nodeWidth - 32, y: height - nodeHeight - 32 }
     }
     if (path[0] && !positions[path[0].id]) positions[path[0].id] = { x: 680, y: 500 }
     for (let index = 1; index < path.length; index += 1) {
       const facility = path[index]
-      if (!positions[facility.id]) positions[facility.id] = placeAround(facility, positions[path[index - 1].id], Object.values(positions).filter((_, positionIndex) => positionIndex < index))
+      if (!positions[facility.id]) {
+        const confirmedOccupied = path.slice(0, index)
+          .map((item) => positions[item.id])
+          .filter((position): position is { x: number; y: number } => Boolean(position))
+        positions[facility.id] = placeAround(facility, positions[path[index - 1].id], confirmedOccupied)
+      }
     }
     if (layoutCache) layoutCache.positions = positions
     const candidatePositions: Record<string, { x: number; y: number }> = {}
