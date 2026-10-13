@@ -714,7 +714,6 @@ function NodeRelationshipView({
               const laneY = startY + (endY - startY) * ((laneIndex + 1) / (laneCount + 1))
               const sourceXOffset = sourceX + ((edge.sourceOffset ?? 36) - 36)
               const targetXOffset = targetX + ((edge.targetOffset ?? 36) - 36)
-              const points = `${sourceXOffset},${startY} ${sourceXOffset},${laneY} ${targetXOffset},${laneY} ${targetXOffset},${endY}`
               const highlightsPath = selectedNodeId !== null && (
                 (source.facility.id === selectedNodeId && target.level !== 0)
                 || (target.facility.id === selectedNodeId && source.level !== 0)
@@ -722,7 +721,16 @@ function NodeRelationshipView({
                   && ((source.facility.id === center.id && target.level === 1 && getBidirectionalRelatedFacilityIds(facilities, target.facility.id).includes(selectedNodeId))
                     || (target.facility.id === center.id && source.level === 1 && getBidirectionalRelatedFacilityIds(facilities, source.facility.id).includes(selectedNodeId))))
               )
-              return <polyline className={highlightsPath ? 'is-highlighted' : undefined} key={`${edge.source}-${edge.target}`} points={points} />
+              const footprintCount = Math.max(3, Math.min(10, Math.round(Math.abs(endY - startY) / 46)))
+              const footprints = Array.from({ length: footprintCount }, (_, index) => {
+                const progress = (index + 1) / (footprintCount + 1)
+                const y = startY + (endY - startY) * progress
+                const x = sourceXOffset + (targetXOffset - sourceXOffset) * progress
+                const rotation = Math.atan2(endY - startY, targetXOffset - sourceXOffset) * 180 / Math.PI + 90
+                const side = index % 2 === 0 ? -7 : 7
+                return <path key={index} className="relationship-footprint" d="M -3 -8 C -6 -5 -5 1 -2 7 C 0 10 3 8 3 4 C 4 -1 2 -6 0 -8 Z" transform={`translate(${x + side},${y}) rotate(${rotation})`} />
+              })
+              return <g className={highlightsPath ? 'is-highlighted' : undefined} key={`${edge.source}-${edge.target}`}>{footprints}</g>
             })}
           </svg>
           {nodes.nodes.map((node) => (
@@ -740,7 +748,10 @@ function NodeRelationshipView({
                   setIsCenterChangeMode(false)
                   return
                 }
-                if (node.level === 1 || node.level === 2) setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
+                if (node.level === 1 || node.level === 2) {
+                  setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
+                  if (!isCenterChangeMode) onSelectCenter(node.facility)
+                }
               }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') return
@@ -750,7 +761,10 @@ function NodeRelationshipView({
                   setIsCenterChangeMode(false)
                   return
                 }
-                if (node.level === 1 || node.level === 2) setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
+                if (node.level === 1 || node.level === 2) {
+                  setSelectedNodeId((current) => current === node.facility.id ? null : node.facility.id)
+                  if (!isCenterChangeMode) onSelectCenter(node.facility)
+                }
               }}
             >
               <span className="node-relationship-node-icon" aria-hidden="true">{getCategoryDefinition(node.facility.category).icon}</span>
