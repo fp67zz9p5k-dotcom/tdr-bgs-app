@@ -630,28 +630,29 @@ function NodeRelationshipView({
     }
     if (layoutCache) layoutCache.positions = positions
     const candidatePositions: Record<string, { x: number; y: number }> = {}
-    const pathRects = path.map((facility) => ({ x: positions[facility.id].x - 34, y: positions[facility.id].y - 34, width: nodeWidth + 68, height: nodeHeight + 68 }))
+    const pathRects = path.map((facility) => ({ x: positions[facility.id].x - 20, y: positions[facility.id].y - 20, width: nodeWidth + 40, height: nodeHeight + 40 }))
     const routeRects = path.slice(1).map((facility, index) => {
       const from = positions[path[index].id]
       const to = positions[facility.id]
-      return { x: Math.min(from.x, to.x) - 42, y: Math.min(from.y, to.y) - 42, width: Math.abs(to.x - from.x) + nodeWidth + 84, height: Math.abs(to.y - from.y) + nodeHeight + 84 }
+      return { x: Math.min(from.x, to.x) - 10, y: Math.min(from.y, to.y) - 10, width: Math.abs(to.x - from.x) + nodeWidth + 20, height: Math.abs(to.y - from.y) + nodeHeight + 20 }
     })
     const intersects = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
     const currentPosition = positions[center.id] ?? positions[path.at(-1)?.id ?? ''] ?? { x: 680, y: 500 }
-    const anchorCandidates = [
-      { x: currentPosition.x - gridWidth / 2, y: currentPosition.y - gridHeight - 150 },
-      { x: currentPosition.x - gridWidth / 2, y: currentPosition.y + nodeHeight + 150 },
-      { x: currentPosition.x - gridWidth - 150, y: currentPosition.y - gridHeight / 2 },
-      { x: currentPosition.x + nodeWidth + 150, y: currentPosition.y - gridHeight / 2 },
-      { x: 80, y: 80 },
-    ]
-    const gridAnchor = anchorCandidates.map((anchor) => ({
+    const anchorCandidates = [-1, -.5, 0, .5, 1].flatMap((horizontal) => [-1, -.5, 0, .5, 1].map((vertical) => ({
+      x: currentPosition.x - gridWidth / 2 + horizontal * (gridWidth * .75),
+      y: currentPosition.y - gridHeight / 2 + vertical * (gridHeight + nodeHeight + 46),
+    })))
+    const validAnchors = anchorCandidates.map((anchor) => ({
       x: Math.max(32, Math.min(width - gridWidth - 32, anchor.x)),
       y: Math.max(32, Math.min(height - gridHeight - 32, anchor.y)),
-    })).find((anchor) => {
-      const gridRect = { x: anchor.x - 18, y: anchor.y - 18, width: gridWidth + 36, height: gridHeight + 36 }
+    })).filter((anchor) => {
+      const gridRect = { x: anchor.x - 8, y: anchor.y - 8, width: gridWidth + 16, height: gridHeight + 16 }
       return !pathRects.some((rect) => intersects(gridRect, rect)) && !routeRects.some((rect) => intersects(gridRect, rect))
-    }) ?? { x: 32, y: Math.max(32, height - gridHeight - 32) }
+    })
+    const gridAnchor = validAnchors.sort((a, b) => {
+      const distance = (anchor: { x: number; y: number }) => Math.hypot(anchor.x + gridWidth / 2 - currentPosition.x, anchor.y + gridHeight / 2 - currentPosition.y)
+      return distance(a) - distance(b)
+    })[0] ?? { x: Math.max(32, currentPosition.x - gridWidth / 2), y: Math.max(32, currentPosition.y + nodeHeight + 46) }
     candidates.forEach((facility, index) => {
       const point = { x: gridAnchor.x + (index % candidateColumns) * (nodeWidth + gridGapX), y: gridAnchor.y + Math.floor(index / candidateColumns) * (nodeHeight + gridGapY) }
       candidatePositions[facility.id] = point
