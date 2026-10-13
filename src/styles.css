@@ -1307,6 +1307,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .node-relationship-search-area { margin-bottom: 8px; }
 .node-relationship-search-area .search-suggestions { max-height: 220px; }
 .node-relationship-list-trigger { display: block; margin: 10px auto 0; padding: 8px 16px; border: 1px solid #c8b594; border-radius: 8px; background: #fffaf1; color: #36515c; font-size: 11px; font-weight: 800; }
+.node-relationship-toolbar-actions .node-relationship-list-trigger { display: inline-block; margin: 0; padding: 6px 9px; white-space: nowrap; }
 .node-relationship-sheet-backdrop { position: fixed; z-index: 30; inset: 0; display: flex; align-items: flex-end; background: #10202a66; }
 .node-relationship-facility-sheet { width: min(100%, 620px); max-height: 78vh; margin: 0 auto; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); border: 1px solid #c8b594; border-bottom: 0; border-radius: 18px 18px 0 0; background: #fffaf1; color: #4d3926; box-shadow: 0 -8px 30px #10202a33; }
 .node-relationship-sheet-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }

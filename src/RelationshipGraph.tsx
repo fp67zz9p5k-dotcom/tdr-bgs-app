@@ -863,6 +863,7 @@ function NodeRelationshipView({
           <button type="button" className="node-relationship-back-button" onClick={onBack} disabled={!canGoBack} aria-label="前の探索地点へ戻る" title="前の探索地点へ戻る">‹</button>
           <button type="button" className="node-relationship-reset-button" onClick={onReset} disabled={!canGoBack} aria-label="探索をリセット" title="探索をリセット">↻</button>
           <button type="button" className="node-relationship-search-button" onClick={() => setSearchOpen((open) => !open)} aria-label="施設を検索" title="施設を検索"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></button>
+          <button type="button" className="node-relationship-list-trigger" onClick={() => { setFacilityListExpanded(false); setFacilityListOpen(true) }}>施設一覧</button>
         </div>
       </div>
       {searchOpen && <div className="search-area node-relationship-search-area">
@@ -970,7 +971,6 @@ function NodeRelationshipView({
           ))}
         </div>
       </div>
-      <button type="button" className="node-relationship-list-trigger" onClick={() => { setFacilityListExpanded(false); setFacilityListOpen(true) }}>施設一覧</button>
       {facilityListOpen && <div className="node-relationship-sheet-backdrop" onClick={() => setFacilityListOpen(false)}>
         <section className={`node-relationship-facility-sheet${facilityListExpanded ? ' is-expanded' : ''}`} role="dialog" aria-label="施設一覧" onClick={(event) => event.stopPropagation()}>
           <div className="node-relationship-sheet-heading"><strong>施設一覧</strong><div><button type="button" onClick={() => setFacilityListExpanded((expanded) => !expanded)} aria-label={facilityListExpanded ? '施設一覧を縮小' : '施設一覧を展開'}>{facilityListExpanded ? '⌄' : '⌃'}</button><button type="button" onClick={() => setFacilityListOpen(false)} aria-label="施設一覧を閉じる">×</button></div></div>
