@@ -388,7 +388,10 @@ function NodeRelationshipView({
     while (queue.length > 0) {
       const id = queue.shift()!
       const level = levels.get(id) ?? 0
-      if (level >= 2) continue
+      // Render only the current facility and its direct neighbours. Further
+      // relationships are explored by explicitly making a neighbour the new
+      // center, keeping the initial canvas bounded and responsive.
+      if (level >= 1) continue
       for (const relatedId of getBidirectionalRelatedFacilityIds(facilities, id)) {
         if (!byId.has(relatedId) || levels.has(relatedId)) continue
         levels.set(relatedId, level + 1)
@@ -676,7 +679,7 @@ function NodeRelationshipView({
         </div>}
       </div>
       <div className="node-relationship-toolbar">
-        <span>関連施設を2階層まで表示</span>
+        <span>直接の関連施設を表示</span>
         {isCenterChangeMode && <span className="node-relationship-mode-hint">カードを選択</span>}
         <button type="button" onClick={onBack} disabled={!canGoBack}>‹ 前の中心へ戻る</button>
         {isCenterChangeMode
@@ -757,7 +760,7 @@ function NodeRelationshipView({
           ))}
         </div>
       </div>
-      <p className="node-relationship-hint">第1層カードをタップして経路を強調。「中心」で中心を変更できます。</p>
+      <p className="node-relationship-hint">第1層カードをタップして経路を強調。「中心を変更」から関係をたどれます。</p>
     </section>
   )
 }
