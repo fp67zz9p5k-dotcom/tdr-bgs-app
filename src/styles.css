@@ -169,7 +169,7 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 }
 .primary-nav-icon-relationships {
   overflow: visible;
-  fill: var(--header-bg, #142832);
+  fill: none;
   stroke: currentColor;
   stroke-width: 1.75;
   stroke-linecap: round;

@@ -2185,7 +2185,7 @@ function PrimaryBottomNavigation({
   const items: Array<{ page: PrimaryNavigationPage; label: string }> = [
     { page: 'home', label: '一覧' },
     { page: 'map', label: 'マップ' },
-    { page: 'relationships', label: '関係図' },
+    { page: 'relationships', label: '探索' },
   ]
 
   return (
@@ -2207,26 +2207,21 @@ function PrimaryBottomNavigation({
 }
 
 function PrimaryNavigationIcon({ page }: { page: PrimaryNavigationPage }) {
-  if (page === 'relationships') {
-    return (
-      <svg
-        className="primary-nav-icon primary-nav-icon-relationships"
-        viewBox="0 0 24 24"
-        preserveAspectRatio="xMidYMid meet"
-        aria-hidden="true"
-      >
-        <path d="M12 5 5 18M12 5l7 13M5 18h14" />
-        <circle cx="12" cy="5" r="2.5" />
-        <circle cx="5" cy="18" r="2.5" />
-        <circle cx="19" cy="18" r="2.5" />
-      </svg>
-    )
-  }
-
   return (
-    <span className={`primary-nav-icon primary-nav-icon-${page}`} aria-hidden="true">
-      {page === 'home' ? '⌂' : '⌖'}
-    </span>
+    <svg className={`primary-nav-icon primary-nav-icon-${page}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {page === 'home' && <>
+        <path d="M3 12h.01" /><path d="M3 18h.01" /><path d="M3 6h.01" />
+        <path d="M8 12h13" /><path d="M8 18h13" /><path d="M8 6h13" />
+      </>}
+      {page === 'map' && <>
+        <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v13.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 20.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0l-4.212 2.106z" />
+        <path d="M15 5.5v15" /><path d="M9 3.5v15" />
+      </>}
+      {page === 'relationships' && <>
+        <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" />
+        <circle cx="12" cy="12" r="10" />
+      </>}
+    </svg>
   )
 }
 
