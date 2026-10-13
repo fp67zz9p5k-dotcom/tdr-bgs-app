@@ -683,17 +683,29 @@ function NodeRelationshipView({
     })
     const intersects = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
     const currentPosition = positions[center.id] ?? positions[path.at(-1)?.id ?? ''] ?? { x: 680, y: 500 }
-    const anchorCandidates = [-1, -.5, 0, .5, 1].flatMap((horizontal) => [-1, -.5, 0, .5, 1].map((vertical) => ({
+    const anchorCandidates = [-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2].flatMap((horizontal) => [-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2].map((vertical) => ({
       x: currentPosition.x - gridWidth / 2 + horizontal * (gridWidth * .75),
       y: currentPosition.y - gridHeight / 2 + vertical * (gridHeight + nodeHeight + 46),
     })))
-    const validAnchors = anchorCandidates.map((anchor) => ({
+    const normalizedAnchors = anchorCandidates.map((anchor) => ({
       x: Math.max(32, Math.min(width - gridWidth - 32, anchor.x)),
       y: Math.max(32, Math.min(height - gridHeight - 32, anchor.y)),
-    })).filter((anchor) => {
+    }))
+    const isGridFree = (anchor: { x: number; y: number }) => {
       const gridRect = { x: anchor.x - 8, y: anchor.y - 8, width: gridWidth + 16, height: gridHeight + 16 }
       return !pathRects.some((rect) => intersects(gridRect, rect)) && !routeRects.some((rect) => intersects(gridRect, rect))
-    })
+    }
+    const validAnchors = normalizedAnchors.filter(isGridFree)
+    if (validAnchors.length === 0) {
+      for (let y = 32; y <= height - gridHeight - 32 && validAnchors.length === 0; y += 28) {
+        for (let x = 32; x <= width - gridWidth - 32; x += 28) {
+          if (isGridFree({ x, y })) {
+            validAnchors.push({ x, y })
+            break
+          }
+        }
+      }
+    }
     const gridAnchor = validAnchors.sort((a, b) => {
       const distance = (anchor: { x: number; y: number }) => Math.hypot(anchor.x + gridWidth / 2 - currentPosition.x, anchor.y + gridHeight / 2 - currentPosition.y)
       return distance(a) - distance(b)
