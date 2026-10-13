@@ -403,7 +403,7 @@ function NodeRelationshipView({
     const nodeWidth = 238
     const nodeHeight = 72
     const gapX = 120
-    const gapY = 22
+    const gapY = 28
     const originalIndex = new Map(byLevel.flat().map((facility, index) => [facility.id, index]))
     const neighborsInLevel = (facility: Facility, level: number) => getBidirectionalRelatedFacilityIds(facilities, facility.id)
       .filter((id) => levels.get(id) === level)
@@ -459,7 +459,7 @@ function NodeRelationshipView({
     ]
     byLevel[2] = groupedLevelTwo
     const levelTwoLayouts = levelTwoGroups.map((group) => {
-      const columns = group.facilities.length >= 4 ? 2 : 1
+      const columns = group.facilities.length >= 9 ? 3 : group.facilities.length >= 4 ? 2 : 1
       const rows = Math.ceil(group.facilities.length / columns)
       return { ...group, columns, rows }
     })
