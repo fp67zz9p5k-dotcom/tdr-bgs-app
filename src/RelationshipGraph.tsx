@@ -600,7 +600,11 @@ function NodeRelationshipView({
     const gapY = 54
     const candidateColumns = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(candidates.length, 1)))))
     const candidateRows = Math.ceil(Math.max(candidates.length, 1) / candidateColumns)
-    const width = 1600
+    const gridGapX = 56
+    const gridGapY = 54
+    const gridWidth = candidateColumns * nodeWidth + Math.max(0, candidateColumns - 1) * gridGapX
+    const gridHeight = candidateRows * nodeHeight + Math.max(0, candidateRows - 1) * gridGapY
+    const width = Math.max(1600, gridWidth + 160)
     const height = Math.max(1200, 700 + path.length * 280 + candidateRows * (nodeHeight + gapY))
     const layoutCache = relationshipExplorationCache?.history[0] === path[0]?.id ? relationshipExplorationCache : null
     const positions = layoutCache?.positions ?? {}
@@ -626,18 +630,31 @@ function NodeRelationshipView({
     }
     if (layoutCache) layoutCache.positions = positions
     const candidatePositions: Record<string, { x: number; y: number }> = {}
-    const pathBottom = path.reduce((bottom, facility) => Math.max(bottom, positions[facility.id].y + nodeHeight), 0)
-    const candidateStartY = Math.max(80, pathBottom + 140)
-    const candidateOccupied = Object.values(positions).filter((point) => path.some((facility) => positions[facility.id] === point))
+    const pathRects = path.map((facility) => ({ x: positions[facility.id].x - 34, y: positions[facility.id].y - 34, width: nodeWidth + 68, height: nodeHeight + 68 }))
+    const routeRects = path.slice(1).map((facility, index) => {
+      const from = positions[path[index].id]
+      const to = positions[facility.id]
+      return { x: Math.min(from.x, to.x) - 42, y: Math.min(from.y, to.y) - 42, width: Math.abs(to.x - from.x) + nodeWidth + 84, height: Math.abs(to.y - from.y) + nodeHeight + 84 }
+    })
+    const intersects = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+    const currentPosition = positions[center.id] ?? positions[path.at(-1)?.id ?? ''] ?? { x: 680, y: 500 }
+    const anchorCandidates = [
+      { x: currentPosition.x - gridWidth / 2, y: currentPosition.y - gridHeight - 150 },
+      { x: currentPosition.x - gridWidth / 2, y: currentPosition.y + nodeHeight + 150 },
+      { x: currentPosition.x - gridWidth - 150, y: currentPosition.y - gridHeight / 2 },
+      { x: currentPosition.x + nodeWidth + 150, y: currentPosition.y - gridHeight / 2 },
+      { x: 80, y: 80 },
+    ]
+    const gridAnchor = anchorCandidates.map((anchor) => ({
+      x: Math.max(32, Math.min(width - gridWidth - 32, anchor.x)),
+      y: Math.max(32, Math.min(height - gridHeight - 32, anchor.y)),
+    })).find((anchor) => {
+      const gridRect = { x: anchor.x - 18, y: anchor.y - 18, width: gridWidth + 36, height: gridHeight + 36 }
+      return !pathRects.some((rect) => intersects(gridRect, rect)) && !routeRects.some((rect) => intersects(gridRect, rect))
+    }) ?? { x: 32, y: Math.max(32, height - gridHeight - 32) }
     candidates.forEach((facility, index) => {
-      const gridPoint = {
-        x: 48 + (index % candidateColumns) * (nodeWidth + 56),
-        y: candidateStartY + Math.floor(index / candidateColumns) * (nodeHeight + gapY),
-      }
-      const point = positions[facility.id] ?? gridPoint
+      const point = { x: gridAnchor.x + (index % candidateColumns) * (nodeWidth + gridGapX), y: gridAnchor.y + Math.floor(index / candidateColumns) * (nodeHeight + gridGapY) }
       candidatePositions[facility.id] = point
-      positions[facility.id] = point
-      candidateOccupied.push(point)
     })
     if (!layoutCache) {
       relationshipExplorationCache = { history: path.map((facility) => facility.id), viewport: relationshipExplorationCache?.viewport ?? { x: 8, y: 8, scale: .72 }, positions }
