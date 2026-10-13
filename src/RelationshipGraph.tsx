@@ -601,7 +601,7 @@ function NodeRelationshipView({
     const candidateColumns = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(candidates.length, 1)))))
     const candidateRows = Math.ceil(Math.max(candidates.length, 1) / candidateColumns)
     const width = 1600
-    const height = Math.max(1200, 620 + candidateRows * (nodeHeight + gapY))
+    const height = Math.max(1200, 700 + path.length * 280 + candidateRows * (nodeHeight + gapY))
     const layoutCache = relationshipExplorationCache?.history[0] === path[0]?.id ? relationshipExplorationCache : null
     const positions = layoutCache?.positions ?? {}
     const hashOf = (id: string) => [...id].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 17)
@@ -626,9 +626,15 @@ function NodeRelationshipView({
     }
     if (layoutCache) layoutCache.positions = positions
     const candidatePositions: Record<string, { x: number; y: number }> = {}
-    const candidateOccupied = Object.values(positions)
-    candidates.forEach((facility) => {
-      const point = positions[facility.id] ?? placeAround(facility, positions[center.id] ?? positions[path.at(-1)?.id ?? ''] ?? { x: 680, y: 500 }, candidateOccupied)
+    const pathBottom = path.reduce((bottom, facility) => Math.max(bottom, positions[facility.id].y + nodeHeight), 0)
+    const candidateStartY = Math.max(80, pathBottom + 140)
+    const candidateOccupied = Object.values(positions).filter((point) => path.some((facility) => positions[facility.id] === point))
+    candidates.forEach((facility, index) => {
+      const gridPoint = {
+        x: 48 + (index % candidateColumns) * (nodeWidth + 56),
+        y: candidateStartY + Math.floor(index / candidateColumns) * (nodeHeight + gapY),
+      }
+      const point = positions[facility.id] ?? gridPoint
       candidatePositions[facility.id] = point
       positions[facility.id] = point
       candidateOccupied.push(point)
@@ -811,8 +817,16 @@ function NodeRelationshipView({
               )
               const footprintCount = Math.max(3, Math.min(10, Math.round(Math.abs(endY - startY) / 46)))
               const curveDirection = laneIndex % 2 === 0 ? 1 : -1
-              const controlX = (sourceXOffset + targetXOffset) / 2 + curveDirection * Math.min(110, 34 + Math.abs(targetXOffset - sourceXOffset) * .18)
               const controlY = (startY + endY) / 2
+              const controlCandidates = [0, 1, -1, 2, -2].map((offset) => (sourceXOffset + targetXOffset) / 2 + curveDirection * offset * Math.min(110, 34 + Math.abs(targetXOffset - sourceXOffset) * .18))
+              const isBlocked = (controlX: number) => Array.from({ length: 9 }, (_, sampleIndex) => (sampleIndex + 1) / 10).some((progress) => {
+                const inverse = 1 - progress
+                const x = inverse * inverse * sourceXOffset + 2 * inverse * progress * controlX + progress * progress * targetXOffset
+                const y = inverse * inverse * startY + 2 * inverse * progress * controlY + progress * progress * endY
+                return explorationNodes.nodes.some((candidate) => candidate.facility.id !== source.facility.id && candidate.facility.id !== target.facility.id
+                  && x > candidate.x - 12 && x < candidate.x + 250 && y > candidate.y - 12 && y < candidate.y + 84)
+              })
+              const controlX = controlCandidates.find((candidate) => !isBlocked(candidate)) ?? controlCandidates[0]
               const footprints = Array.from({ length: footprintCount }, (_, index) => {
                 const progress = (index + 1) / (footprintCount + 1)
                 const inverse = 1 - progress
