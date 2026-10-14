@@ -1,17 +1,18 @@
 import type { Park } from './types'
 
-export type ParkId = 'land' | 'sea'
+export type ParkId = 'land' | 'sea' | 'external'
 
 export const PARK_DEFINITIONS: readonly { id: ParkId; label: Park }[] = [
   { id: 'land', label: '東京ディズニーランド' },
   { id: 'sea', label: '東京ディズニーシー' },
+  { id: 'external', label: 'パーク外' },
 ]
 
 export const getParkById = (id: ParkId): Park =>
   PARK_DEFINITIONS.find((park) => park.id === id)?.label ?? '東京ディズニーランド'
 
 export const getParkId = (park: Park): ParkId =>
-  park === '東京ディズニーシー' ? 'sea' : 'land'
+  park === '東京ディズニーシー' ? 'sea' : park === 'パーク外' ? 'external' : 'land'
 
 export type AreaId =
   | 'land-entrance'
@@ -80,6 +81,7 @@ export const PARK_AREAS: Record<Park, readonly string[]> = {
     'ミステリアスアイランド',
     'ファンタジースプリングス',
   ],
+  パーク外: [],
 }
 
 const normalizeAreaKey = (value: string) => value

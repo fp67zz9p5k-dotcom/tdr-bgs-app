@@ -90,11 +90,11 @@ const migrateFacility = (raw: Facility | LegacyFacility): Facility => {
     schemaVersion: 10,
     id: value.id,
     name: typeof value.name === 'string' ? value.name : '',
-    area: typeof value.area === 'string'
+    area: value.park === 'パーク外' ? '' : typeof value.area === 'string'
       ? normalizeAreaName(value.area, value.park === '東京ディズニーシー' ? '東京ディズニーシー' : '東京ディズニーランド')
       : '',
     category: normalizeCategory(value.category),
-    park: value.park === '東京ディズニーシー' ? '東京ディズニーシー' : '東京ディズニーランド',
+    park: value.park === '東京ディズニーシー' ? '東京ディズニーシー' : value.park === 'パーク外' ? 'パーク外' : '東京ディズニーランド',
     latitude: typeof value.latitude === 'number' && value.latitude >= -90 && value.latitude <= 90 ? value.latitude : null,
     longitude: typeof value.longitude === 'number' && value.longitude >= -180 && value.longitude <= 180 ? value.longitude : null,
     favorite: typeof value.favorite === 'boolean' ? value.favorite : false,

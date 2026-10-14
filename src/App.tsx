@@ -98,7 +98,7 @@ const blocksHorizontalSwipe = (target: EventTarget | null) => {
   return false
 }
 
-const parks: Park[] = ['東京ディズニーランド', '東京ディズニーシー']
+const parks: Park[] = ['東京ディズニーランド', '東京ディズニーシー', 'パーク外']
 const roundMapCoordinate = (value: number) => Number(value.toFixed(6))
 
 const normalizeMapReturnState = (candidate: unknown): MapReturnState | null => {
@@ -2468,12 +2468,14 @@ function ParkMap({
 const parkCenters: Record<Park, [number, number]> = {
   東京ディズニーランド: [35.6329, 139.8804],
   東京ディズニーシー: [35.6267, 139.8851],
+  パーク外: [35.6298, 139.883],
 }
 const resortCenter: [number, number] = [35.6298, 139.883]
 
 const parkEntrances: Record<Park, [number, number]> = {
   東京ディズニーランド: [35.63506, 139.87923],
   東京ディズニーシー: [35.62745, 139.88957],
+  パーク外: [35.6298, 139.883],
 }
 
 const createSharedMapMarker = ({
@@ -3284,7 +3286,8 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
     () => JSON.stringify(facility) !== initialFacilitySnapshot.current,
     [facility],
   )
-  const canSave = Boolean(facility.name.trim() && facility.area.trim() && parkSelected) && hasChanges && !saving
+  const isOutsidePark = facility.park === 'パーク外'
+  const canSave = Boolean(facility.name.trim() && (isOutsidePark || facility.area.trim()) && parkSelected) && hasChanges && !saving
   const areaOptions = PARK_AREAS[facility.park]
   const hasLegacyArea = Boolean(facility.area) && !isOfficialArea(facility.area, facility.park)
   const update = <K extends keyof Facility>(key: K, value: Facility[K]) => setFacility((current) => ({ ...current, [key]: value }))
@@ -3336,7 +3339,7 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
       await onSave({
         ...facility,
         name: facility.name.trim(),
-        area: normalizeAreaName(facility.area, facility.park),
+        area: isOutsidePark ? '' : normalizeAreaName(facility.area, facility.park),
         relatedFacilityIds,
       }, initialRelatedIds.current)
     } finally {
@@ -3433,10 +3436,10 @@ function FacilityDetail({ initialFacility, allFacilities, isNew, swipeBackSequen
               <select
                 value={facility.area}
                 onChange={(event) => update('area', event.target.value)}
-                disabled={!parkSelected}
-                required
+                disabled={!parkSelected || isOutsidePark}
+                required={!isOutsidePark}
               >
-                <option value="">{parkSelected ? 'エリアを選択' : '先にパークを選択'}</option>
+                <option value="">{isOutsidePark ? 'パーク外はエリアなし' : parkSelected ? 'エリアを選択' : '先にパークを選択'}</option>
                 {hasLegacyArea && <option value={facility.area}>現在の値：{facility.area}</option>}
                 {areaOptions.map((area) => <option value={area} key={area}>{area}</option>)}
               </select>

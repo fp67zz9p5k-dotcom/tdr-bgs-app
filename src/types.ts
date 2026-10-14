@@ -1,7 +1,7 @@
 import { DEFAULT_CATEGORY, type Category } from './categories'
 
 export type { Category } from './categories'
-export type Park = '東京ディズニーランド' | '東京ディズニーシー'
+export type Park = '東京ディズニーランド' | '東京ディズニーシー' | 'パーク外'
 
 export type MapInformationType = 'facility' | 'prop' | 'trivia' | 'hidden_mickey' | 'photo_spot'
 
