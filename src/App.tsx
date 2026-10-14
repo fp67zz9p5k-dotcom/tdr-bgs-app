@@ -2895,11 +2895,14 @@ function LeafletCanvas({
   }, [park, resort, facilities, onSelect, onOpenFacility, position, onPositionChange, staticPreview])
 
   return (
-    <div
-      ref={containerRef}
-      className={`leaflet-map${compact ? ' compact' : ''}${staticPreview ? ' static-preview' : ''}`}
-      data-swipe-navigation-ignore={!staticPreview ? '' : undefined}
-    />
+    <div className="map-canvas-shell">
+      <div
+        ref={containerRef}
+        className={`leaflet-map${compact ? ' compact' : ''}${staticPreview ? ' static-preview' : ''}`}
+        data-swipe-navigation-ignore={!staticPreview ? '' : undefined}
+      />
+      {!staticPreview && <span className="map-north-indicator" aria-label="北が上">N</span>}
+    </div>
   )
 }
 
