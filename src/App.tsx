@@ -2333,7 +2333,7 @@ function ParkMap({
   }
   const resetMapFilters = () => {
     onFilterSettingsChange({ ...filterSettings, visibleCategories: CATEGORY_DEFINITIONS.map((category) => category.value) })
-    setVisibleAffiliations(allAffiliations)
+    if (park === 'resort') setVisibleAffiliations(allAffiliations)
     setSelectedId(null)
   }
   const changePark = (nextPark: MapMode) => {
@@ -2419,9 +2419,13 @@ function ParkMap({
                 </div>
               </div>
             )}
+            <div className="filter-summary">
+              <strong>絞り込み</strong>
+              <span>{mappedFacilities.length}件</span>
+            </div>
             <div className="filter-section">
               <span className="filter-section-label">カテゴリ</span>
-              <div className="category-filter">
+              <div className="expanded-category-grid">
               {CATEGORY_DEFINITIONS.map((category) => {
                 const count = categoryCounts.get(category.value) ?? 0
                 const selected = filterSettings.visibleCategories.includes(category.value)
@@ -2435,9 +2439,7 @@ function ParkMap({
                     aria-pressed={selected}
                   >
                     <span aria-hidden="true">{category.icon}</span>
-                    <strong>{category.label}</strong>
-                    <small>{count}件</small>
-                    <b aria-hidden="true">{selected ? '✓' : ''}</b>
+                    {category.label}
                   </button>
                 )
               })}
