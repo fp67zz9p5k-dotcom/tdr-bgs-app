@@ -2608,6 +2608,12 @@ function LeafletCanvas({
     } else {
       map.touchZoomRotate.enable()
       map.touchZoomRotate.disableRotation()
+      if (resort) {
+        map.once('load', () => {
+          // style読み込み後にも、保存ビューや初期化順序に左右されずリゾート向きを確定する。
+          map.setBearing(getResortMapBearing())
+        })
+      }
     }
     const diagnosticEntry: MapDiagnosticEntry = {
       instanceId,
