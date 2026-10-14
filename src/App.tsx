@@ -2269,7 +2269,7 @@ function ParkMap({
   type MapMode = Park | 'resort'
   type MapAffiliation = 'land' | 'sea' | 'external'
   const allAffiliations: MapAffiliation[] = ['land', 'sea', 'external']
-  const [park, setPark] = useState<MapMode>(initialState?.park ?? '東京ディズニーランド')
+  const [park, setPark] = useState<MapMode>(initialState?.park ?? 'resort')
   const [visibleAffiliations, setVisibleAffiliations] = useState<MapAffiliation[]>(allAffiliations)
   const [selectedId, setSelectedId] = useState<string | null>(initialState?.selectedFacilityId ?? null)
   const [filtersOpen, setFiltersOpen] = useState(false)
