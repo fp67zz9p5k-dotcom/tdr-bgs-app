@@ -2333,7 +2333,7 @@ function ParkMap({
   }
   const resetMapFilters = () => {
     onFilterSettingsChange({ ...filterSettings, visibleCategories: CATEGORY_DEFINITIONS.map((category) => category.value) })
-    if (park === 'resort') setVisibleAffiliations(allAffiliations)
+    setVisibleAffiliations(allAffiliations)
     setSelectedId(null)
   }
   const changePark = (nextPark: MapMode) => {
