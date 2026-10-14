@@ -1110,17 +1110,7 @@ export default function App() {
           <button type="button" className={draftCategories.length === 0 ? 'active' : ''} onClick={() => setDraftCategories([])}>
             カテゴリすべて
           </button>
-          {CATEGORY_DEFINITIONS.map((category) => (
-            <button
-              type="button"
-              className={draftCategories.includes(category.value) ? 'active' : ''}
-              aria-pressed={draftCategories.includes(category.value)}
-              key={category.id}
-              onClick={() => toggleDraftCategory(category.value)}
-            >
-              <span aria-hidden="true">{category.icon}</span>{category.label}
-            </button>
-          ))}
+          <CategoryFilterOptions selectedCategories={draftCategories} onToggle={toggleDraftCategory} />
         </div>
       </div>
       <div className="filter-section">
@@ -2225,6 +2215,30 @@ function PrimaryNavigationIcon({ page }: { page: PrimaryNavigationPage }) {
   )
 }
 
+function CategoryFilterOptions({
+  selectedCategories,
+  onToggle,
+}: {
+  selectedCategories: Category[]
+  onToggle: (category: Category) => void
+}) {
+  return (
+    <>
+      {CATEGORY_DEFINITIONS.map((category) => (
+        <button
+          type="button"
+          className={selectedCategories.includes(category.value) ? 'active' : ''}
+          aria-pressed={selectedCategories.includes(category.value)}
+          key={category.id}
+          onClick={() => onToggle(category.value)}
+        >
+          <span aria-hidden="true">{category.icon}</span>{category.label}
+        </button>
+      ))}
+    </>
+  )
+}
+
 function ParkMap({
   facilities,
   filterSettings,
@@ -2412,7 +2426,7 @@ function ParkMap({
             {park === 'resort' && (
               <div className="filter-section">
                 <span className="filter-section-label">所属先</span>
-                <div className="category-filter" aria-label="所属先で絞り込み">
+                <div className="filter-chip-row category-filter park-filter-options" aria-label="所属先で絞り込み">
                   {([['land', 'ランド'], ['sea', 'シー'], ['external', 'パーク外']] as const).map(([value, label]) => (
                     <button type="button" key={value} className={visibleAffiliations.includes(value) ? 'active' : ''} onClick={() => setVisibleAffiliations((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} aria-pressed={visibleAffiliations.includes(value)}>{label}</button>
                   ))}
@@ -2426,23 +2440,10 @@ function ParkMap({
             <div className="filter-section">
               <span className="filter-section-label">カテゴリ</span>
               <div className="expanded-category-grid">
-              {CATEGORY_DEFINITIONS.map((category) => {
-                const count = categoryCounts.get(category.value) ?? 0
-                const selected = filterSettings.visibleCategories.includes(category.value)
-                return (
-                  <button
-                    type="button"
-                    key={category.id}
-                    className={selected ? 'active' : ''}
-                    disabled={count === 0}
-                    onClick={() => toggleCategory(category.value)}
-                    aria-pressed={selected}
-                  >
-                    <span aria-hidden="true">{category.icon}</span>
-                    {category.label}
-                  </button>
-                )
-              })}
+                <CategoryFilterOptions
+                  selectedCategories={filterSettings.visibleCategories}
+                  onToggle={toggleCategory}
+                />
               </div>
             </div>
             <footer className="map-filter-actions">
