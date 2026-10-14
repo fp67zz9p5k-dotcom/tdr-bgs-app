@@ -2318,7 +2318,7 @@ function ParkMap({
     registeredFacilities.filter((facility) => facility.category === category.value).length,
   ])), [registeredFacilities])
   const activeFilterCount = CATEGORY_DEFINITIONS.length - filterSettings.visibleCategories.length
-    + (allAffiliations.length - visibleAffiliations.length)
+    + (park === 'resort' ? allAffiliations.length - visibleAffiliations.length : 0)
   const updateVisibleCategories = (visibleCategories: Category[]) => {
     onFilterSettingsChange({ ...filterSettings, visibleCategories })
     const selectedFacility = registeredFacilities.find((facility) => facility.id === selectedId)
@@ -2333,7 +2333,7 @@ function ParkMap({
   }
   const resetMapFilters = () => {
     onFilterSettingsChange({ ...filterSettings, visibleCategories: CATEGORY_DEFINITIONS.map((category) => category.value) })
-    setVisibleAffiliations(allAffiliations)
+    if (park === 'resort') setVisibleAffiliations(allAffiliations)
     setSelectedId(null)
   }
   const changePark = (nextPark: MapMode) => {
@@ -2409,14 +2409,16 @@ function ParkMap({
               <div><p className="eyebrow">FILTER</p><h2 id="map-filter-title">絞り込み</h2></div>
               <button type="button" onClick={() => setFiltersOpen(false)} aria-label="絞り込みを閉じる">×</button>
             </header>
-            <div className="filter-section">
-              <span className="filter-section-label">所属先</span>
-              <div className="category-filter" aria-label="所属先で絞り込み">
-                {([['land', 'ランド'], ['sea', 'シー'], ['external', 'パーク外']] as const).map(([value, label]) => (
-                  <button type="button" key={value} className={visibleAffiliations.includes(value) ? 'active' : ''} onClick={() => setVisibleAffiliations((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} aria-pressed={visibleAffiliations.includes(value)}>{label}</button>
-                ))}
+            {park === 'resort' && (
+              <div className="filter-section">
+                <span className="filter-section-label">所属先</span>
+                <div className="category-filter" aria-label="所属先で絞り込み">
+                  {([['land', 'ランド'], ['sea', 'シー'], ['external', 'パーク外']] as const).map(([value, label]) => (
+                    <button type="button" key={value} className={visibleAffiliations.includes(value) ? 'active' : ''} onClick={() => setVisibleAffiliations((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} aria-pressed={visibleAffiliations.includes(value)}>{label}</button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <div className="filter-section">
               <span className="filter-section-label">カテゴリ</span>
               <div className="category-filter">
