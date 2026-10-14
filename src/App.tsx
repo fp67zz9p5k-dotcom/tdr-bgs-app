@@ -1107,10 +1107,7 @@ export default function App() {
       <div className="filter-section">
         <span className="filter-section-label">カテゴリ</span>
         <div className="expanded-category-grid">
-          <button type="button" className={draftCategories.length === 0 ? 'active' : ''} onClick={() => setDraftCategories([])}>
-            カテゴリすべて
-          </button>
-          <CategoryFilterOptions selectedCategories={draftCategories} onToggle={toggleDraftCategory} />
+          <CategoryFilterOptions selectedCategories={draftCategories} onToggle={toggleDraftCategory} onSelectAll={() => setDraftCategories([])} />
         </div>
       </div>
       <div className="filter-section">
@@ -2218,12 +2215,22 @@ function PrimaryNavigationIcon({ page }: { page: PrimaryNavigationPage }) {
 function CategoryFilterOptions({
   selectedCategories,
   onToggle,
+  onSelectAll,
 }: {
   selectedCategories: Category[]
   onToggle: (category: Category) => void
+  onSelectAll: () => void
 }) {
   return (
     <>
+      <button
+        type="button"
+        className={selectedCategories.length === 0 || selectedCategories.length === CATEGORY_DEFINITIONS.length ? 'active' : ''}
+        onClick={onSelectAll}
+        aria-pressed={selectedCategories.length === 0 || selectedCategories.length === CATEGORY_DEFINITIONS.length}
+      >
+        カテゴリすべて
+      </button>
       {CATEGORY_DEFINITIONS.map((category) => (
         <button
           type="button"
@@ -2440,17 +2447,10 @@ function ParkMap({
             <div className="filter-section">
               <span className="filter-section-label">カテゴリ</span>
               <div className="expanded-category-grid">
-                <button
-                  type="button"
-                  className={filterSettings.visibleCategories.length === CATEGORY_DEFINITIONS.length ? 'active' : ''}
-                  onClick={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}
-                  aria-pressed={filterSettings.visibleCategories.length === CATEGORY_DEFINITIONS.length}
-                >
-                  カテゴリすべて
-                </button>
                 <CategoryFilterOptions
                   selectedCategories={filterSettings.visibleCategories}
                   onToggle={toggleCategory}
+                  onSelectAll={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}
                 />
               </div>
             </div>
