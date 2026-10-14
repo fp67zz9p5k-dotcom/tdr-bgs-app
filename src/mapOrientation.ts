@@ -7,5 +7,6 @@ const PARK_MAP_BEARINGS: Readonly<Record<Park, number>> = {
 }
 
 export const getParkMapBearing = (park: Park) => PARK_MAP_BEARINGS[park]
-// MapLibreの画面投影では負方向に回転すると、シーが左・ランドが右になる。
-export const getResortMapBearing = () => -68
+// イクスピアリ〜オリエンタルランド本社前の道路軸に合わせたリゾート専用方位。
+// シー→ランドの軸も同方向なので、シーが左・ランドが右になる。
+export const getResortMapBearing = () => 30
