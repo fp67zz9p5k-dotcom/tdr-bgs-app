@@ -2440,6 +2440,14 @@ function ParkMap({
             <div className="filter-section">
               <span className="filter-section-label">カテゴリ</span>
               <div className="expanded-category-grid">
+                <button
+                  type="button"
+                  className={filterSettings.visibleCategories.length === CATEGORY_DEFINITIONS.length ? 'active' : ''}
+                  onClick={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}
+                  aria-pressed={filterSettings.visibleCategories.length === CATEGORY_DEFINITIONS.length}
+                >
+                  カテゴリすべて
+                </button>
                 <CategoryFilterOptions
                   selectedCategories={filterSettings.visibleCategories}
                   onToggle={toggleCategory}
