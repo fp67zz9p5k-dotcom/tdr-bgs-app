@@ -2574,8 +2574,9 @@ function LeafletCanvas({
     const mode = position ? 'editor' : 'park'
     const center = resort ? resortCenter : parkCenters[park]
     const defaultBearing = resort ? getResortMapBearing() : getParkMapBearing(park)
-    const preservedView = !position && mapViewRef.current?.park === park ? mapViewRef.current : null
-    const staticPreviewBearing = staticPreview ? getParkMapBearing(park) : null
+    // リゾート表示はランド／シーの保存ビューを流用せず、リゾート専用の向きを初期適用する。
+    const preservedView = !position && !resort && mapViewRef.current?.park === park ? mapViewRef.current : null
+    const staticPreviewBearing = staticPreview ? (resort ? getResortMapBearing() : getParkMapBearing(park)) : null
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -2596,7 +2597,7 @@ function LeafletCanvas({
     })
     if (staticPreview) {
       map.touchZoomRotate.disable()
-      map.once('load', () => map.jumpTo({ bearing: staticPreviewBearing ?? getParkMapBearing(park) }))
+      map.once('load', () => map.jumpTo({ bearing: staticPreviewBearing ?? (resort ? getResortMapBearing() : getParkMapBearing(park)) }))
     } else {
       map.touchZoomRotate.enable()
       map.touchZoomRotate.disableRotation()
