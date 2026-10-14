@@ -37,6 +37,8 @@ import {
 } from './types'
 
 type ReturnPage = 'home' | 'map' | 'relationships'
+type MapMode = Park | 'resort'
+type MapAffiliation = 'land' | 'sea' | 'external'
 type Screen =
   | { page: 'home' }
   | { page: 'map' }
@@ -53,6 +55,9 @@ type MapViewState = {
 }
 
 type MapReturnState = MapViewState & {
+  mode: MapMode
+  visibleAffiliations: MapAffiliation[]
+  visibleCategories: Category[]
   selectedFacilityId: string | null
   scrollY: number
 }
@@ -115,6 +120,13 @@ const normalizeMapReturnState = (candidate: unknown): MapReturnState | null => {
   ) return null
   return {
     park: value.park as Park,
+    mode: value.mode === 'resort' ? 'resort' : value.park as Park,
+    visibleAffiliations: Array.isArray(value.visibleAffiliations)
+      ? value.visibleAffiliations.filter((item): item is MapAffiliation => ['land', 'sea', 'external'].includes(item as string))
+      : ['land', 'sea', 'external'],
+    visibleCategories: Array.isArray(value.visibleCategories)
+      ? value.visibleCategories.filter((item): item is Category => CATEGORY_DEFINITIONS.some((category) => category.value === item))
+      : [],
     center: [value.center[0], value.center[1]],
     zoom: value.zoom as number,
     bearing: value.bearing as number,
@@ -1711,6 +1723,9 @@ export default function App() {
             if (facility.latitude === null || facility.longitude === null) return
             const state: MapReturnState = {
               park: facility.park,
+              mode: facility.park,
+              visibleAffiliations: ['land', 'sea', 'external'],
+              visibleCategories: mapFilterSettings.visibleCategories,
               center: [facility.longitude, facility.latitude],
               zoom: 17,
               bearing: getParkMapBearing(facility.park),
@@ -2266,13 +2281,19 @@ function ParkMap({
   onBack: () => void
   onOpenFacility: (facility: Facility, state: MapReturnState) => void
 }) {
-  type MapMode = Park | 'resort'
-  type MapAffiliation = 'land' | 'sea' | 'external'
   const allAffiliations: MapAffiliation[] = ['land', 'sea', 'external']
-  const [park, setPark] = useState<MapMode>(initialState?.park ?? 'resort')
-  const [visibleAffiliations, setVisibleAffiliations] = useState<MapAffiliation[]>(allAffiliations)
+  const [park, setPark] = useState<MapMode>(initialState?.mode ?? initialState?.park ?? 'resort')
+  const [visibleAffiliations, setVisibleAffiliations] = useState<MapAffiliation[]>(initialState?.visibleAffiliations ?? allAffiliations)
   const [selectedId, setSelectedId] = useState<string | null>(initialState?.selectedFacilityId ?? null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  useEffect(() => {
+    if (!initialState) return
+    const restoredCategories = initialState.visibleCategories
+    const currentCategories = filterSettings.visibleCategories
+    if (restoredCategories.length === currentCategories.length
+      && restoredCategories.every((category) => currentCategories.includes(category))) return
+    onFilterSettingsChange({ ...filterSettings, visibleCategories: restoredCategories })
+  }, [initialState, filterSettings, onFilterSettingsChange])
   const mapViewRef = useRef<MapViewState | null>(initialState
     ? {
         park: initialState.park,
@@ -2284,26 +2305,32 @@ function ParkMap({
     : null)
   const parkRef = useRef(park)
   const selectedIdRef = useRef(selectedId)
+  const visibleAffiliationsRef = useRef(visibleAffiliations)
   parkRef.current = park
   selectedIdRef.current = selectedId
+  visibleAffiliationsRef.current = visibleAffiliations
 
   useEffect(() => registerNavigationStateGetter(() => {
-    const currentPark = parkRef.current === 'resort' ? '東京ディズニーランド' : parkRef.current
+    const currentMode = parkRef.current
+    const currentPark = currentMode === 'resort' ? '東京ディズニーランド' : currentMode
     const center = parkCenters[currentPark]
     const currentView = mapViewRef.current ?? {
       park: currentPark,
       center: [center[1], center[0]] as [number, number],
       zoom: 16.5,
-      bearing: getParkMapBearing(currentPark),
+      bearing: currentMode === 'resort' ? getResortMapBearing() : getParkMapBearing(currentPark),
       pitch: 0,
     }
     return {
       ...currentView,
+      mode: currentMode,
+      visibleAffiliations: visibleAffiliationsRef.current,
+      visibleCategories: filterSettings.visibleCategories,
       park: currentPark,
       selectedFacilityId: selectedIdRef.current,
       scrollY: window.scrollY,
     }
-  }), [registerNavigationStateGetter])
+  }), [filterSettings.visibleCategories, registerNavigationStateGetter])
 
   useEffect(() => {
     if (!initialState?.scrollY) return
@@ -2373,16 +2400,19 @@ function ParkMap({
       park: mapPark,
       center: [center[1], center[0]] as [number, number],
       zoom: park === 'resort' ? 13.2 : 16.5,
-      bearing: getParkMapBearing(mapPark),
+      bearing: park === 'resort' ? getResortMapBearing() : getParkMapBearing(mapPark),
       pitch: 0,
     }
     onOpenFacility(facility, {
       ...currentView,
+      mode: park,
+      visibleAffiliations,
+      visibleCategories: filterSettings.visibleCategories,
       park: mapPark,
       selectedFacilityId: facility.id,
       scrollY: window.scrollY,
     })
-  }, [mapPark, onOpenFacility, park])
+  }, [filterSettings.visibleCategories, mapPark, onOpenFacility, park, visibleAffiliations])
 
   return (
     <main className="app-shell map-page screen-enter">
