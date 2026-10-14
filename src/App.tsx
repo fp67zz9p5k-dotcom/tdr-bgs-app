@@ -2391,11 +2391,10 @@ function ParkMap({
         {registeredFacilities.length > 0 && mappedFacilities.length === 0 && (
           <p className="map-empty">現在の絞り込み条件では表示できる施設がありません。「絞り込み」からカテゴリを選択してください。</p>
         )}
-      </div>
-
         <button type="button" className={`map-floating-filter-button${activeFilterCount ? ' active' : ''}`} onClick={() => setFiltersOpen(true)} aria-label="絞り込みを開く">
           <span aria-hidden="true">☷</span>{activeFilterCount > 0 && <b>{activeFilterCount}</b>}
         </button>
+      </div>
 
         {filtersOpen && (
         <div className="map-filter-backdrop" role="presentation" onClick={() => setFiltersOpen(false)}>
