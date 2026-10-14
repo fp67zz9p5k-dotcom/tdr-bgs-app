@@ -1168,7 +1168,6 @@ fieldset { margin: 0; padding: 0; border: 0; }
 }
 .map-page .map-canvas-shell { position: relative; min-height: 0; flex: 1 1 auto; }
 .map-page .map-canvas-shell .leaflet-map { height: 100%; }
-.map-north-indicator { position: absolute; z-index: 4; top: 12px; right: 12px; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #c9bda9; border-radius: 50%; background: #fffdf8e8; color: #153e5c; font-size: 12px; font-weight: 900; pointer-events: none; }
 
 @media (max-width: 767px) {
   .map-page > .detail-header {

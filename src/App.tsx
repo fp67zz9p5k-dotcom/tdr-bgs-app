@@ -17,7 +17,7 @@ import {
 } from './db'
 import { RelationshipGraph } from './RelationshipGraph'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
-import { getParkMapBearing } from './mapOrientation'
+import { getParkMapBearing, getResortMapBearing } from './mapOrientation'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
 import { getAreaDefinitions, getAreaId, getAreaLabel, getParkById, getParkId, isOfficialArea, normalizeAreaName, PARK_AREAS, type AreaId, type ParkId } from './areas'
 import {
@@ -2552,6 +2552,7 @@ function LeafletCanvas({
     const instanceId = `tdr-map-${++mapDiagnosticSequence}`
     const mode = position ? 'editor' : 'park'
     const center = resort ? resortCenter : parkCenters[park]
+    const defaultBearing = resort ? getResortMapBearing() : getParkMapBearing(park)
     const preservedView = !position && mapViewRef.current?.park === park ? mapViewRef.current : null
     const staticPreviewBearing = staticPreview ? getParkMapBearing(park) : null
     const map = new maplibregl.Map({
@@ -2561,7 +2562,7 @@ function LeafletCanvas({
         ? [position.longitude, position.latitude]
         : preservedView?.center ?? [center[1], center[0]],
       zoom: position ? (staticPreview ? 16.8 : 18) : preservedView?.zoom ?? (resort ? 13.2 : 16.5),
-      bearing: staticPreviewBearing ?? preservedView?.bearing ?? getParkMapBearing(park),
+      bearing: staticPreviewBearing ?? preservedView?.bearing ?? defaultBearing,
       pitch: preservedView?.pitch ?? 0,
       dragPan: !staticPreview,
       dragRotate: false,
@@ -2901,7 +2902,6 @@ function LeafletCanvas({
         className={`leaflet-map${compact ? ' compact' : ''}${staticPreview ? ' static-preview' : ''}`}
         data-swipe-navigation-ignore={!staticPreview ? '' : undefined}
       />
-      {!staticPreview && <span className="map-north-indicator" aria-label="北が上">N</span>}
     </div>
   )
 }
