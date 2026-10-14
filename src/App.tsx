@@ -2242,7 +2242,11 @@ function ParkMap({
   onBack: () => void
   onOpenFacility: (facility: Facility, state: MapReturnState) => void
 }) {
-  const [park, setPark] = useState<Park>(initialState?.park ?? '東京ディズニーランド')
+  type MapMode = Park | 'resort'
+  type MapAffiliation = 'land' | 'sea' | 'external'
+  const allAffiliations: MapAffiliation[] = ['land', 'sea', 'external']
+  const [park, setPark] = useState<MapMode>(initialState?.park ?? '東京ディズニーランド')
+  const [visibleAffiliations, setVisibleAffiliations] = useState<MapAffiliation[]>(allAffiliations)
   const [selectedId, setSelectedId] = useState<string | null>(initialState?.selectedFacilityId ?? null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const mapViewRef = useRef<MapViewState | null>(initialState
@@ -2260,7 +2264,7 @@ function ParkMap({
   selectedIdRef.current = selectedId
 
   useEffect(() => registerNavigationStateGetter(() => {
-    const currentPark = parkRef.current
+    const currentPark = parkRef.current === 'resort' ? '東京ディズニーランド' : parkRef.current
     const center = parkCenters[currentPark]
     const currentView = mapViewRef.current ?? {
       park: currentPark,
@@ -2295,12 +2299,16 @@ function ParkMap({
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [filtersOpen])
-  const registeredFacilities = useMemo(
-    () => facilities.filter(
-      (facility) => facility.park === park && facility.latitude !== null && facility.longitude !== null,
-    ),
-    [facilities, park],
+  const mapPark = park === 'resort' ? '東京ディズニーランド' : park
+  const getAffiliation = (facility: Facility): MapAffiliation => (
+    facility.park === '東京ディズニーランド' ? 'land'
+      : facility.park === '東京ディズニーシー' ? 'sea' : 'external'
   )
+  const registeredFacilities = useMemo(() => facilities.filter((facility) => {
+    if (facility.latitude === null || facility.longitude === null) return false
+    if (!visibleAffiliations.includes(getAffiliation(facility))) return false
+    return park === 'resort' || facility.park === park
+  }), [facilities, park, visibleAffiliations])
   const mappedFacilities = useMemo(
     () => registeredFacilities.filter((facility) => filterSettings.visibleCategories.includes(facility.category)),
     [registeredFacilities, filterSettings.visibleCategories],
@@ -2310,6 +2318,7 @@ function ParkMap({
     registeredFacilities.filter((facility) => facility.category === category.value).length,
   ])), [registeredFacilities])
   const activeFilterCount = CATEGORY_DEFINITIONS.length - filterSettings.visibleCategories.length
+    + (allAffiliations.length - visibleAffiliations.length)
   const updateVisibleCategories = (visibleCategories: Category[]) => {
     onFilterSettingsChange({ ...filterSettings, visibleCategories })
     const selectedFacility = registeredFacilities.find((facility) => facility.id === selectedId)
@@ -2322,27 +2331,27 @@ function ParkMap({
       ? filterSettings.visibleCategories.filter((value) => value !== category)
       : [...filterSettings.visibleCategories, category])
   }
-  const changePark = (nextPark: Park) => {
+  const changePark = (nextPark: MapMode) => {
     mapViewRef.current = null
     setPark(nextPark)
     setSelectedId(null)
   }
   const openFacilityFromMap = useCallback((facility: Facility) => {
-    const center = parkCenters[park]
+    const center = parkCenters[mapPark]
     const currentView = mapViewRef.current ?? {
-      park,
+      park: mapPark,
       center: [center[1], center[0]] as [number, number],
-      zoom: 16.5,
-      bearing: getParkMapBearing(park),
+      zoom: park === 'resort' ? 13.2 : 16.5,
+      bearing: getParkMapBearing(mapPark),
       pitch: 0,
     }
     onOpenFacility(facility, {
       ...currentView,
-      park,
+      park: mapPark,
       selectedFacilityId: facility.id,
       scrollY: window.scrollY,
     })
-  }, [onOpenFacility, park])
+  }, [mapPark, onOpenFacility, park])
 
   return (
     <main className="app-shell map-page screen-enter">
@@ -2352,17 +2361,13 @@ function ParkMap({
       </header>
       <div className="map-content">
         <div className="map-toolbar">
-          <div className="park-switch" role="group" aria-label="パークを切り替え">
-            {parks.map((item) => (
+          <div className="park-switch" role="group" aria-label="表示範囲を切り替え">
+            {(['resort', '東京ディズニーランド', '東京ディズニーシー'] as MapMode[]).map((item) => (
               <button type="button" className={park === item ? 'active' : ''} key={item} onClick={() => changePark(item)}>
-                {item === '東京ディズニーランド' ? 'ランド' : 'シー'}
+                {item === 'resort' ? 'リゾート' : item === '東京ディズニーランド' ? 'ランド' : 'シー'}
               </button>
             ))}
           </div>
-          <button type="button" className={`map-filter-button${activeFilterCount ? ' active' : ''}`} onClick={() => setFiltersOpen(true)}>
-            <span aria-hidden="true">≡</span> 絞り込み
-            {activeFilterCount > 0 && <b>{activeFilterCount}</b>}
-          </button>
         </div>
 
         <div className="map-count-status" aria-live="polite">
@@ -2371,7 +2376,8 @@ function ParkMap({
         </div>
 
         <LeafletCanvas
-          park={park}
+          park={mapPark}
+          resort={park === 'resort'}
           facilities={mappedFacilities}
           selectedId={selectedId}
           onSelect={setSelectedId}
@@ -2387,7 +2393,11 @@ function ParkMap({
         )}
       </div>
 
-      {filtersOpen && (
+        <button type="button" className={`map-floating-filter-button${activeFilterCount ? ' active' : ''}`} onClick={() => setFiltersOpen(true)} aria-label="絞り込みを開く">
+          <span aria-hidden="true">☷</span>{activeFilterCount > 0 && <b>{activeFilterCount}</b>}
+        </button>
+
+        {filtersOpen && (
         <div className="map-filter-backdrop" role="presentation" onClick={() => setFiltersOpen(false)}>
           <section className="map-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="map-filter-title" onClick={(event) => event.stopPropagation()}>
             <div className="map-filter-sheet-handle" aria-hidden="true" />
@@ -2398,6 +2408,12 @@ function ParkMap({
             <div className="map-filter-actions">
               <button type="button" onClick={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}>すべて表示</button>
               <button type="button" onClick={() => updateVisibleCategories([])}>すべて解除</button>
+            </div>
+            <div className="map-affiliation-filter" aria-label="所属先で絞り込み">
+              <strong>所属先</strong>
+              {([['land', 'ランド'], ['sea', 'シー'], ['external', 'パーク外']] as const).map(([value, label]) => (
+                <button type="button" key={value} className={visibleAffiliations.includes(value) ? 'selected' : ''} onClick={() => setVisibleAffiliations((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} aria-pressed={visibleAffiliations.includes(value)}>{label}</button>
+              ))}
             </div>
             <div className="map-category-filter-grid">
               {CATEGORY_DEFINITIONS.map((category) => {
@@ -2433,6 +2449,7 @@ const parkCenters: Record<Park, [number, number]> = {
   東京ディズニーランド: [35.6329, 139.8804],
   東京ディズニーシー: [35.6267, 139.8851],
 }
+const resortCenter: [number, number] = [35.6298, 139.883]
 
 const parkEntrances: Record<Park, [number, number]> = {
   東京ディズニーランド: [35.63506, 139.87923],
@@ -2504,6 +2521,7 @@ diagnosticWindow.__TDR_MAP_DEBUG__ = { maps: mapDiagnosticRegistry }
 
 function LeafletCanvas({
   park,
+  resort = false,
   facilities = [],
   selectedId,
   onSelect,
@@ -2515,6 +2533,7 @@ function LeafletCanvas({
   staticPreview = false,
 }: {
   park: Park
+  resort?: boolean
   facilities?: Facility[]
   selectedId?: string | null
   onSelect?: (id: string | null) => void
@@ -2533,7 +2552,7 @@ function LeafletCanvas({
     if (!containerRef.current) return
     const instanceId = `tdr-map-${++mapDiagnosticSequence}`
     const mode = position ? 'editor' : 'park'
-    const center = parkCenters[park]
+    const center = resort ? resortCenter : parkCenters[park]
     const preservedView = !position && mapViewRef.current?.park === park ? mapViewRef.current : null
     const staticPreviewBearing = staticPreview ? getParkMapBearing(park) : null
     const map = new maplibregl.Map({
@@ -2542,7 +2561,7 @@ function LeafletCanvas({
       center: position
         ? [position.longitude, position.latitude]
         : preservedView?.center ?? [center[1], center[0]],
-      zoom: position ? (staticPreview ? 16.8 : 18) : preservedView?.zoom ?? 16.5,
+      zoom: position ? (staticPreview ? 16.8 : 18) : preservedView?.zoom ?? (resort ? 13.2 : 16.5),
       bearing: staticPreviewBearing ?? preservedView?.bearing ?? getParkMapBearing(park),
       pitch: preservedView?.pitch ?? 0,
       dragPan: !staticPreview,
@@ -2580,7 +2599,7 @@ function LeafletCanvas({
       compact: true,
       customAttribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> · OpenFreeMap',
     }))
-    if (!position) {
+    if (!position && !resort) {
       const entrance = parkEntrances[park]
       const entranceElement = document.createElement('span')
       entranceElement.className = 'map-entrance-marker'
@@ -2874,7 +2893,7 @@ function LeafletCanvas({
       window.visualViewport?.removeEventListener('resize', resizeMap)
       map.remove()
     }
-  }, [park, facilities, onSelect, onOpenFacility, position, onPositionChange, staticPreview])
+  }, [park, resort, facilities, onSelect, onOpenFacility, position, onPositionChange, staticPreview])
 
   return (
     <div

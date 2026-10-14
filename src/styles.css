@@ -1035,6 +1035,13 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .map-filter-button > span { font-size: 16px; }
 .map-filter-button b { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #b74838; color: white; font-size: 9px; }
 .map-filter-button.active { border-color: #b58a48; background: #fff7e8; color: #735626; }
+.map-floating-filter-button { position: absolute; z-index: 5; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #c9bda9; border-radius: 50%; background: #fffdf8eF; color: #435c67; font-size: 20px; box-shadow: 0 3px 12px #172b3830; }
+.map-floating-filter-button.active { border-color: #b58a48; background: #fff1d5; color: #735626; }
+.map-floating-filter-button b { position: absolute; top: -3px; right: -3px; display: grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 10px; background: #b74838; color: white; font-size: 9px; }
+.map-affiliation-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
+.map-affiliation-filter strong { width: 100%; color: #66767c; font-size: 10px; }
+.map-affiliation-filter button { padding: 7px 12px; border: 1px solid #d8cebf; border-radius: 16px; background: #fff; color: #6a7477; font-size: 10px; font-weight: 800; }
+.map-affiliation-filter button.selected { border-color: #153e5c; background: #153e5c; color: white; }
 .map-count-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -9px; color: #68767b; font-size: 10px; }
 .map-count-status strong { color: #193f57; }
 .map-count-status button { padding: 5px 7px; border: 0; background: transparent; color: #9b5f2b; font-size: 9px; font-weight: 800; text-decoration: underline; }
@@ -1139,6 +1146,7 @@ fieldset { margin: 0; padding: 0; border: 0; }
 }
 
 .map-page > .map-content {
+  position: relative;
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
