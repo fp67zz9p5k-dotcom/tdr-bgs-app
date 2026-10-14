@@ -6,4 +6,5 @@ const PARK_MAP_BEARINGS: Readonly<Record<Park, number>> = {
 }
 
 export const getParkMapBearing = (park: Park) => PARK_MAP_BEARINGS[park]
-export const getResortMapBearing = () => 0
+// 公式全体図の「シーを左、ランドを右」に近い見え方に合わせる。
+export const getResortMapBearing = () => 68
