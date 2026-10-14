@@ -1097,6 +1097,22 @@ fieldset { margin: 0; padding: 0; border: 0; }
 .map-category-filter-grid button:disabled { opacity: .35; }
 .map-filter-future-note { margin: 12px 0; padding: 9px; border-radius: 9px; background: #f1eadf; color: #737a79; font-size: 9px; line-height: 1.55; }
 .map-filter-done { width: 100%; min-height: 48px; border: 2px solid #d5a75b; border-radius: 14px; background: #153e5c; color: white; font-size: 12px; font-weight: 900; }
+.map-filter-sheet.filter-panel { display: grid; gap: 12px; width: min(100%, 620px); max-width: min(100%, 620px); margin: 0 auto; padding: 8px 18px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; border: 0; border-radius: 24px 24px 0 0; background: #fffdf8; }
+.map-filter-sheet .filter-section { gap: 6px; }
+.map-filter-sheet .category-filter { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0; overflow: visible; }
+.map-filter-sheet .category-filter button { display: flex; align-items: center; justify-content: center; width: auto; min-height: 36px; padding: 7px 10px; border: 1px solid #d6c9b5; border-radius: 16px; background: #fff; color: #6a7477; font-size: 10px; font-weight: 800; line-height: 1.25; }
+.map-filter-sheet .category-filter button.active { border-color: #153e5c; background: #153e5c; color: #fff; }
+.map-filter-sheet .category-filter button:disabled { opacity: .35; }
+.map-filter-sheet .category-filter button span { font-size: 13px; }
+.map-filter-sheet .category-filter button strong { min-width: 0; }
+.map-filter-sheet .category-filter button small { margin-left: 4px; color: #7a756d; font-size: 9px; }
+.map-filter-sheet .category-filter button.active small { color: #dce8ed; }
+.map-filter-sheet .category-filter button b { margin-left: 4px; color: #d7a74e; font-size: 13px; }
+.map-filter-sheet .category-filter button.active b { color: #fff; }
+.map-filter-sheet .map-filter-actions { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 10px; margin: 0; padding: 12px 0 0; border-top: 1px solid #d8cdbd; }
+.map-filter-sheet .map-filter-actions button { min-height: 46px; border-radius: 15px; font-size: 13px; font-weight: 900; }
+.map-filter-sheet .map-filter-reset { border: 1px solid #cbbda8; background: transparent; color: #68777d; }
+.map-filter-sheet .map-filter-done { width: auto; min-height: 46px; border: 1px solid #b67c2e; border-radius: 15px; background: #153e5c; color: #fff; box-shadow: inset 0 0 0 1px #e3bd78, 0 7px 18px #153e5c25; }
 .leaflet-popup-facility { padding: 3px 2px; border: 0; background: transparent; color: #153e5c; font-weight: 800; text-decoration: underline; }
 .leaflet-control-attribution { font-size: 9px !important; }
 .map-entrance-marker { display: grid; place-items: center; width: 72px; height: 25px; border: 2px solid white; border-radius: 14px; background: #153e5c; color: white; font-size: 9px; font-weight: 900; letter-spacing: .08em; box-shadow: 0 3px 9px #172b3866; }

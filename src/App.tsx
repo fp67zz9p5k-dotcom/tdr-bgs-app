@@ -2331,6 +2331,11 @@ function ParkMap({
       ? filterSettings.visibleCategories.filter((value) => value !== category)
       : [...filterSettings.visibleCategories, category])
   }
+  const resetMapFilters = () => {
+    onFilterSettingsChange({ ...filterSettings, visibleCategories: CATEGORY_DEFINITIONS.map((category) => category.value) })
+    setVisibleAffiliations(allAffiliations)
+    setSelectedId(null)
+  }
   const changePark = (nextPark: MapMode) => {
     mapViewRef.current = null
     setPark(nextPark)
@@ -2372,7 +2377,7 @@ function ParkMap({
 
         <div className="map-count-status" aria-live="polite">
           <span>表示中 <strong>{mappedFacilities.length}件</strong>／登録{registeredFacilities.length}件</span>
-          {activeFilterCount > 0 && <button type="button" onClick={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}>絞り込みを解除</button>}
+          {activeFilterCount > 0 && <button type="button" onClick={resetMapFilters}>絞り込みを解除</button>}
         </div>
 
         <LeafletCanvas
@@ -2398,23 +2403,23 @@ function ParkMap({
 
         {filtersOpen && (
         <div className="map-filter-backdrop" role="presentation" onClick={() => setFiltersOpen(false)}>
-          <section className="map-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="map-filter-title" onClick={(event) => event.stopPropagation()}>
+          <section className="map-filter-sheet filter-panel" role="dialog" aria-modal="true" aria-labelledby="map-filter-title" onClick={(event) => event.stopPropagation()}>
             <div className="map-filter-sheet-handle" aria-hidden="true" />
             <header>
-              <div><p className="eyebrow">MAP FILTER</p><h2 id="map-filter-title">表示するカテゴリ</h2></div>
+              <div><p className="eyebrow">FILTER</p><h2 id="map-filter-title">絞り込み</h2></div>
               <button type="button" onClick={() => setFiltersOpen(false)} aria-label="絞り込みを閉じる">×</button>
             </header>
-            <div className="map-filter-actions">
-              <button type="button" onClick={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}>すべて表示</button>
-              <button type="button" onClick={() => updateVisibleCategories([])}>すべて解除</button>
+            <div className="filter-section">
+              <span className="filter-section-label">所属先</span>
+              <div className="category-filter" aria-label="所属先で絞り込み">
+                {([['land', 'ランド'], ['sea', 'シー'], ['external', 'パーク外']] as const).map(([value, label]) => (
+                  <button type="button" key={value} className={visibleAffiliations.includes(value) ? 'active' : ''} onClick={() => setVisibleAffiliations((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} aria-pressed={visibleAffiliations.includes(value)}>{label}</button>
+                ))}
+              </div>
             </div>
-            <div className="map-affiliation-filter" aria-label="所属先で絞り込み">
-              <strong>所属先</strong>
-              {([['land', 'ランド'], ['sea', 'シー'], ['external', 'パーク外']] as const).map(([value, label]) => (
-                <button type="button" key={value} className={visibleAffiliations.includes(value) ? 'selected' : ''} onClick={() => setVisibleAffiliations((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} aria-pressed={visibleAffiliations.includes(value)}>{label}</button>
-              ))}
-            </div>
-            <div className="map-category-filter-grid">
+            <div className="filter-section">
+              <span className="filter-section-label">カテゴリ</span>
+              <div className="category-filter">
               {CATEGORY_DEFINITIONS.map((category) => {
                 const count = categoryCounts.get(category.value) ?? 0
                 const selected = filterSettings.visibleCategories.includes(category.value)
@@ -2422,7 +2427,7 @@ function ParkMap({
                   <button
                     type="button"
                     key={category.id}
-                    className={selected ? 'selected' : ''}
+                    className={selected ? 'active' : ''}
                     disabled={count === 0}
                     onClick={() => toggleCategory(category.value)}
                     aria-pressed={selected}
@@ -2434,9 +2439,12 @@ function ParkMap({
                   </button>
                 )
               })}
+              </div>
             </div>
-            <p className="map-filter-future-note">将来、プロップス・トリビア・隠れミッキー・撮影ポイントもここへ追加できます。</p>
-            <button type="button" className="map-filter-done" onClick={() => setFiltersOpen(false)}>この条件で表示</button>
+            <footer className="map-filter-actions">
+              <button type="button" className="map-filter-reset" onClick={resetMapFilters}>リセット</button>
+              <button type="button" className="map-filter-done" onClick={() => setFiltersOpen(false)}>適用</button>
+            </footer>
           </section>
         </div>
       )}
