@@ -9,4 +9,4 @@ const PARK_MAP_BEARINGS: Readonly<Record<Park, number>> = {
 export const getParkMapBearing = (park: Park) => PARK_MAP_BEARINGS[park]
 // 既存のリゾート中心・ランド・シー代表座標をMapLibreの投影式へ入れ、
 // シー→ランドの画面X差が正になるリゾート専用方位。
-export const getResortMapBearing = () => -145
+export const getResortMapBearing = () => -135
