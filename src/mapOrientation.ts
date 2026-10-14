@@ -7,6 +7,6 @@ const PARK_MAP_BEARINGS: Readonly<Record<Park, number>> = {
 }
 
 export const getParkMapBearing = (park: Park) => PARK_MAP_BEARINGS[park]
-// イクスピアリ〜オリエンタルランド本社前の南南西軸を水平化し、
-// シー→ランドの投影が左→右になるリゾート専用方位。
-export const getResortMapBearing = () => 22
+// 既存のリゾート中心・ランド・シー代表座標をMapLibreの投影式へ入れ、
+// シー→ランドの画面X差が正になるリゾート専用方位。
+export const getResortMapBearing = () => -68
