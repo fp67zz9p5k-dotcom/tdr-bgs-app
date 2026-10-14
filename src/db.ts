@@ -10,7 +10,7 @@ import {
   type TextEntry,
 } from './types'
 import { normalizeAreaName } from './areas'
-import { normalizeCategory } from './categories'
+import { CATEGORY_DEFINITIONS, normalizeCategory } from './categories'
 
 const DB_NAME = 'tdr-archive'
 const STORE_NAME = 'facilities'
@@ -227,12 +227,13 @@ export const getMapFilterSettings = async (): Promise<MapFilterSettings> => {
     request.onsuccess = () => {
       const value = request.result?.value as Partial<MapFilterSettings> | undefined
       const defaults = defaultMapFilterSettings()
+      const visibleCategories = Array.isArray(value?.visibleCategories)
+        ? Array.from(new Set(value.visibleCategories.map(normalizeCategory)))
+        : defaults.visibleCategories
       resolve({
         ...defaults,
         ...value,
-        visibleCategories: Array.isArray(value?.visibleCategories)
-          ? Array.from(new Set(value.visibleCategories.map(normalizeCategory)))
-          : defaults.visibleCategories,
+        visibleCategories: visibleCategories.length === CATEGORY_DEFINITIONS.length ? [] : visibleCategories,
         visibleInformationTypes: Array.isArray(value?.visibleInformationTypes)
           ? value.visibleInformationTypes.filter((type): type is MapFilterSettings['visibleInformationTypes'][number] =>
             ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot'].includes(type))

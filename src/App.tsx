@@ -1674,9 +1674,12 @@ export default function App() {
         const normalizedMapSettings: MapFilterSettings = {
           ...defaults,
           ...importedMapFilterSettings,
-          visibleCategories: Array.isArray(importedMapFilterSettings.visibleCategories)
-            ? Array.from(new Set(importedMapFilterSettings.visibleCategories.map((category) => getCategoryDefinition(category).value)))
-            : defaults.visibleCategories,
+          visibleCategories: (() => {
+            const values = Array.isArray(importedMapFilterSettings.visibleCategories)
+              ? Array.from(new Set(importedMapFilterSettings.visibleCategories.map((category) => getCategoryDefinition(category).value)))
+              : defaults.visibleCategories
+            return values.length === CATEGORY_DEFINITIONS.length ? [] : values
+          })(),
           visibleInformationTypes: Array.isArray(importedMapFilterSettings.visibleInformationTypes)
             ? importedMapFilterSettings.visibleInformationTypes.filter((type) =>
               ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot'].includes(type))
@@ -2225,9 +2228,9 @@ function CategoryFilterOptions({
     <>
       <button
         type="button"
-        className={selectedCategories.length === 0 || selectedCategories.length === CATEGORY_DEFINITIONS.length ? 'active' : ''}
+        className={selectedCategories.length === 0 ? 'active' : ''}
         onClick={onSelectAll}
-        aria-pressed={selectedCategories.length === 0 || selectedCategories.length === CATEGORY_DEFINITIONS.length}
+        aria-pressed={selectedCategories.length === 0}
       >
         カテゴリすべて
       </button>
@@ -2331,19 +2334,21 @@ function ParkMap({
     return park === 'resort' || facility.park === park
   }), [facilities, park, visibleAffiliations])
   const mappedFacilities = useMemo(
-    () => registeredFacilities.filter((facility) => filterSettings.visibleCategories.includes(facility.category)),
+    () => filterSettings.visibleCategories.length === 0
+      ? registeredFacilities
+      : registeredFacilities.filter((facility) => filterSettings.visibleCategories.includes(facility.category)),
     [registeredFacilities, filterSettings.visibleCategories],
   )
   const categoryCounts = useMemo(() => new Map(CATEGORY_DEFINITIONS.map((category) => [
     category.value,
     registeredFacilities.filter((facility) => facility.category === category.value).length,
   ])), [registeredFacilities])
-  const activeFilterCount = CATEGORY_DEFINITIONS.length - filterSettings.visibleCategories.length
+  const activeFilterCount = (filterSettings.visibleCategories.length === 0 ? 0 : CATEGORY_DEFINITIONS.length - filterSettings.visibleCategories.length)
     + (park === 'resort' ? allAffiliations.length - visibleAffiliations.length : 0)
   const updateVisibleCategories = (visibleCategories: Category[]) => {
     onFilterSettingsChange({ ...filterSettings, visibleCategories })
     const selectedFacility = registeredFacilities.find((facility) => facility.id === selectedId)
-    if (selectedId && (!selectedFacility || !visibleCategories.includes(selectedFacility.category))) {
+    if (selectedId && visibleCategories.length > 0 && (!selectedFacility || !visibleCategories.includes(selectedFacility.category))) {
       setSelectedId(null)
     }
   }
@@ -2353,7 +2358,7 @@ function ParkMap({
       : [...filterSettings.visibleCategories, category])
   }
   const resetMapFilters = () => {
-    onFilterSettingsChange({ ...filterSettings, visibleCategories: CATEGORY_DEFINITIONS.map((category) => category.value) })
+    onFilterSettingsChange({ ...filterSettings, visibleCategories: [] })
     if (park === 'resort') setVisibleAffiliations(allAffiliations)
     setSelectedId(null)
   }
@@ -2450,7 +2455,7 @@ function ParkMap({
                 <CategoryFilterOptions
                   selectedCategories={filterSettings.visibleCategories}
                   onToggle={toggleCategory}
-                  onSelectAll={() => updateVisibleCategories(CATEGORY_DEFINITIONS.map((category) => category.value))}
+                  onSelectAll={() => updateVisibleCategories([])}
                 />
               </div>
             </div>

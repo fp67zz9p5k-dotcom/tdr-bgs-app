@@ -12,16 +12,8 @@ export type MapFilterSettings = {
 }
 
 export const defaultMapFilterSettings = (): MapFilterSettings => ({
-  visibleCategories: [
-    'アトラクション',
-    'レストラン',
-    'ショップ',
-    'エリア',
-    '橋・建造物',
-    '広場',
-    'ランドマーク',
-    'その他',
-  ],
+  // 空配列は「カテゴリすべて」を表す。個別カテゴリ全選択とは区別する。
+  visibleCategories: [],
   visibleInformationTypes: ['facility'],
   clusteringEnabled: false,
 })
