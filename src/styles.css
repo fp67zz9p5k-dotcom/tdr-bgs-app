@@ -1423,12 +1423,13 @@ label,
   font-family: var(--font-content);
   font-weight: 400;
 }
-.relationship-page.is-node-mode .relationship-scroll-region { min-height: calc(100dvh - 92px - env(safe-area-inset-bottom)); }
+.relationship-page.is-node-mode .relationship-scroll-region { min-height: calc(100dvh - var(--relationship-header-height, 60px)); }
+.relationship-page.is-node-mode { padding-bottom: 0; }
 .relationship-page.is-node-mode .relationship-description { display: none; }
 .relationship-page.is-node-mode .relationship-header { padding: calc(8px + env(safe-area-inset-top)) 12px 8px; }
 .relationship-page.is-node-mode .relationship-header .eyebrow { margin-bottom: 2px; font-size: 9px; }
 .relationship-page.is-node-mode .relationship-header h1 { font-size: 17px; line-height: 1.2; }
-.relationship-page.is-node-mode .node-relationship-view { display: flex; width: 100%; min-height: calc(100dvh - var(--primary-bottom-nav-height, 60px) - env(safe-area-inset-bottom)); flex: 1 1 auto; flex-direction: column; padding: 10px 12px calc(var(--primary-bottom-nav-height, 60px) + 16px + env(safe-area-inset-bottom)); }
+.relationship-page.is-node-mode .node-relationship-view { display: flex; width: 100%; min-height: calc(100dvh - var(--primary-bottom-nav-height, 60px) - env(safe-area-inset-bottom)); flex: 1 1 auto; flex-direction: column; padding: 10px 12px calc(var(--primary-bottom-nav-height, 60px) + 6px + env(safe-area-inset-bottom)); }
 .relationship-page.is-node-mode .node-relationship-viewport { min-height: 0; flex: 1 1 auto; }
 
 @media (max-width: 767px) {
@@ -1436,7 +1437,7 @@ label,
   .relationship-view-switch button { min-height: 28px; padding-inline: 6px; }
   .node-relationship-view { padding: 12px; }
   .node-relationship-viewport { min-height: 450px; }
-  .relationship-page.is-node-mode .node-relationship-view { min-height: calc(100dvh - var(--primary-bottom-nav-height, 60px) - env(safe-area-inset-bottom)); padding: 8px 8px calc(var(--primary-bottom-nav-height, 60px) + 16px + env(safe-area-inset-bottom)); }
+  .relationship-page.is-node-mode .node-relationship-view { min-height: calc(100dvh - var(--primary-bottom-nav-height, 60px) - env(safe-area-inset-bottom)); padding: 8px 8px calc(var(--primary-bottom-nav-height, 60px) + 6px + env(safe-area-inset-bottom)); }
 }
 .map-coordinate-section { gap: 13px; }
 .coordinate-canvas { width: 100%; aspect-ratio: 16 / 9; cursor: crosshair; }
