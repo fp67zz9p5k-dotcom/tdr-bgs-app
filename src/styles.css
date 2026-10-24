@@ -115,7 +115,7 @@ button > svg { display: block; flex: 0 0 auto; }
 .settings-section-heading div { display: grid; gap: 2px; }
 .settings-section-heading strong { color: #314852; font-size: 13px; }
 .settings-section-heading small { color: #748087; font-size: 10px; }
-.settings-message { margin: 0; color: #77572f; font-size: 11px; line-height: 1.5; }
+.settings-message { box-sizing: border-box; max-width: 100%; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; color: #77572f; font: inherit; font-size: 11px; line-height: 1.5; }
 .settings-clear-button { width: 100%; padding: 10px; border: 1px solid #c9bda9; border-radius: 10px; background: #f8f5ed; color: #8c493d; font-size: 11px; font-weight: 800; }
 .settings-clear-button:disabled { opacity: .45; cursor: default; }
 .settings-future-note { margin: 0; padding: 12px; border: 1px dashed #cfc3af; border-radius: 12px; color: #829096; font-size: 11px; text-align: center; }
