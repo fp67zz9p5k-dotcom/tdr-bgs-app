@@ -3722,13 +3722,18 @@ function PropsEditor({ props, onChange }: { props: Prop[]; onChange: (props: Pro
 function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (photos: Photo[]) => void }) {
   const [dragging, setDragging] = useState(false)
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState('')
   const selectedPhoto = photos.find((photo) => photo.id === selectedPhotoId)
 
   const addPhotos = async (files: FileList | null) => {
     if (!files) return
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'))
-    const added = await Promise.all(imageFiles.map(fileToPhoto))
-    onChange([...photos, ...added])
+    setPhotoError('')
+    const results = await Promise.allSettled(imageFiles.map(fileToPhoto))
+    const added = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
+    const failed = results.filter((result) => result.status === 'rejected').length
+    if (added.length) onChange([...photos, ...added])
+    if (failed) setPhotoError(`${failed}枚の写真を読み込めませんでした。対応形式の画像を選び直してください。`)
   }
   const updatePhoto = (id: string, changes: Partial<Photo>) =>
     onChange(photos.map((photo) => photo.id === id ? { ...photo, ...changes } : photo))
@@ -3760,6 +3765,7 @@ function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (photos:
         <span>または</span>
         <label className="photo-add">＋ ファイルを選ぶ<input type="file" accept="image/*" multiple onChange={(event) => { void addPhotos(event.target.files); event.target.value = '' }} /></label>
       </div>
+      {photoError && <p className="settings-message" role="alert">{photoError}</p>}
       <div className="photo-grid">
         {photos.map((photo, index) => (
           <article className="photo-card" key={photo.id}>
@@ -3798,16 +3804,48 @@ function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (photos:
   )
 }
 
-const fileToDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result))
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
-  })
+const optimizeImage = (file: File): Promise<string> => new Promise((resolve, reject) => {
+  const objectUrl = URL.createObjectURL(file)
+  const image = new Image()
+  image.onload = () => {
+    try {
+      const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight))
+      const width = Math.max(1, Math.round(image.naturalWidth * scale))
+      const height = Math.max(1, Math.round(image.naturalHeight * scale))
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context) throw new Error('canvas-unavailable')
+      context.drawImage(image, 0, 0, width, height)
+      let hasTransparency = false
+      if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+        const pixels = context.getImageData(0, 0, width, height).data
+        for (let index = 3; index < pixels.length; index += 4) {
+          if (pixels[index] < 255) {
+            hasTransparency = true
+            break
+          }
+        }
+      }
+      const dataUrl = canvas.toDataURL(hasTransparency ? 'image/png' : 'image/jpeg', hasTransparency ? undefined : 0.82)
+      if (!dataUrl || dataUrl === 'data:,') throw new Error('image-conversion-failed')
+      resolve(dataUrl)
+    } catch (error) {
+      reject(error)
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }
+  image.onerror = () => {
+    URL.revokeObjectURL(objectUrl)
+    reject(new Error('image-decode-failed'))
+  }
+  image.src = objectUrl
+})
 
 const fileToPhoto = async (file: File): Promise<Photo> => {
-  const dataUrl = await fileToDataUrl(file)
+  const dataUrl = await optimizeImage(file)
   return {
       id: crypto.randomUUID(),
       name: file.name,
