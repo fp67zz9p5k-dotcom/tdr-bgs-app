@@ -39,6 +39,15 @@ import {
 type ReturnPage = 'home' | 'map' | 'relationships'
 type MapMode = Park | 'resort'
 type MapAffiliation = 'land' | 'sea' | 'external'
+type PhotoCompressionState = {
+  total: number
+  processed: number
+  succeeded: number
+  failed: number
+  beforeBytes: number
+  afterBytes: number
+  running: boolean
+}
 type Screen =
   | { page: 'home' }
   | { page: 'map' }
@@ -492,6 +501,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
   const [backupDiagnostic, setBackupDiagnostic] = useState('')
+  const [photoCompression, setPhotoCompression] = useState<PhotoCompressionState | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [homeHeaderProgress, setHomeHeaderProgress] = useState(0)
   const [swipeBackSequence, setSwipeBackSequence] = useState(0)
@@ -1680,6 +1690,53 @@ export default function App() {
     ].join('\n'))
   }
 
+  const compressExistingPhotos = async () => {
+    if (photoCompression?.running) return
+    const photoRefs = facilities.flatMap((facility) => [
+      ...facility.photos.map((photo) => ({ facilityId: facility.id, photoId: photo.id, propId: null as string | null })),
+      ...facility.props.flatMap((prop) => prop.photos.map((photo) => ({ facilityId: facility.id, photoId: photo.id, propId: prop.id }))),
+    ])
+    if (!photoRefs.length) return
+    const beforeBytes = facilities.reduce((total, facility) => total
+      + [...facility.photos, ...facility.props.flatMap((prop) => prop.photos)].reduce((sum, photo) => sum + new TextEncoder().encode(photo.dataUrl).byteLength, 0), 0)
+    if (!window.confirm(`既存写真${photoRefs.length}枚を圧縮します。写真データが変更されるため、先にバックアップJSONを保存してください。処理を開始しますか？`)) return
+    const state: PhotoCompressionState = { total: photoRefs.length, processed: 0, succeeded: 0, failed: 0, beforeBytes, afterBytes: beforeBytes, running: true }
+    setPhotoCompression(state)
+    for (const photoRef of photoRefs) {
+      try {
+        const latestFacilities = await getFacilities()
+        const facility = latestFacilities.find((item) => item.id === photoRef.facilityId)
+        if (!facility) throw new Error('facility-not-found')
+        const currentPhoto = photoRef.propId
+          ? facility.props.find((prop) => prop.id === photoRef.propId)?.photos.find((photo) => photo.id === photoRef.photoId)
+          : facility.photos.find((photo) => photo.id === photoRef.photoId)
+        if (!currentPhoto) throw new Error('photo-not-found')
+        const compressedDataUrl = await optimizePhotoDataUrl(currentPhoto.dataUrl)
+        await validateImageDataUrl(compressedDataUrl)
+        const currentBytes = new TextEncoder().encode(currentPhoto.dataUrl).byteLength
+        const compressedBytes = new TextEncoder().encode(compressedDataUrl).byteLength
+        if (compressedBytes < currentBytes) {
+          const updated: Facility = photoRef.propId
+            ? { ...facility, props: facility.props.map((prop) => prop.id === photoRef.propId
+              ? { ...prop, photos: prop.photos.map((photo) => photo.id === photoRef.photoId ? { ...photo, dataUrl: compressedDataUrl } : photo) }
+              : prop) }
+            : { ...facility, photos: facility.photos.map((photo) => photo.id === photoRef.photoId ? { ...photo, dataUrl: compressedDataUrl } : photo) }
+          await saveFacility(updated)
+          setFacilities((current) => current.map((item) => item.id === updated.id ? updated : item))
+          state.succeeded += 1
+          state.afterBytes -= currentBytes - compressedBytes
+        }
+      } catch {
+        state.failed += 1
+      } finally {
+        state.processed += 1
+        setPhotoCompression({ ...state })
+        await new Promise((resolve) => window.setTimeout(resolve, 0))
+      }
+    }
+    setPhotoCompression({ ...state, running: false })
+  }
+
   const importBackup = async (file: File | undefined) => {
     if (!file) return
     try {
@@ -1750,6 +1807,9 @@ export default function App() {
       setBackupMessage(error instanceof Error ? `読み込み失敗：${error.message}` : '読み込みに失敗しました。')
     }
   }
+
+  const existingPhotoList = facilities.flatMap((facility) => [...facility.photos, ...facility.props.flatMap((prop) => prop.photos)])
+  const existingPhotoBytes = existingPhotoList.reduce((total, photo) => total + new TextEncoder().encode(photo.dataUrl).byteLength, 0)
 
   if (screen.page === 'view') {
     return (
@@ -1925,6 +1985,15 @@ export default function App() {
               </div>
               {backupMessage && <p className="settings-message" role="status">{backupMessage}</p>}
               {backupDiagnostic && <pre className="settings-message" role="status">{backupDiagnostic}</pre>}
+              <div className="photo-compression-panel">
+                <strong>既存写真を圧縮</strong>
+                <p className="settings-message">対象：{existingPhotoList.length}枚 / 現在容量：{(existingPhotoBytes / 1024 / 1024).toFixed(2)}MiB / 圧縮後予想：変換後に実測（元データより増える画像は変更なし）</p>
+                <button type="button" onClick={() => { void compressExistingPhotos() }} disabled={facilities.length === 0 || photoCompression?.running}>既存写真を圧縮</button>
+                {photoCompression && <p className="settings-message" role="status">
+                  {photoCompression.running ? '処理中：' : '完了：'}{photoCompression.processed}/{photoCompression.total}枚、成功 {photoCompression.succeeded}枚、失敗・変更なし {photoCompression.processed - photoCompression.succeeded}枚
+                  {!photoCompression.running && `\n圧縮前：${(photoCompression.beforeBytes / 1024 / 1024).toFixed(2)}MiB / 圧縮後：${(photoCompression.afterBytes / 1024 / 1024).toFixed(2)}MiB / 削減：${((photoCompression.beforeBytes - photoCompression.afterBytes) / 1024 / 1024).toFixed(2)}MiB（${photoCompression.beforeBytes ? (((photoCompression.beforeBytes - photoCompression.afterBytes) / photoCompression.beforeBytes) * 100).toFixed(1) : '0.0'}%）`}
+                </p>}
+              </div>
             </section>
             <section className="settings-section">
               <div className="settings-section-heading">
@@ -3849,8 +3918,7 @@ function PhotoEditor({ photos, onChange }: { photos: Photo[]; onChange: (photos:
   )
 }
 
-const optimizeImage = (file: File): Promise<string> => new Promise((resolve, reject) => {
-  const objectUrl = URL.createObjectURL(file)
+const optimizeImageSource = (source: string, sourceType: string, revokeSource = false): Promise<string> => new Promise((resolve, reject) => {
   const image = new Image()
   image.onload = () => {
     try {
@@ -3864,7 +3932,7 @@ const optimizeImage = (file: File): Promise<string> => new Promise((resolve, rej
       if (!context) throw new Error('canvas-unavailable')
       context.drawImage(image, 0, 0, width, height)
       let hasTransparency = false
-      if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+      if (sourceType !== 'image/jpeg' && sourceType !== 'image/jpg') {
         const pixels = context.getImageData(0, 0, width, height).data
         for (let index = 3; index < pixels.length; index += 4) {
           if (pixels[index] < 255) {
@@ -3879,14 +3947,31 @@ const optimizeImage = (file: File): Promise<string> => new Promise((resolve, rej
     } catch (error) {
       reject(error)
     } finally {
-      URL.revokeObjectURL(objectUrl)
+      if (revokeSource) URL.revokeObjectURL(source)
     }
   }
   image.onerror = () => {
-    URL.revokeObjectURL(objectUrl)
+    if (revokeSource) URL.revokeObjectURL(source)
     reject(new Error('image-decode-failed'))
   }
-  image.src = objectUrl
+  image.src = source
+})
+
+const optimizeImage = (file: File): Promise<string> => {
+  const objectUrl = URL.createObjectURL(file)
+  return optimizeImageSource(objectUrl, file.type, true)
+}
+
+const optimizePhotoDataUrl = (dataUrl: string): Promise<string> => {
+  const sourceType = dataUrl.match(/^data:([^;,]+)/i)?.[1] ?? ''
+  return optimizeImageSource(dataUrl, sourceType)
+}
+
+const validateImageDataUrl = (dataUrl: string): Promise<void> => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.onload = () => resolve()
+  image.onerror = () => reject(new Error('compressed-image-invalid'))
+  image.src = dataUrl
 })
 
 const fileToPhoto = async (file: File): Promise<Photo> => {
