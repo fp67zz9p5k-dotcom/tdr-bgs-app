@@ -8,7 +8,8 @@ import {
   getMapFilterSettings,
   getRecentFacilityIds,
   getRelationshipGraphSettings,
-  importFacilities,
+  applyImportedFacilities,
+  normalizeImportedFacilities,
   saveRecentFacilityIds,
   saveFacility,
   saveFacilities,
@@ -47,6 +48,13 @@ type PhotoCompressionState = {
   beforeBytes: number
   afterBytes: number
   running: boolean
+}
+type BackupImportDraft = {
+  facilities: Facility[]
+  mode: 'merge' | 'replace'
+  relationshipSettings?: RelationshipGraphSettings
+  mapFilterSettings?: MapFilterSettings
+  recentFacilityIds?: string[]
 }
 type Screen =
   | { page: 'home' }
@@ -502,6 +510,7 @@ export default function App() {
   const [backupMessage, setBackupMessage] = useState('')
   const [backupDiagnostic, setBackupDiagnostic] = useState('')
   const [photoCompression, setPhotoCompression] = useState<PhotoCompressionState | null>(null)
+  const [backupImportDraft, setBackupImportDraft] = useState<BackupImportDraft | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [homeHeaderProgress, setHomeHeaderProgress] = useState(0)
   const [swipeBackSequence, setSwipeBackSequence] = useState(0)
@@ -1741,11 +1750,12 @@ export default function App() {
     if (!file) return
     try {
       const parsed: unknown = JSON.parse(await file.text())
-      const backupFacilities = Array.isArray(parsed)
+      const rawFacilities = Array.isArray(parsed)
         ? parsed
         : typeof parsed === 'object' && parsed !== null && 'facilities' in parsed
           ? (parsed as { facilities: unknown }).facilities
           : null
+      const facilitiesToImport = normalizeImportedFacilities(rawFacilities)
       const importedRelationshipSettings = !Array.isArray(parsed)
         && typeof parsed === 'object'
         && parsed !== null
@@ -1765,44 +1775,74 @@ export default function App() {
         && 'mapFilterSettings' in parsed
         ? (parsed as { mapFilterSettings?: MapFilterSettings }).mapFilterSettings
         : undefined
-      if (!window.confirm('バックアップを読み込みます。同じ施設はバックアップの内容で上書きされます。よろしいですか？')) return
-      const count = await importFacilities(backupFacilities)
-      if (importedRelationshipSettings) {
+      setBackupImportDraft({
+        facilities: facilitiesToImport,
+        mode: 'merge',
+        relationshipSettings: importedRelationshipSettings,
+        mapFilterSettings: importedMapFilterSettings,
+        recentFacilityIds: importedRecentFacilityIds,
+      })
+      setBackupMessage('読み込み方式を選択してください。')
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? `読み込み準備失敗：${error.message}` : 'バックアップを検証できませんでした。')
+    }
+  }
+
+  const applyBackupImport = async () => {
+    if (!backupImportDraft) return
+    const currentIds = new Set(facilities.map((facility) => facility.id))
+    const addedCount = backupImportDraft.facilities.filter((facility) => !currentIds.has(facility.id)).length
+    const overwrittenCount = backupImportDraft.facilities.length - addedCount
+    const deletedCount = backupImportDraft.mode === 'replace'
+      ? facilities.filter((facility) => !backupImportDraft.facilities.some((item) => item.id === facility.id)).length
+      : 0
+    const settings = [
+      backupImportDraft.relationshipSettings ? '関係図設定' : '',
+      backupImportDraft.mapFilterSettings ? 'マップ絞り込み設定' : '',
+      backupImportDraft.recentFacilityIds ? '閲覧履歴' : '',
+    ].filter(Boolean)
+    const modeLabel = backupImportDraft.mode === 'replace' ? '完全復元' : '追加・上書き'
+    const message = `${modeLabel}を実行します。\nバックアップ施設：${backupImportDraft.facilities.length}件\n新規追加：${addedCount}件\n上書き：${overwrittenCount}件\n削除：${deletedCount}件\n復元する設定：${settings.length ? settings.join('、') : 'なし'}\n${backupImportDraft.mode === 'replace' ? '現在の施設は置き換えられます。' : 'バックアップにない現在の施設は維持されます。'}\n実行前に現在のデータのバックアップを保存済みか確認してください。続行しますか？`
+    if (!window.confirm(message)) return
+    try {
+      await applyImportedFacilities(backupImportDraft.facilities, backupImportDraft.mode)
+      setBackupImportDraft(null)
+      if (backupImportDraft.relationshipSettings) {
         const normalizedSettings: RelationshipGraphSettings = {
-          selectedId: typeof importedRelationshipSettings.selectedId === 'string'
-            ? importedRelationshipSettings.selectedId
+          selectedId: typeof backupImportDraft.relationshipSettings.selectedId === 'string'
+            ? backupImportDraft.relationshipSettings.selectedId
             : null,
         }
         await saveRelationshipGraphSettings(normalizedSettings)
         setRelationshipSettings(normalizedSettings)
       }
-      if (importedRecentFacilityIds) {
-        const normalizedRecentIds = Array.from(new Set(importedRecentFacilityIds)).slice(0, 10)
+      if (backupImportDraft.recentFacilityIds) {
+        const normalizedRecentIds = Array.from(new Set(backupImportDraft.recentFacilityIds)).slice(0, 10)
         await saveRecentFacilityIds(normalizedRecentIds)
         setRecentFacilityIds(normalizedRecentIds)
       }
-      if (importedMapFilterSettings) {
+      if (backupImportDraft.mapFilterSettings) {
         const defaults = defaultMapFilterSettings()
         const normalizedMapSettings: MapFilterSettings = {
           ...defaults,
-          ...importedMapFilterSettings,
+          ...backupImportDraft.mapFilterSettings,
           visibleCategories: (() => {
-            const values = Array.isArray(importedMapFilterSettings.visibleCategories)
-              ? Array.from(new Set(importedMapFilterSettings.visibleCategories.map((category) => getCategoryDefinition(category).value)))
+            const values = Array.isArray(backupImportDraft.mapFilterSettings?.visibleCategories)
+              ? Array.from(new Set(backupImportDraft.mapFilterSettings.visibleCategories.map((category) => getCategoryDefinition(category).value)))
               : defaults.visibleCategories
             return values.length === CATEGORY_DEFINITIONS.length ? [] : values
           })(),
-          visibleInformationTypes: Array.isArray(importedMapFilterSettings.visibleInformationTypes)
-            ? importedMapFilterSettings.visibleInformationTypes.filter((type) =>
+          visibleInformationTypes: Array.isArray(backupImportDraft.mapFilterSettings.visibleInformationTypes)
+            ? backupImportDraft.mapFilterSettings.visibleInformationTypes.filter((type) =>
               ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot'].includes(type))
             : defaults.visibleInformationTypes,
-          clusteringEnabled: importedMapFilterSettings.clusteringEnabled === true,
+          clusteringEnabled: backupImportDraft.mapFilterSettings.clusteringEnabled === true,
         }
         await saveMapFilterSettings(normalizedMapSettings)
         setMapFilterSettings(normalizedMapSettings)
       }
       await reload()
-      setBackupMessage(`${count}件を復元しました。施設画像も含まれています。`)
+      setBackupMessage(`${backupImportDraft.facilities.length}件を${modeLabel}しました。施設画像も含まれています。`)
     } catch (error) {
       setBackupMessage(error instanceof Error ? `読み込み失敗：${error.message}` : '読み込みに失敗しました。')
     }
@@ -1985,6 +2025,32 @@ export default function App() {
               </div>
               {backupMessage && <p className="settings-message" role="status">{backupMessage}</p>}
               {backupDiagnostic && <pre className="settings-message" role="status">{backupDiagnostic}</pre>}
+              {backupImportDraft && (() => {
+                const currentIds = new Set(facilities.map((facility) => facility.id))
+                const addedCount = backupImportDraft.facilities.filter((facility) => !currentIds.has(facility.id)).length
+                const overwrittenCount = backupImportDraft.facilities.length - addedCount
+                const deletedCount = backupImportDraft.mode === 'replace'
+                  ? facilities.filter((facility) => !backupImportDraft.facilities.some((item) => item.id === facility.id)).length
+                  : 0
+                const settings = [
+                  backupImportDraft.relationshipSettings ? '関係図設定' : '',
+                  backupImportDraft.mapFilterSettings ? 'マップ絞り込み設定' : '',
+                  backupImportDraft.recentFacilityIds ? '閲覧履歴' : '',
+                ].filter(Boolean)
+                return <div className="backup-import-preview">
+                  <strong>読み込み方式を選択</strong>
+                  <div className="backup-import-mode">
+                    <button type="button" className={backupImportDraft.mode === 'merge' ? 'active' : ''} onClick={() => setBackupImportDraft({ ...backupImportDraft, mode: 'merge' })}>追加・上書き</button>
+                    <button type="button" className={backupImportDraft.mode === 'replace' ? 'active' : ''} onClick={() => setBackupImportDraft({ ...backupImportDraft, mode: 'replace' })}>完全復元</button>
+                  </div>
+                  <p className="settings-message">バックアップ施設：{backupImportDraft.facilities.length}件 / 新規追加：{addedCount}件 / 上書き：{overwrittenCount}件 / 削除：{deletedCount}件<br />復元対象：{settings.length ? settings.join('、') : 'なし'}</p>
+                  <p className="settings-message">現在のデータを残す場合は「追加・上書き」、バックアップを正として置き換える場合は「完全復元」を選択してください。実行前に「JSONを書き出す」で現在のデータを退避してください。</p>
+                  <div className="backup-import-actions">
+                    <button type="button" onClick={() => void applyBackupImport()}>この方式で実行</button>
+                    <button type="button" onClick={() => setBackupImportDraft(null)}>キャンセル</button>
+                  </div>
+                </div>
+              })()}
               <div className="photo-compression-panel">
                 <strong>既存写真を圧縮</strong>
                 <p className="settings-message">対象：{existingPhotoList.length}枚 / 現在容量：{(existingPhotoBytes / 1024 / 1024).toFixed(2)}MiB / 圧縮後予想：変換後に実測（元データより増える画像は変更なし）</p>

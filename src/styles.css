@@ -528,6 +528,11 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
 .backup-actions button, .backup-actions label { flex: 1; padding: 9px 8px; text-align: center; border: 1px solid #bcae98; border-radius: 9px; background: white; color: #4f626a; font-size: 11px; font-weight: 800; cursor: pointer; }
 .backup-actions button:disabled { opacity: .45; cursor: default; }
 .backup-actions input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.backup-import-preview { display: grid; gap: 9px; padding: 12px; border: 1px solid #c9bda9; border-radius: 10px; background: #f8f5ed; }
+.backup-import-preview > strong { color: #314852; font-size: 12px; }
+.backup-import-mode, .backup-import-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup-import-mode button, .backup-import-actions button { flex: 1 1 130px; padding: 8px; border: 1px solid #bcae98; border-radius: 8px; background: white; color: #4f626a; font-size: 11px; font-weight: 800; }
+.backup-import-mode button.active, .backup-import-actions button:first-child { background: #8a5f28; color: white; }
 .backup-panel > p { margin: 0; color: #77572f; font-size: 11px; line-height: 1.5; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; margin: 22px 2px 13px; }
 .section-heading h2 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: 24px; }

@@ -163,18 +163,7 @@ export const saveFacilities = async (facilities: Facility[]): Promise<void> => {
 }
 
 export const importFacilities = async (rawFacilities: unknown): Promise<number> => {
-  if (!Array.isArray(rawFacilities)) {
-    throw new Error('施設データの形式が正しくありません。')
-  }
-  const validFacilities = rawFacilities.filter(
-    (value): value is Facility | LegacyFacility =>
-      Boolean(value && typeof value === 'object' && typeof (value as LegacyFacility).id === 'string'),
-  )
-  if (validFacilities.length !== rawFacilities.length) {
-    throw new Error('施設IDがないデータが含まれています。')
-  }
-
-  const facilities = validFacilities.map(migrateFacility)
+  const facilities = normalizeImportedFacilities(rawFacilities)
   const db = await openDatabase()
   const transaction = db.transaction(STORE_NAME, 'readwrite')
   const store = transaction.objectStore(STORE_NAME)
@@ -184,6 +173,38 @@ export const importFacilities = async (rawFacilities: unknown): Promise<number> 
     transaction.onerror = () => reject(transaction.error)
   })
   return facilities.length
+}
+
+export const normalizeImportedFacilities = (rawFacilities: unknown): Facility[] => {
+  if (!Array.isArray(rawFacilities)) throw new Error('施設データの形式が正しくありません。')
+  const validFacilities = rawFacilities.filter(
+    (value): value is Facility | LegacyFacility =>
+      Boolean(value && typeof value === 'object' && typeof (value as LegacyFacility).id === 'string'),
+  )
+  if (validFacilities.length !== rawFacilities.length) throw new Error('施設IDがないデータが含まれています。')
+  const facilities = validFacilities.map(migrateFacility)
+  const ids = new Set<string>()
+  if (facilities.some((facility) => ids.has(facility.id) || !ids.add(facility.id))) {
+    throw new Error('バックアップ内に重複した施設IDがあります。')
+  }
+  return facilities
+}
+
+export const applyImportedFacilities = async (facilities: Facility[], mode: 'merge' | 'replace'): Promise<void> => {
+  const db = await openDatabase()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    if (mode === 'replace') store.clear()
+    facilities.forEach((facility) => {
+      const persistedFacility = { ...facility } as Facility & { tags?: unknown }
+      delete persistedFacility.tags
+      store.put(persistedFacility)
+    })
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+    transaction.onabort = () => reject(transaction.error ?? new Error('施設データの適用が中断されました。'))
+  })
 }
 
 export const deleteFacility = async (id: string): Promise<void> => {
