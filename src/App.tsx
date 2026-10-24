@@ -2017,11 +2017,11 @@ export default function App() {
                 <div><strong>バックアップ</strong><small>施設、写真、関係図設定、閲覧履歴を保存・復元</small></div>
               </div>
               <div className="backup-actions">
-                <button type="button" onClick={exportBackup} disabled={facilities.length === 0}>JSONを書き出す</button>
+                <button type="button" onClick={exportBackup} disabled={facilities.length === 0}>バックアップする</button>
                 <label>バックアップを読み込む
                   <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0], 'merge'); event.target.value = '' }} />
                 </label>
-                <button type="button" onClick={diagnoseBackupSize} disabled={facilities.length === 0}>容量を診断</button>
+                <button type="button" onClick={diagnoseBackupSize} disabled={facilities.length === 0}>容量を確認する</button>
               </div>
               <label className="backup-full-restore">バックアップから完全復元
                 <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0], 'replace'); event.target.value = '' }} />
