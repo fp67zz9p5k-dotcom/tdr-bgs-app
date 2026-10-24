@@ -491,6 +491,7 @@ export default function App() {
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [backupMessage, setBackupMessage] = useState('')
+  const [backupDiagnostic, setBackupDiagnostic] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [homeHeaderProgress, setHomeHeaderProgress] = useState(0)
   const [swipeBackSequence, setSwipeBackSequence] = useState(0)
@@ -1637,6 +1638,48 @@ export default function App() {
     setBackupMessage(`${facilities.length}件をバックアップしました。`)
   }
 
+  const diagnoseBackupSize = () => {
+    const encoder = new TextEncoder()
+    const bytes = (value: unknown, pretty = false) => encoder.encode(JSON.stringify(value, null, pretty ? 2 : undefined)).byteLength
+    const photoBytes = (facility: Facility) => [
+      ...facility.photos,
+      ...facility.props.flatMap((prop) => prop.photos),
+    ].reduce((total, photo) => total + encoder.encode(photo.dataUrl).byteLength, 0)
+    const fields = {
+      facilities: bytes(facilities),
+      photos: facilities.reduce((total, facility) => total + photoBytes(facility), 0),
+      bgs: bytes(facilities.map((facility) => facility.bgs)),
+      trivia: bytes(facilities.map((facility) => facility.trivia)),
+      props: bytes(facilities.map((facility) => facility.props.map(({ photos: _photos, ...prop }) => prop))),
+      relatedFacilityIds: bytes(facilities.map((facility) => facility.relatedFacilityIds)),
+      metadata: bytes(facilities.map(({ bgs: _bgs, trivia: _trivia, props: _props, relatedFacilityIds: _related, photos: _photos, ...metadata }) => metadata)),
+      settings: bytes({ relationshipGraphSettings: relationshipSettings, mapFilterSettings, recentFacilityIds }),
+    }
+    const backup = {
+      format: 'tdr-archive-backup',
+      version: 4,
+      exportedAt: new Date().toISOString(),
+      facilities,
+      relationshipGraphSettings: relationshipSettings,
+      mapFilterSettings,
+      recentFacilityIds,
+    }
+    const total = bytes(backup, true)
+    const largest = facilities
+      .map((facility) => ({ name: facility.name, bytes: bytes(facility), photoBytes: photoBytes(facility) }))
+      .sort((a, b) => b.bytes - a.bytes)
+      .slice(0, 5)
+    setBackupDiagnostic([
+      `バックアップJSON：約${(total / 1024 / 1024).toFixed(2)}MB`,
+      `施設データ：約${(fields.facilities / 1024 / 1024).toFixed(2)}MB`,
+      `写真Data URL合計：約${(fields.photos / 1024 / 1024).toFixed(2)}MB（${facilities.flatMap((facility) => [...facility.photos, ...facility.props.flatMap((prop) => prop.photos)]).length}枚）`,
+      `BGS：約${(fields.bgs / 1024).toFixed(1)}KB / トリビア：約${(fields.trivia / 1024).toFixed(1)}KB`,
+      `プロップ本文：約${(fields.props / 1024).toFixed(1)}KB / 関連ID：約${(fields.relatedFacilityIds / 1024).toFixed(1)}KB`,
+      `その他メタデータ：約${(fields.metadata / 1024).toFixed(1)}KB / 設定：約${(fields.settings / 1024).toFixed(1)}KB`,
+      `容量上位施設：${largest.map((item) => `${item.name} ${(item.bytes / 1024).toFixed(1)}KB（写真 ${(item.photoBytes / 1024).toFixed(1)}KB）`).join('、') || 'なし'}`,
+    ].join('\n'))
+  }
+
   const importBackup = async (file: File | undefined) => {
     if (!file) return
     try {
@@ -1878,8 +1921,10 @@ export default function App() {
                 <label>JSONを読み込む
                   <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0]); event.target.value = '' }} />
                 </label>
+                <button type="button" onClick={diagnoseBackupSize} disabled={facilities.length === 0}>容量を診断</button>
               </div>
               {backupMessage && <p className="settings-message" role="status">{backupMessage}</p>}
+              {backupDiagnostic && <pre className="settings-message" role="status">{backupDiagnostic}</pre>}
             </section>
             <section className="settings-section">
               <div className="settings-section-heading">
