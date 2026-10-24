@@ -507,6 +507,7 @@ export default function App() {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [backupMessage, setBackupMessage] = useState('')
   const [backupDiagnostic, setBackupDiagnostic] = useState('')
   const [photoCompression, setPhotoCompression] = useState<PhotoCompressionState | null>(null)
@@ -620,13 +621,22 @@ export default function App() {
     setFacilities((await getFacilities()).sort((a, b) => a.name.localeCompare(b.name, 'ja')))
   }
 
-  useEffect(() => {
-    Promise.all([
+  const loadData = async () => {
+    setLoading(true)
+    setLoadError('')
+    const results = await Promise.allSettled([
       reload(),
       getRelationshipGraphSettings().then(setRelationshipSettings),
       getMapFilterSettings().then(setMapFilterSettings),
       getRecentFacilityIds().then(setRecentFacilityIds),
-    ]).finally(() => setLoading(false))
+    ])
+    const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+    if (failed.length) setLoadError(`データを読み込めませんでした。保存データは削除していません。もう一度お試しください。${failed[0].reason instanceof Error ? `\n${failed[0].reason.message}` : ''}`)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    void loadData()
   }, [])
 
   useEffect(() => {
@@ -1223,14 +1233,18 @@ export default function App() {
 
   const handleDelete = async (facility: Facility) => {
     if (!window.confirm(`「${facility.name}」を削除しますか？`)) return
-    await deleteFacility(facility.id)
-    setRecentFacilityIds((current) => {
-      const next = current.filter((id) => id !== facility.id)
-      void saveRecentFacilityIds(next)
-      return next
-    })
-    await reload()
-    returnToHome()
+    try {
+      await deleteFacility(facility.id)
+      setRecentFacilityIds((current) => {
+        const next = current.filter((id) => id !== facility.id)
+        void saveRecentFacilityIds(next).catch(() => window.alert('閲覧履歴を更新できませんでした。施設の削除は完了しています。'))
+        return next
+      })
+      await reload()
+      returnToHome()
+    } catch (error) {
+      window.alert(`施設を削除できませんでした。データは変更していません。${error instanceof Error ? `\n${error.message}` : ''}`)
+    }
   }
 
   const captureHomeReturnState = () => {
@@ -1630,11 +1644,15 @@ export default function App() {
 
   const toggleFavorite = async (facility: Facility) => {
     const updated = { ...facility, favorite: !facility.favorite, updatedAt: new Date().toISOString() }
-    await saveFacility(updated)
-    setFacilities((current) => current.map((item) => item.id === updated.id ? updated : item))
-    setScreen((current) => current.page === 'view' && current.facility.id === updated.id
-      ? { ...current, facility: updated }
-      : current)
+    try {
+      await saveFacility(updated)
+      setFacilities((current) => current.map((item) => item.id === updated.id ? updated : item))
+      setScreen((current) => current.page === 'view' && current.facility.id === updated.id
+        ? { ...current, facility: updated }
+        : current)
+    } catch (error) {
+      window.alert(`お気に入りを保存できませんでした。内容は変更していません。${error instanceof Error ? `\n${error.message}` : ''}`)
+    }
   }
 
   const exportBackup = () => {
@@ -1914,7 +1932,7 @@ export default function App() {
           registerNavigationStateGetter={registerMapNavigationStateGetter}
           onFilterSettingsChange={(settings) => {
             setMapFilterSettings(settings)
-            void saveMapFilterSettings(settings)
+              void saveMapFilterSettings(settings).catch(() => setBackupMessage('マップの設定を保存できませんでした。もう一度お試しください。'))
           }}
           onBack={handleMapBack}
           onOpenFacility={(facility, state) => {
@@ -1945,7 +1963,7 @@ export default function App() {
           settings={relationshipSettings}
           onSettingsChange={(settings) => {
             setRelationshipSettings(settings)
-            void saveRelationshipGraphSettings(settings)
+              void saveRelationshipGraphSettings(settings).catch(() => setBackupMessage('関係図の設定を保存できませんでした。もう一度お試しください。'))
           }}
           onBack={handleRelationshipsBack}
           onOpenFacility={(facility) => openFacility(facility, 'relationships')}
@@ -1971,8 +1989,12 @@ export default function App() {
         swipeBackSequence={swipeBackSequence}
         onBack={handleEditBack}
         onSave={async (facility, initialRelatedIds) => {
-          const savedFacility = await handleSave(facility, initialRelatedIds)
-          setScreen({ page: 'view', facility: savedFacility, returnTo: screen.returnTo })
+          try {
+            const savedFacility = await handleSave(facility, initialRelatedIds)
+            setScreen({ page: 'view', facility: savedFacility, returnTo: screen.returnTo })
+          } catch (error) {
+            window.alert(`保存できませんでした。入力内容は保持しています。${error instanceof Error ? `\n${error.message}` : ''}`)
+          }
         }}
         onDelete={handleDelete}
       />
@@ -2250,6 +2272,12 @@ export default function App() {
         </div>
         {loading ? (
           <p className="empty">読み込み中です…</p>
+        ) : loadError ? (
+          <div className="empty data-error" role="alert">
+            <h3>データを読み込めませんでした</h3>
+            <p>{loadError}</p>
+            <button type="button" onClick={() => void loadData()}>再読み込み</button>
+          </div>
         ) : filteredFacilities.length === 0 ? (
           <div className="empty search-empty">
             <span className="empty-icon" aria-hidden="true">⌕</span>
