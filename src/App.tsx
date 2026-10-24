@@ -2018,7 +2018,7 @@ export default function App() {
               </div>
               <div className="backup-actions">
                 <button type="button" onClick={exportBackup} disabled={facilities.length === 0}>JSONを書き出す</button>
-                <label>バックアップを読み込む（追加・更新）
+                <label>バックアップを読み込む
                   <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0], 'merge'); event.target.value = '' }} />
                 </label>
                 <button type="button" onClick={diagnoseBackupSize} disabled={facilities.length === 0}>容量を診断</button>
