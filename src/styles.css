@@ -1501,6 +1501,7 @@ label,
   .map-category-filter-grid button { grid-template-columns: 26px minmax(0, 1fr) auto 17px; min-height: 54px; gap: 5px; padding: 7px 6px; }
   .map-category-filter-grid button > span { font-size: 18px; }
   .map-category-filter-grid button strong { font-size: 10px; }
+  .backup-actions button, .backup-actions label { padding-right: 2px; padding-left: 2px; font-size: 9px; letter-spacing: -.04em; white-space: nowrap; }
   .map-facility-popup { grid-template-columns: 70px minmax(115px, 1fr); min-width: 210px; }
   .map-facility-popup > img, .map-facility-popup-empty { width: 70px; height: 108px; }
 }
