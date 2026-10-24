@@ -21,6 +21,7 @@ import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds }
 import { getParkMapBearing, getResortMapBearing } from './mapOrientation'
 import { CATEGORY_DEFINITIONS, getCategoryDefinition } from './categories'
 import { getAreaDefinitions, getAreaId, getAreaLabel, getParkById, getParkId, isOfficialArea, normalizeAreaName, PARK_AREAS, type AreaId, type ParkId } from './areas'
+import { diagnoseFacilityIntegrity } from './dataIntegrity'
 import {
   createProp,
   createTextEntry,
@@ -510,6 +511,7 @@ export default function App() {
   const [loadError, setLoadError] = useState('')
   const [backupMessage, setBackupMessage] = useState('')
   const [backupDiagnostic, setBackupDiagnostic] = useState('')
+  const [integrityDiagnostic, setIntegrityDiagnostic] = useState('')
   const [photoCompression, setPhotoCompression] = useState<PhotoCompressionState | null>(null)
   const [backupImportDraft, setBackupImportDraft] = useState<BackupImportDraft | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -1717,6 +1719,20 @@ export default function App() {
     ].join('\n'))
   }
 
+  const diagnoseDataIntegrity = () => {
+    try {
+      const issues = diagnoseFacilityIntegrity(facilities)
+      if (!issues.length) {
+        setIntegrityDiagnostic(`データ整合性の診断が完了しました。問題は見つかりませんでした（${facilities.length}施設）。`)
+        return
+      }
+      const details = issues.slice(0, 100).map((issue) => `・${issue.facilityName}［${issue.kind}］${issue.message}`).join('\n')
+      setIntegrityDiagnostic(`データ整合性の診断が完了しました。${issues.length}件の問題があります。${issues.length > 100 ? '\n（先頭100件を表示）' : ''}\n${details}`)
+    } catch (error) {
+      setIntegrityDiagnostic(`データ整合性の診断に失敗しました。データは変更していません。${error instanceof Error ? `\n${error.message}` : ''}`)
+    }
+  }
+
   const compressExistingPhotos = async () => {
     if (photoCompression?.running) return
     const photoRefs = facilities.flatMap((facility) => [
@@ -2045,11 +2061,13 @@ export default function App() {
                 </label>
                 <button type="button" onClick={diagnoseBackupSize} disabled={facilities.length === 0}>容量を診断</button>
               </div>
+              <button className="integrity-diagnostic-button" type="button" onClick={diagnoseDataIntegrity} disabled={facilities.length === 0}>データ整合性を確認</button>
               <label className="backup-full-restore">バックアップから完全復元
                 <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0], 'replace'); event.target.value = '' }} />
               </label>
               {backupMessage && <p className="settings-message" role="status">{backupMessage}</p>}
               {backupDiagnostic && <pre className="settings-message" role="status">{backupDiagnostic}</pre>}
+              {integrityDiagnostic && <pre className="settings-message" role="status">{integrityDiagnostic}</pre>}
               {backupImportDraft && (() => {
                 const currentIds = new Set(facilities.map((facility) => facility.id))
                 const addedCount = backupImportDraft.facilities.filter((facility) => !currentIds.has(facility.id)).length
