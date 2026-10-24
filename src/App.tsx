@@ -1746,7 +1746,7 @@ export default function App() {
     setPhotoCompression({ ...state, running: false })
   }
 
-  const importBackup = async (file: File | undefined) => {
+  const importBackup = async (file: File | undefined, mode: 'merge' | 'replace' = 'merge') => {
     if (!file) return
     try {
       const parsed: unknown = JSON.parse(await file.text())
@@ -1777,7 +1777,7 @@ export default function App() {
         : undefined
       setBackupImportDraft({
         facilities: facilitiesToImport,
-        mode: 'merge',
+        mode,
         relationshipSettings: importedRelationshipSettings,
         mapFilterSettings: importedMapFilterSettings,
         recentFacilityIds: importedRecentFacilityIds,
@@ -2018,11 +2018,14 @@ export default function App() {
               </div>
               <div className="backup-actions">
                 <button type="button" onClick={exportBackup} disabled={facilities.length === 0}>JSONを書き出す</button>
-                <label>JSONを読み込む
-                  <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0]); event.target.value = '' }} />
+                <label>バックアップを読み込む（追加・更新）
+                  <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0], 'merge'); event.target.value = '' }} />
                 </label>
                 <button type="button" onClick={diagnoseBackupSize} disabled={facilities.length === 0}>容量を診断</button>
               </div>
+              <label className="backup-full-restore">バックアップから完全復元
+                <input type="file" accept="application/json,.json" onChange={(event) => { void importBackup(event.target.files?.[0], 'replace'); event.target.value = '' }} />
+              </label>
               {backupMessage && <p className="settings-message" role="status">{backupMessage}</p>}
               {backupDiagnostic && <pre className="settings-message" role="status">{backupDiagnostic}</pre>}
               {backupImportDraft && (() => {
@@ -2039,10 +2042,7 @@ export default function App() {
                 ].filter(Boolean)
                 return <div className="backup-import-preview">
                   <strong>読み込み方式を選択</strong>
-                  <div className="backup-import-mode">
-                    <button type="button" className={backupImportDraft.mode === 'merge' ? 'active' : ''} onClick={() => setBackupImportDraft({ ...backupImportDraft, mode: 'merge' })}>追加・上書き</button>
-                    <button type="button" className={backupImportDraft.mode === 'replace' ? 'active' : ''} onClick={() => setBackupImportDraft({ ...backupImportDraft, mode: 'replace' })}>完全復元</button>
-                  </div>
+                  <p className="settings-message">選択方式：{backupImportDraft.mode === 'replace' ? 'バックアップから完全復元' : '追加・更新'}</p>
                   <p className="settings-message">バックアップ施設：{backupImportDraft.facilities.length}件 / 新規追加：{addedCount}件 / 上書き：{overwrittenCount}件 / 削除：{deletedCount}件<br />復元対象：{settings.length ? settings.join('、') : 'なし'}</p>
                   <p className="settings-message">現在のデータを残す場合は「追加・上書き」、バックアップを正として置き換える場合は「完全復元」を選択してください。実行前に「JSONを書き出す」で現在のデータを退避してください。</p>
                   <div className="backup-import-actions">
