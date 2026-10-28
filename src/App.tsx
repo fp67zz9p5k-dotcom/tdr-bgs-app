@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import './postAssistant.css'
 import {
   deleteFacility,
   getFacilities,
@@ -16,8 +15,6 @@ import {
   saveFacilities,
   saveMapFilterSettings,
   saveRelationshipGraphSettings,
-  getPostAssistantState,
-  savePostAssistantState,
 } from './db'
 import { RelationshipGraph } from './RelationshipGraph'
 import { getBidirectionalRelatedFacilities, getBidirectionalRelatedFacilityIds } from './relationships'
@@ -40,9 +37,8 @@ import {
   type RelationshipGraphSettings,
   type TextEntry,
 } from './types'
-import { createPostText, defaultPostAssistantState, getPostCandidates, type PostAssistantState } from './postAssistant'
 
-type ReturnPage = 'home' | 'map' | 'relationships' | 'posts'
+type ReturnPage = 'home' | 'map' | 'relationships'
 type MapMode = Park | 'resort'
 type MapAffiliation = 'land' | 'sea' | 'external'
 type PhotoCompressionState = {
@@ -65,7 +61,6 @@ type Screen =
   | { page: 'home' }
   | { page: 'map' }
   | { page: 'relationships' }
-  | { page: 'posts' }
   | { page: 'view'; facility: Facility; returnTo: ReturnPage; mapReturnState?: MapReturnState }
   | { page: 'edit'; facility: Facility; isNew: boolean; returnTo: ReturnPage }
 
@@ -94,7 +89,6 @@ type NavigationEntry =
   | { page: 'home' }
   | { page: 'map'; mapReturnState: MapReturnState | null }
   | { page: 'relationships' }
-  | { page: 'posts' }
   | { page: 'view'; facilityId: string; returnTo: ReturnPage; mapReturnState?: MapReturnState }
   | { page: 'edit'; facilityId: string; isNew: boolean; returnTo: ReturnPage }
 
@@ -525,7 +519,6 @@ export default function App() {
   const [swipeBackSequence, setSwipeBackSequence] = useState(0)
   const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference)
   const [relationshipSettings, setRelationshipSettings] = useState<RelationshipGraphSettings>(defaultRelationshipGraphSettings)
-  const [postAssistantState, setPostAssistantState] = useState<PostAssistantState>(defaultPostAssistantState)
   const [mapFilterSettings, setMapFilterSettings] = useState<MapFilterSettings>(defaultMapFilterSettings)
   const mapReturnStateRef = useRef<MapReturnState | null>(readMapReturnState())
   const mapNavigationStateGetterRef = useRef<(() => MapReturnState) | null>(null)
@@ -638,7 +631,6 @@ export default function App() {
       getRelationshipGraphSettings().then(setRelationshipSettings),
       getMapFilterSettings().then(setMapFilterSettings),
       getRecentFacilityIds().then(setRecentFacilityIds),
-      getPostAssistantState().then(setPostAssistantState),
     ])
     const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
     if (failed.length) setLoadError(`データを読み込めませんでした。保存データは削除していません。もう一度お試しください。${failed[0].reason instanceof Error ? `\n${failed[0].reason.message}` : ''}`)
@@ -1574,8 +1566,6 @@ export default function App() {
 
   const handleRelationshipsBack = () => navigateBack(returnToHome)
 
-  const handlePostsBack = () => navigateBack(returnToHome)
-
   const handleEditBack = () => {
     if (screen.page !== 'edit') return
     if (screen.isNew && screen.returnTo === 'home') returnToHome()
@@ -1588,7 +1578,6 @@ export default function App() {
     if (screen.page === 'view') handleViewBack()
     else if (screen.page === 'map') handleMapBack()
     else if (screen.page === 'relationships') handleRelationshipsBack()
-    else if (screen.page === 'posts') handlePostsBack()
     else if (screen.page === 'edit') setSwipeBackSequence((current) => current + 1)
   }
   swipeForwardActionRef.current = navigateHistoryForward
@@ -2007,27 +1996,6 @@ export default function App() {
     )
   }
 
-  if (screen.page === 'posts') {
-    return (
-      <>
-        <PostAssistant
-          facilities={facilities}
-          state={postAssistantState}
-          onStateChange={(nextState) => {
-            setPostAssistantState(nextState)
-            void savePostAssistantState(nextState).catch(() => setBackupMessage('投稿アシスタントの下書きを保存できませんでした。もう一度お試しください。'))
-          }}
-          onBack={handlePostsBack}
-          onOpenFacility={(facility) => openFacility(facility, 'posts')}
-        />
-        <PrimaryBottomNavigation active="posts" onNavigate={(page) => {
-          if (page === 'home') openHomeFresh()
-          else navigateForward({ page })
-        }} />
-      </>
-    )
-  }
-
   if (screen.page === 'edit') {
     return (
       <FacilityDetail
@@ -2436,7 +2404,7 @@ export default function App() {
   )
 }
 
-type PrimaryNavigationPage = 'home' | 'map' | 'relationships' | 'posts'
+type PrimaryNavigationPage = 'home' | 'map' | 'relationships'
 
 function PrimaryBottomNavigation({
   active,
@@ -2449,7 +2417,6 @@ function PrimaryBottomNavigation({
     { page: 'home', label: '一覧' },
     { page: 'map', label: 'マップ' },
     { page: 'relationships', label: '探索' },
-    { page: 'posts', label: '投稿' },
   ]
 
   return (
@@ -2485,97 +2452,7 @@ function PrimaryNavigationIcon({ page }: { page: PrimaryNavigationPage }) {
         <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" />
         <circle cx="12" cy="12" r="10" />
       </>}
-      {page === 'posts' && <>
-        <path d="M4 4h16v12H8l-4 4z" />
-        <path d="m8 10 3 2 5-4" />
-      </>}
     </svg>
-  )
-}
-
-function PostAssistant({
-  facilities,
-  state,
-  onStateChange,
-  onBack,
-  onOpenFacility,
-}: {
-  facilities: Facility[]
-  state: PostAssistantState
-  onStateChange: (state: PostAssistantState) => void
-  onBack: () => void
-  onOpenFacility: (facility: Facility) => void
-}) {
-  const candidates = getPostCandidates(facilities, state.postedCandidateKeys)
-  const [editingCandidateKey, setEditingCandidateKey] = useState(state.draft.candidateKey ?? candidates[0]?.key ?? null)
-  const [editingText, setEditingText] = useState(state.draft.text || (candidates[0] ? createPostText(candidates[0]) : ''))
-  const currentCandidate = candidates.find((candidate) => candidate.key === editingCandidateKey) ?? candidates[0]
-  const [chatInstruction, setChatInstruction] = useState('')
-  const [message, setMessage] = useState('')
-
-  const selectCandidate = (candidate: typeof currentCandidate) => {
-    if (!candidate) return
-    setEditingCandidateKey(candidate.key)
-    setMessage('候補を切り替えました。現在の下書きは保持しています。必要なら「投稿文を作成」で置き換えられます。')
-  }
-  const saveDraft = () => {
-    const savedAt = new Date().toISOString()
-    const savedDraft = { candidateKey: editingCandidateKey, text: editingText, savedAt }
-    onStateChange({ ...state, draft: savedDraft, savedDraft })
-    setMessage('下書きを保存しました。')
-  }
-  const restoreSavedDraft = () => {
-    if (!state.savedDraft) return
-    setEditingCandidateKey(state.savedDraft.candidateKey ?? '')
-    setEditingText(state.savedDraft.text)
-    setMessage('保存済みの下書きを読み込みました。')
-  }
-  const currentFacility = currentCandidate ? facilities.find((facility) => facility.id === currentCandidate.facilityId) : null
-
-  return (
-    <main className="post-assistant-page">
-      <header className="post-assistant-header">
-        <button type="button" className="post-assistant-back" onClick={onBack} aria-label="戻る">‹</button>
-        <h1>投稿アシスタント</h1>
-      </header>
-      <section className="post-assistant-panel" aria-labelledby="post-candidate-heading">
-        <h2 id="post-candidate-heading">投稿候補</h2>
-        {currentCandidate ? <>
-          <p className="post-assistant-meta">{currentCandidate.facilityName} ・ {currentCandidate.type}</p>
-          <p className="post-assistant-source">{currentCandidate.text}</p>
-          <p className="post-assistant-note">登録済みの本文をもとに、事実を足さずに投稿文を作成します。未投稿の情報が優先されます。</p>
-          <div className="post-assistant-actions">
-            <button type="button" onClick={() => { setEditingCandidateKey(currentCandidate.key); setEditingText(createPostText(currentCandidate)); setMessage('登録内容から投稿文を作成しました。') }}>投稿文を作成</button>
-            <button type="button" onClick={() => {
-              const currentIndex = candidates.findIndex((candidate) => candidate.key === currentCandidate.key)
-              selectCandidate(candidates[(currentIndex + 1) % candidates.length])
-            }}>別の候補</button>
-            {currentFacility && <button type="button" onClick={() => onOpenFacility(currentFacility)}>施設詳細</button>}
-          </div>
-        </> : <p className="post-assistant-note">投稿候補にできるBGS・トリビアがまだありません。</p>}
-      </section>
-      <section className="post-assistant-panel" aria-labelledby="post-editor-heading">
-        <h2 id="post-editor-heading">投稿文</h2>
-        <textarea className="post-assistant-editor" value={editingText} onChange={(event) => setEditingText(event.target.value)} placeholder="候補を選ぶと投稿文を作成します" />
-        <div className="post-assistant-actions"><button className="post-assistant-save" type="button" onClick={saveDraft} disabled={!editingText.trim()}>下書きを保存</button>{state.savedDraft && <button type="button" onClick={restoreSavedDraft}>保存済みを読み込む</button>}</div>
-        {message && <p className="post-assistant-note" role="status">{message}</p>}
-        <div className="post-assistant-saved-draft">
-          <strong>保存した下書き</strong>
-          {state.savedDraft ? <><small>{new Date(state.savedDraft.savedAt ?? '').toLocaleString('ja-JP')} に端末内へ保存</small><p>{state.savedDraft.text}</p></> : <p className="post-assistant-note">まだ保存されていません。</p>}
-          <p className="post-assistant-note">下書きはこの端末・このブラウザのIndexedDBに保存されます。別端末とは同期されません。</p>
-        </div>
-      </section>
-      <section className="post-assistant-panel post-assistant-chat" aria-labelledby="post-chat-heading">
-        <h2 id="post-chat-heading">AIに修正を依頼</h2>
-        <input value={chatInstruction} onChange={(event) => setChatInstruction(event.target.value)} placeholder="例：もう少し短くして" />
-        <button type="button" disabled title="安全なサーバー接続の準備中">AIに依頼する（準備中）</button>
-        <p className="post-assistant-note">AI接続は未設定です。入力内容を外部へ送信する処理はありません。</p>
-      </section>
-      <section className="post-assistant-panel" aria-labelledby="post-history-heading">
-        <h2 id="post-history-heading">投稿履歴</h2>
-        <p className="post-assistant-note">実際のX投稿機能が未接続のため、投稿済み履歴はまだありません。下書き保存は投稿済みとして扱いません。</p>
-      </section>
-    </main>
   )
 }
 

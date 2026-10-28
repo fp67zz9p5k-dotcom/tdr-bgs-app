@@ -134,7 +134,7 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   left: 50%;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   width: min(100%, 760px);
   min-height: 60px;
   padding: 5px 12px calc(5px + env(safe-area-inset-bottom));
@@ -181,7 +181,7 @@ h1 { margin: 0; font-family: Georgia, "Yu Mincho", serif; font-size: clamp(30px,
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.primary-bottom-nav button strong { font-size: 11px; white-space: nowrap; }
+.primary-bottom-nav button strong { font-size: 11px; }
 .primary-bottom-nav button.active {
   background: #d1a45d1f;
   color: #f0c77c;
