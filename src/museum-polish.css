@@ -668,6 +668,16 @@
   color: #c1ccd0;
 }
 
+/* Park affiliation is important list context, so keep it readable in dark mode. */
+:root[data-theme="dark"] .home-page .facility-meta {
+  color: #e3ecef;
+}
+
+:root[data-theme="dark"] .home-page .park-facility-group > h3 {
+  color: #e3ecef;
+  border-bottom-color: #7196a5;
+}
+
 /* Relationship lines recede slightly so facilities remain the visual anchors. */
 :root[data-theme] .relationship-category-group::before,
 :root[data-theme] .group-connector,
