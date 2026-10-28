@@ -2507,23 +2507,28 @@ function PostAssistant({
   onOpenFacility: (facility: Facility) => void
 }) {
   const candidates = getPostCandidates(facilities, state.postedCandidateKeys)
-  const currentCandidate = candidates.find((candidate) => candidate.key === state.draft.candidateKey) ?? candidates[0]
+  const [editingCandidateKey, setEditingCandidateKey] = useState(state.draft.candidateKey ?? candidates[0]?.key ?? null)
+  const [editingText, setEditingText] = useState(state.draft.text || (candidates[0] ? createPostText(candidates[0]) : ''))
+  const currentCandidate = candidates.find((candidate) => candidate.key === editingCandidateKey) ?? candidates[0]
   const [chatInstruction, setChatInstruction] = useState('')
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    if (state.draft.candidateKey || !currentCandidate) return
-    onStateChange({ ...state, draft: { candidateKey: currentCandidate.key, text: createPostText(currentCandidate), savedAt: null } })
-  }, [currentCandidate, onStateChange, state])
-
   const selectCandidate = (candidate: typeof currentCandidate) => {
     if (!candidate) return
-    onStateChange({ ...state, draft: { ...state.draft, candidateKey: candidate.key } })
+    setEditingCandidateKey(candidate.key)
     setMessage('候補を切り替えました。現在の下書きは保持しています。必要なら「投稿文を作成」で置き換えられます。')
   }
   const saveDraft = () => {
-    onStateChange({ ...state, draft: { ...state.draft, savedAt: new Date().toISOString() } })
+    const savedAt = new Date().toISOString()
+    const savedDraft = { candidateKey: editingCandidateKey, text: editingText, savedAt }
+    onStateChange({ ...state, draft: savedDraft, savedDraft })
     setMessage('下書きを保存しました。')
+  }
+  const restoreSavedDraft = () => {
+    if (!state.savedDraft) return
+    setEditingCandidateKey(state.savedDraft.candidateKey ?? '')
+    setEditingText(state.savedDraft.text)
+    setMessage('保存済みの下書きを読み込みました。')
   }
   const currentFacility = currentCandidate ? facilities.find((facility) => facility.id === currentCandidate.facilityId) : null
 
@@ -2540,7 +2545,7 @@ function PostAssistant({
           <p className="post-assistant-source">{currentCandidate.text}</p>
           <p className="post-assistant-note">登録済みの本文をもとに、事実を足さずに投稿文を作成します。未投稿の情報が優先されます。</p>
           <div className="post-assistant-actions">
-            <button type="button" onClick={() => onStateChange({ ...state, draft: { candidateKey: currentCandidate.key, text: createPostText(currentCandidate), savedAt: null } })}>投稿文を作成</button>
+            <button type="button" onClick={() => { setEditingCandidateKey(currentCandidate.key); setEditingText(createPostText(currentCandidate)); setMessage('登録内容から投稿文を作成しました。') }}>投稿文を作成</button>
             <button type="button" onClick={() => {
               const currentIndex = candidates.findIndex((candidate) => candidate.key === currentCandidate.key)
               selectCandidate(candidates[(currentIndex + 1) % candidates.length])
@@ -2551,9 +2556,14 @@ function PostAssistant({
       </section>
       <section className="post-assistant-panel" aria-labelledby="post-editor-heading">
         <h2 id="post-editor-heading">投稿文</h2>
-        <textarea className="post-assistant-editor" value={state.draft.text} onChange={(event) => onStateChange({ ...state, draft: { ...state.draft, text: event.target.value, savedAt: null } })} placeholder="候補を選ぶと投稿文を作成します" />
-        <div className="post-assistant-actions"><button className="post-assistant-save" type="button" onClick={saveDraft} disabled={!state.draft.text.trim()}>下書きを保存</button></div>
+        <textarea className="post-assistant-editor" value={editingText} onChange={(event) => setEditingText(event.target.value)} placeholder="候補を選ぶと投稿文を作成します" />
+        <div className="post-assistant-actions"><button className="post-assistant-save" type="button" onClick={saveDraft} disabled={!editingText.trim()}>下書きを保存</button>{state.savedDraft && <button type="button" onClick={restoreSavedDraft}>保存済みを読み込む</button>}</div>
         {message && <p className="post-assistant-note" role="status">{message}</p>}
+        <div className="post-assistant-saved-draft">
+          <strong>保存した下書き</strong>
+          {state.savedDraft ? <><small>{new Date(state.savedDraft.savedAt ?? '').toLocaleString('ja-JP')} に端末内へ保存</small><p>{state.savedDraft.text}</p></> : <p className="post-assistant-note">まだ保存されていません。</p>}
+          <p className="post-assistant-note">下書きはこの端末・このブラウザのIndexedDBに保存されます。別端末とは同期されません。</p>
+        </div>
       </section>
       <section className="post-assistant-panel post-assistant-chat" aria-labelledby="post-chat-heading">
         <h2 id="post-chat-heading">AIに修正を依頼</h2>

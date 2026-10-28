@@ -17,11 +17,13 @@ export type PostDraft = {
 
 export type PostAssistantState = {
   draft: PostDraft
+  savedDraft: PostDraft | null
   postedCandidateKeys: string[]
 }
 
 export const defaultPostAssistantState = (): PostAssistantState => ({
   draft: { candidateKey: null, text: '', savedAt: null },
+  savedDraft: null,
   postedCandidateKeys: [],
 })
 

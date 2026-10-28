@@ -311,6 +311,7 @@ export const getPostAssistantState = async (): Promise<PostAssistantState> => {
         ...defaults,
         ...value,
         draft: { ...defaults.draft, ...(value?.draft ?? {}) },
+        savedDraft: value?.savedDraft ? { ...defaults.draft, ...value.savedDraft } : null,
         postedCandidateKeys: Array.isArray(value?.postedCandidateKeys)
           ? value.postedCandidateKeys.filter((key): key is string => typeof key === 'string')
           : defaults.postedCandidateKeys,
