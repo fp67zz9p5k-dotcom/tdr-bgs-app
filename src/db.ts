@@ -11,6 +11,7 @@ import {
 } from './types'
 import { normalizeAreaName } from './areas'
 import { CATEGORY_DEFINITIONS, normalizeCategory } from './categories'
+import { defaultPostAssistantState, type PostAssistantState } from './postAssistant'
 
 const DB_NAME = 'tdr-archive'
 const STORE_NAME = 'facilities'
@@ -294,6 +295,36 @@ export const saveRecentFacilityIds = async (facilityIds: string[]): Promise<void
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(SETTINGS_STORE_NAME, 'readwrite')
     transaction.objectStore(SETTINGS_STORE_NAME).put({ id: 'recentFacilities', value })
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export const getPostAssistantState = async (): Promise<PostAssistantState> => {
+  const db = await openDatabase()
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(SETTINGS_STORE_NAME, 'readonly').objectStore(SETTINGS_STORE_NAME).get('postAssistant')
+    request.onsuccess = () => {
+      const value = request.result?.value as Partial<PostAssistantState> | undefined
+      const defaults = defaultPostAssistantState()
+      resolve({
+        ...defaults,
+        ...value,
+        draft: { ...defaults.draft, ...(value?.draft ?? {}) },
+        postedCandidateKeys: Array.isArray(value?.postedCandidateKeys)
+          ? value.postedCandidateKeys.filter((key): key is string => typeof key === 'string')
+          : defaults.postedCandidateKeys,
+      })
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const savePostAssistantState = async (value: PostAssistantState): Promise<void> => {
+  const db = await openDatabase()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(SETTINGS_STORE_NAME, 'readwrite')
+    transaction.objectStore(SETTINGS_STORE_NAME).put({ id: 'postAssistant', value })
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)
   })
