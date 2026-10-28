@@ -48,4 +48,4 @@ export const getPostCandidates = (facilities: Facility[], postedCandidateKeys: s
 }
 
 export const createPostText = (candidate: PostCandidate): string =>
-  `${candidate.facilityName}の${candidate.type}。\n${candidate.text}`
+  `${candidate.facilityName}について、${candidate.type}として記録している内容です。\n${candidate.text}`

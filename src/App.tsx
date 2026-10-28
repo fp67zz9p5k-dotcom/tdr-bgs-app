@@ -2511,9 +2511,15 @@ function PostAssistant({
   const [chatInstruction, setChatInstruction] = useState('')
   const [message, setMessage] = useState('')
 
+  useEffect(() => {
+    if (state.draft.candidateKey || !currentCandidate) return
+    onStateChange({ ...state, draft: { candidateKey: currentCandidate.key, text: createPostText(currentCandidate), savedAt: null } })
+  }, [currentCandidate, onStateChange, state])
+
   const selectCandidate = (candidate: typeof currentCandidate) => {
     if (!candidate) return
-    onStateChange({ ...state, draft: { candidateKey: candidate.key, text: createPostText(candidate), savedAt: null } })
+    onStateChange({ ...state, draft: { ...state.draft, candidateKey: candidate.key } })
+    setMessage('候補を切り替えました。現在の下書きは保持しています。必要なら「投稿文を作成」で置き換えられます。')
   }
   const saveDraft = () => {
     onStateChange({ ...state, draft: { ...state.draft, savedAt: new Date().toISOString() } })
@@ -2534,6 +2540,7 @@ function PostAssistant({
           <p className="post-assistant-source">{currentCandidate.text}</p>
           <p className="post-assistant-note">登録済みの本文をもとに、事実を足さずに投稿文を作成します。未投稿の情報が優先されます。</p>
           <div className="post-assistant-actions">
+            <button type="button" onClick={() => onStateChange({ ...state, draft: { candidateKey: currentCandidate.key, text: createPostText(currentCandidate), savedAt: null } })}>投稿文を作成</button>
             <button type="button" onClick={() => {
               const currentIndex = candidates.findIndex((candidate) => candidate.key === currentCandidate.key)
               selectCandidate(candidates[(currentIndex + 1) % candidates.length])
