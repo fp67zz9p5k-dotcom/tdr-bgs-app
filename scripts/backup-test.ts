@@ -7,6 +7,7 @@ import {
   getRecentFacilityIds,
   getRelationshipGraphSettings,
   normalizeImportedFacilities,
+  normalizeImportedMapFilterSettings,
   saveFacility,
   updateFacilityPhotoData,
 } from '../src/db'
@@ -126,6 +127,12 @@ const run = async (): Promise<string[]> => {
 
   const valid = normalizeImportedFacilities([facility('test-new', 'テスト新規')])
   assert(valid.length === 1 && valid[0].id === 'test-new', '正常なバックアップを検証できません。')
+  const validMapFilters = normalizeImportedMapFilterSettings({ visibleCategories: ['restaurant', 'ショップ'], visibleInformationTypes: ['facility'], clusteringEnabled: false })
+  assert(validMapFilters.visibleCategories.join(',') === 'レストラン,ショップ', '有効なマップカテゴリを保持できません。')
+  await rejects(() => normalizeImportedMapFilterSettings({ visibleCategories: ['未知のカテゴリ'] }), '未知のマップカテゴリ')
+  await rejects(() => normalizeImportedMapFilterSettings({ visibleCategories: 'レストラン' }), '不正なマップカテゴリ形式')
+  await rejects(() => normalizeImportedMapFilterSettings({ visibleCategories: [{}] }), '不正なマップカテゴリ型')
+  assert((await getMapFilterSettings()).clusteringEnabled === true, '不正なマップ設定で保存済み設定が変更されました。')
 
   const invalidCases: [string, unknown][] = [
     ['施設', [{ name: 'IDなし' }]],

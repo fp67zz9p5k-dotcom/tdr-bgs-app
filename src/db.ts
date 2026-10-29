@@ -309,6 +309,42 @@ export type ImportedBackupSettings = {
   recentFacilityIds?: string[]
 }
 
+export const normalizeImportedMapFilterSettings = (raw: unknown): MapFilterSettings => {
+  if (!raw || typeof raw !== 'object') throw new Error('バックアップのmapFilterSettingsが不正です。')
+  const candidate = raw as Partial<MapFilterSettings>
+  if (candidate.visibleCategories !== undefined && !Array.isArray(candidate.visibleCategories)) {
+    throw new Error('バックアップのmapFilterSettings.visibleCategoriesが不正です。')
+  }
+  const visibleCategories = candidate.visibleCategories === undefined
+    ? defaultMapFilterSettings().visibleCategories
+    : Array.from(new Set((candidate.visibleCategories as unknown[]).map((category) => {
+      const definition = typeof category === 'string'
+        ? CATEGORY_DEFINITIONS.find((item) => item.value === category || item.id === category)
+        : undefined
+      if (!definition) throw new Error('バックアップのmapFilterSettings.visibleCategoriesが不正です。')
+      return definition.value
+    })))
+  const informationTypes = ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot']
+  if (candidate.visibleInformationTypes !== undefined
+    && (!Array.isArray(candidate.visibleInformationTypes)
+      || candidate.visibleInformationTypes.some((type) => !informationTypes.includes(type as string)))) {
+    throw new Error('バックアップのmapFilterSettings.visibleInformationTypesが不正です。')
+  }
+  if (candidate.clusteringEnabled !== undefined && typeof candidate.clusteringEnabled !== 'boolean') {
+    throw new Error('バックアップのmapFilterSettings.clusteringEnabledが不正です。')
+  }
+  const defaults = defaultMapFilterSettings()
+  return {
+    ...defaults,
+    ...candidate,
+    visibleCategories: visibleCategories.length === CATEGORY_DEFINITIONS.length ? [] : visibleCategories,
+    visibleInformationTypes: Array.isArray(candidate.visibleInformationTypes)
+      ? candidate.visibleInformationTypes as MapFilterSettings['visibleInformationTypes']
+      : defaults.visibleInformationTypes,
+    clusteringEnabled: candidate.clusteringEnabled === true,
+  }
+}
+
 export const applyImportedBackup = async (
   facilities: Facility[],
   mode: 'merge' | 'replace',

@@ -12,6 +12,7 @@ import {
   getRelationshipGraphSettings,
   applyImportedBackup,
   normalizeImportedFacilities,
+  normalizeImportedMapFilterSettings,
   saveRecentFacilityIds,
   saveRandomDiscoveryHistory,
   saveFacility,
@@ -1850,37 +1851,7 @@ export default function App() {
         && typeof parsed === 'object'
         && parsed !== null
         && 'mapFilterSettings' in parsed
-        ? (() => {
-          const value = (parsed as { mapFilterSettings?: unknown }).mapFilterSettings
-          if (!value || typeof value !== 'object') throw new Error('バックアップのmapFilterSettingsが不正です。')
-          const candidate = value as Partial<MapFilterSettings>
-          if (candidate.visibleCategories !== undefined
-            && (!Array.isArray(candidate.visibleCategories) || candidate.visibleCategories.some((category) => typeof category !== 'string'))) {
-            throw new Error('バックアップのmapFilterSettings.visibleCategoriesが不正です。')
-          }
-          const informationTypes = ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot']
-          if (candidate.visibleInformationTypes !== undefined
-            && (!Array.isArray(candidate.visibleInformationTypes)
-              || candidate.visibleInformationTypes.some((type) => !informationTypes.includes(type as string)))) {
-            throw new Error('バックアップのmapFilterSettings.visibleInformationTypesが不正です。')
-          }
-          if (candidate.clusteringEnabled !== undefined && typeof candidate.clusteringEnabled !== 'boolean') {
-            throw new Error('バックアップのmapFilterSettings.clusteringEnabledが不正です。')
-          }
-          const defaults = defaultMapFilterSettings()
-          const visibleCategories = Array.isArray(candidate.visibleCategories)
-            ? Array.from(new Set(candidate.visibleCategories.map((category) => getCategoryDefinition(category).value)))
-            : defaults.visibleCategories
-          return {
-            ...defaults,
-            ...candidate,
-            visibleCategories: visibleCategories.length === CATEGORY_DEFINITIONS.length ? [] : visibleCategories,
-            visibleInformationTypes: Array.isArray(candidate.visibleInformationTypes)
-              ? candidate.visibleInformationTypes as MapFilterSettings['visibleInformationTypes']
-              : defaults.visibleInformationTypes,
-            clusteringEnabled: candidate.clusteringEnabled === true,
-          }
-        })()
+        ? normalizeImportedMapFilterSettings((parsed as { mapFilterSettings?: unknown }).mapFilterSettings)
         : undefined
       setBackupImportDraft({
         facilities: facilitiesToImport,
