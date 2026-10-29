@@ -7,6 +7,8 @@ import {
   getRecentFacilityIds,
   getRelationshipGraphSettings,
   normalizeImportedFacilities,
+  saveFacility,
+  updateFacilityPhotoData,
 } from '../src/db'
 import { IDBObjectStore } from 'fake-indexeddb'
 import type { Facility } from '../src/types'
@@ -99,6 +101,28 @@ const run = async (): Promise<string[]> => {
   assert(loadedInitial?.props[0]?.description === '小物説明', 'プロップが保持されません。')
   assert(loadedInitial?.relatedFacilityIds[0] === 'test-keep', '関連施設IDが保持されません。')
   assert((await getMapFilterSettings()).clusteringEnabled === true, 'マップ設定が保持されません。')
+  const photoUpdated = await updateFacilityPhotoData('test-a', 'photo-1', null, 'data:image/jpeg;base64,AA==', 'data:image/jpeg;base64,BB==')
+  assert(photoUpdated?.bgs[0]?.text === '登録済みBGS' && photoUpdated.photos[0]?.dataUrl.endsWith('BB=='), '写真だけの更新で施設情報が保持されません。')
+  await saveFacility({ ...photoUpdated!, bgs: [{ id: 'bgs-1', text: '別操作で更新されたBGS' }] })
+  const stalePhotoUpdate = await updateFacilityPhotoData('test-a', 'photo-1', null, 'data:image/jpeg;base64,AA==', 'data:image/jpeg;base64,CC==')
+  assert(stalePhotoUpdate === null, '古い写真データで更新が適用されました。')
+  assert((await getFacilities()).find((item) => item.id === 'test-a')?.bgs[0]?.text === '別操作で更新されたBGS', '競合時に施設情報が失われました。')
+  const currentWithSecondPhoto = (await getFacilities()).find((item) => item.id === 'test-a')!
+  await saveFacility({ ...currentWithSecondPhoto, photos: [...currentWithSecondPhoto.photos, { ...currentWithSecondPhoto.photos[0], id: 'photo-2', dataUrl: 'data:image/jpeg;base64,DD==' }] })
+  const originalPhotoPut = IDBObjectStore.prototype.put as unknown as (this: IDBObjectStore, value: unknown, key?: IDBValidKey) => IDBRequest
+  let failPhotoPut = true
+  IDBObjectStore.prototype.put = function(this: IDBObjectStore, value: unknown, key?: IDBValidKey) {
+    if (failPhotoPut && value && typeof value === 'object' && (value as { id?: unknown }).id === 'test-a') {
+      failPhotoPut = false
+      throw new Error('テスト用の写真保存失敗')
+    }
+    return originalPhotoPut.call(this, value, key)
+  }
+  await rejects(() => updateFacilityPhotoData('test-a', 'photo-1', null, 'data:image/jpeg;base64,BB==', 'data:image/jpeg;base64,EE=='), '写真保存失敗')
+  IDBObjectStore.prototype.put = originalPhotoPut
+  const continuedPhotoUpdate = await updateFacilityPhotoData('test-a', 'photo-2', null, 'data:image/jpeg;base64,DD==', 'data:image/jpeg;base64,FF==')
+  assert(continuedPhotoUpdate?.photos.find((photo) => photo.id === 'photo-1')?.dataUrl.endsWith('BB=='), '保存失敗した写真の元画像が失われました。')
+  assert(continuedPhotoUpdate?.photos.find((photo) => photo.id === 'photo-2')?.dataUrl.endsWith('FF=='), '保存失敗後に次の写真を処理できませんでした。')
 
   const valid = normalizeImportedFacilities([facility('test-new', 'テスト新規')])
   assert(valid.length === 1 && valid[0].id === 'test-new', '正常なバックアップを検証できません。')
@@ -123,6 +147,8 @@ const run = async (): Promise<string[]> => {
   assert((await getRelationshipGraphSettings()).selectedId === 'test-a', 'バックアップに含まれない関係設定が消えました。')
   assert((await getRecentFacilityIds()).join(',') === 'test-a', 'バックアップに含まれない履歴が消えました。')
   assert((await getMapFilterSettings()).clusteringEnabled === true, 'バックアップに含まれないマップ設定が消えました。')
+  await deleteFacility('test-only')
+  assert(await updateFacilityPhotoData('test-only', 'photo-1', null, 'old', 'new') === null, '削除済み施設の写真更新が適用されました。')
 
   const legacyRaw = { id: 'legacy-raw', name: '旧形式保存データ', category: 'その他', bgs: '旧BGS', trivia: '旧トリビア', props: '旧プロップ', relatedFacilityIds: ['test-only'] }
   await putRawFacility(legacyRaw)

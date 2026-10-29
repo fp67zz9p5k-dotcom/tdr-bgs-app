@@ -149,6 +149,40 @@ export const getFacilityById = async (id: string): Promise<Facility | null> => {
   })
 }
 
+export const updateFacilityPhotoData = async (
+  facilityId: string,
+  photoId: string,
+  propId: string | null,
+  expectedDataUrl: string,
+  nextDataUrl: string,
+): Promise<Facility | null> => {
+  const db = await openDatabase()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    let updatedFacility: Facility | null = null
+    const request = store.get(facilityId)
+    request.onsuccess = () => {
+      const value = request.result as Record<string, unknown> | undefined
+      if (!value) return
+      const photos = propId
+        ? Array.isArray(value.props)
+          ? (value.props.find((prop) => prop && typeof prop === 'object' && (prop as Record<string, unknown>).id === propId) as Record<string, unknown> | undefined)?.photos
+          : undefined
+        : value.photos
+      if (!Array.isArray(photos)) return
+      const photo = photos.find((item) => item && typeof item === 'object' && (item as Record<string, unknown>).id === photoId) as Record<string, unknown> | undefined
+      if (!photo || photo.dataUrl !== expectedDataUrl) return
+      photo.dataUrl = nextDataUrl
+      store.put(value)
+      updatedFacility = migrateFacility(value as Facility | LegacyFacility)
+    }
+    transaction.oncomplete = () => resolve(updatedFacility)
+    transaction.onerror = () => reject(transaction.error)
+    transaction.onabort = () => reject(transaction.error ?? new Error('施設写真の更新を中断しました。'))
+  })
+}
+
 export const saveFacility = async (facility: Facility): Promise<void> => {
   const db = await openDatabase()
   const persistedFacility = { ...facility } as Facility & { tags?: unknown }

@@ -16,6 +16,7 @@ import {
   saveRandomDiscoveryHistory,
   saveFacility,
   saveFacilities,
+  updateFacilityPhotoData,
   saveMapFilterSettings,
   saveRelationshipGraphSettings,
 } from './db'
@@ -1791,12 +1792,8 @@ export default function App() {
         const currentBytes = new TextEncoder().encode(currentPhoto.dataUrl).byteLength
         const compressedBytes = new TextEncoder().encode(compressedDataUrl).byteLength
         if (compressedBytes < currentBytes) {
-          const updated: Facility = photoRef.propId
-            ? { ...facility, props: facility.props.map((prop) => prop.id === photoRef.propId
-              ? { ...prop, photos: prop.photos.map((photo) => photo.id === photoRef.photoId ? { ...photo, dataUrl: compressedDataUrl } : photo) }
-              : prop) }
-            : { ...facility, photos: facility.photos.map((photo) => photo.id === photoRef.photoId ? { ...photo, dataUrl: compressedDataUrl } : photo) }
-          await saveFacility(updated)
+          const updated = await updateFacilityPhotoData(photoRef.facilityId, photoRef.photoId, photoRef.propId, currentPhoto.dataUrl, compressedDataUrl)
+          if (!updated) throw new Error('photo-changed-during-compression')
           setFacilities((current) => current.map((item) => item.id === updated.id ? updated : item))
           state.succeeded += 1
           state.afterBytes -= currentBytes - compressedBytes
