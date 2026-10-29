@@ -13,13 +13,14 @@ import { normalizeAreaName } from './areas'
 import { CATEGORY_DEFINITIONS, normalizeCategory } from './categories'
 
 const DB_NAME = 'tdr-archive'
+let activeDatabaseName = DB_NAME
 const STORE_NAME = 'facilities'
 const SETTINGS_STORE_NAME = 'settings'
 const DB_VERSION = 4
 
 const openDatabase = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    const request = indexedDB.open(activeDatabaseName, DB_VERSION)
     request.onupgradeneeded = () => {
       const db = request.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -32,6 +33,12 @@ const openDatabase = (): Promise<IDBDatabase> =>
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
   })
+
+// テスト専用ページからのみ使用する。通常のアプリ実行では呼び出さない。
+export const __setDatabaseNameForTests = (name: string): void => {
+  if (!name || name === DB_NAME) throw new Error('テスト用DB名を指定してください。')
+  activeDatabaseName = name
+}
 
 const normalizeTextEntries = (value: unknown): TextEntry[] => {
   if (Array.isArray(value)) {
@@ -119,20 +126,9 @@ export const getFacilities = async (): Promise<Facility[]> => {
     request.onerror = () => reject(request.error)
   })
 
-  const facilities = rawFacilities.map(migrateFacility)
-  const needsMigration = rawFacilities.some((facility, index) =>
-    (facility as Facility).schemaVersion !== 10
-    || (facility as LegacyFacility).category !== facilities[index].category)
-  if (needsMigration) {
-    const transaction = db.transaction(STORE_NAME, 'readwrite')
-    const store = transaction.objectStore(STORE_NAME)
-    facilities.forEach((facility) => store.put(facility))
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => reject(transaction.error)
-    })
-  }
-  return facilities
+  // 読み込みは読み取り専用に限定する。旧形式の表示用正規化はメモリ上で行い、
+  // 診断・明示的な編集保存以外ではIndexedDBへ自動書き戻ししない。
+  return rawFacilities.map(migrateFacility)
 }
 
 export const saveFacility = async (facility: Facility): Promise<void> => {
@@ -177,12 +173,73 @@ export const importFacilities = async (rawFacilities: unknown): Promise<number> 
 
 export const normalizeImportedFacilities = (rawFacilities: unknown): Facility[] => {
   if (!Array.isArray(rawFacilities)) throw new Error('施設データの形式が正しくありません。')
-  const validFacilities = rawFacilities.filter(
-    (value): value is Facility | LegacyFacility =>
-      Boolean(value && typeof value === 'object' && typeof (value as LegacyFacility).id === 'string'),
-  )
-  if (validFacilities.length !== rawFacilities.length) throw new Error('施設IDがないデータが含まれています。')
-  const facilities = validFacilities.map(migrateFacility)
+  const validatePhotos = (value: unknown, path: string) => {
+    if (value === undefined) return
+    if (!Array.isArray(value)) throw new Error(`バックアップの${path}は配列である必要があります。`)
+    value.forEach((photo, index) => {
+      if (!photo || typeof photo !== 'object') throw new Error(`バックアップの${path}[${index}]が不正です。`)
+      const item = photo as Record<string, unknown>
+      if (typeof item.dataUrl !== 'string') throw new Error(`バックアップの${path}[${index}].dataUrlが不正です。`)
+      for (const key of ['id', 'name', 'title', 'description', 'location', 'createdAt']) {
+        if (item[key] !== undefined && typeof item[key] !== 'string') {
+          throw new Error(`バックアップの${path}[${index}].${key}が不正です。`)
+        }
+      }
+    })
+  }
+  const validateTextEntries = (value: unknown, path: string) => {
+    if (value === undefined || typeof value === 'string') return
+    if (!Array.isArray(value)) throw new Error(`バックアップの${path}が不正です。`)
+    value.forEach((entry, index) => {
+      if (!entry || typeof entry !== 'object') throw new Error(`バックアップの${path}[${index}]が不正です。`)
+      const item = entry as Record<string, unknown>
+      if (item.id !== undefined && typeof item.id !== 'string') throw new Error(`バックアップの${path}[${index}].idが不正です。`)
+      if (item.text !== undefined && typeof item.text !== 'string') throw new Error(`バックアップの${path}[${index}].textが不正です。`)
+    })
+  }
+  const validateProps = (value: unknown, path: string) => {
+    if (value === undefined || typeof value === 'string') return
+    if (!Array.isArray(value)) throw new Error(`バックアップの${path}が不正です。`)
+    value.forEach((entry, index) => {
+      if (!entry || typeof entry !== 'object') throw new Error(`バックアップの${path}[${index}]が不正です。`)
+      const item = entry as Record<string, unknown>
+      for (const key of ['id', 'title', 'description', 'location']) {
+        if (item[key] !== undefined && typeof item[key] !== 'string') {
+          throw new Error(`バックアップの${path}[${index}].${key}が不正です。`)
+        }
+      }
+      validatePhotos(item.photos, `${path}[${index}].photos`)
+    })
+  }
+  rawFacilities.forEach((value, index) => {
+    if (!value || typeof value !== 'object') throw new Error(`バックアップのfacilities[${index}]が不正です。`)
+    const item = value as Record<string, unknown>
+    if (typeof item.id !== 'string' || !item.id) throw new Error(`バックアップのfacilities[${index}].idが不正です。`)
+    for (const key of ['name', 'area', 'notes', 'createdAt', 'updatedAt']) {
+      if (item[key] !== undefined && typeof item[key] !== 'string') throw new Error(`バックアップのfacilities[${index}].${key}が不正です。`)
+    }
+    if (item.category !== undefined && typeof item.category !== 'string') throw new Error(`バックアップのfacilities[${index}].categoryが不正です。`)
+    if (item.park !== undefined && !['東京ディズニーランド', '東京ディズニーシー', 'パーク外'].includes(item.park as string)) {
+      throw new Error(`バックアップのfacilities[${index}].parkが不正です。`)
+    }
+    for (const key of ['latitude', 'longitude']) {
+      if (item[key] !== undefined && item[key] !== null && (typeof item[key] !== 'number' || !Number.isFinite(item[key] as number))) {
+        throw new Error(`バックアップのfacilities[${index}].${key}が不正です。`)
+      }
+    }
+    if (item.favorite !== undefined && typeof item.favorite !== 'boolean') throw new Error(`バックアップのfacilities[${index}].favoriteが不正です。`)
+    if (item.relatedFacilityIds !== undefined) {
+      if (!Array.isArray(item.relatedFacilityIds)) throw new Error(`バックアップのfacilities[${index}].relatedFacilityIdsが不正です。`)
+      item.relatedFacilityIds.forEach((id, relatedIndex) => {
+        if (typeof id !== 'string') throw new Error(`バックアップのfacilities[${index}].relatedFacilityIds[${relatedIndex}]が不正です。`)
+      })
+    }
+    validateTextEntries(item.bgs, `facilities[${index}].bgs`)
+    validateTextEntries(item.trivia, `facilities[${index}].trivia`)
+    validateProps(item.props, `facilities[${index}].props`)
+    validatePhotos(item.photos, `facilities[${index}].photos`)
+  })
+  const facilities = rawFacilities.map((value) => migrateFacility(value as Facility | LegacyFacility))
   const ids = new Set<string>()
   if (facilities.some((facility) => ids.has(facility.id) || !ids.add(facility.id))) {
     throw new Error('バックアップ内に重複した施設IDがあります。')
@@ -190,21 +247,39 @@ export const normalizeImportedFacilities = (rawFacilities: unknown): Facility[] 
   return facilities
 }
 
-export const applyImportedFacilities = async (facilities: Facility[], mode: 'merge' | 'replace'): Promise<void> => {
+export type ImportedBackupSettings = {
+  relationshipSettings?: RelationshipGraphSettings
+  mapFilterSettings?: MapFilterSettings
+  recentFacilityIds?: string[]
+}
+
+export const applyImportedBackup = async (
+  facilities: Facility[],
+  mode: 'merge' | 'replace',
+  settings: ImportedBackupSettings = {},
+): Promise<void> => {
   const db = await openDatabase()
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    const transaction = db.transaction([STORE_NAME, SETTINGS_STORE_NAME], 'readwrite')
     const store = transaction.objectStore(STORE_NAME)
+    const settingsStore = transaction.objectStore(SETTINGS_STORE_NAME)
     if (mode === 'replace') store.clear()
     facilities.forEach((facility) => {
       const persistedFacility = { ...facility } as Facility & { tags?: unknown }
       delete persistedFacility.tags
       store.put(persistedFacility)
     })
+    if (settings.relationshipSettings) settingsStore.put({ id: 'relationshipGraph', value: settings.relationshipSettings })
+    if (settings.mapFilterSettings) settingsStore.put({ id: 'mapFilters', value: settings.mapFilterSettings })
+    if (settings.recentFacilityIds) settingsStore.put({ id: 'recentFacilities', value: settings.recentFacilityIds })
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)
     transaction.onabort = () => reject(transaction.error ?? new Error('施設データの適用が中断されました。'))
   })
+}
+
+export const applyImportedFacilities = async (facilities: Facility[], mode: 'merge' | 'replace'): Promise<void> => {
+  await applyImportedBackup(facilities, mode)
 }
 
 export const deleteFacility = async (id: string): Promise<void> => {

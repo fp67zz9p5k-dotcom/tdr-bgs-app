@@ -9,7 +9,7 @@ import {
   getRecentFacilityIds,
   getRandomDiscoveryHistory,
   getRelationshipGraphSettings,
-  applyImportedFacilities,
+  applyImportedBackup,
   normalizeImportedFacilities,
   saveRecentFacilityIds,
   saveRandomDiscoveryHistory,
@@ -1826,20 +1826,64 @@ export default function App() {
         && typeof parsed === 'object'
         && parsed !== null
         && 'relationshipGraphSettings' in parsed
-        ? (parsed as { relationshipGraphSettings?: RelationshipGraphSettings }).relationshipGraphSettings
+        ? (() => {
+          const value = (parsed as { relationshipGraphSettings?: unknown }).relationshipGraphSettings
+          if (value === undefined) return undefined
+          if (!value || typeof value !== 'object') throw new Error('バックアップのrelationshipGraphSettingsが不正です。')
+          const selectedId = (value as { selectedId?: unknown }).selectedId
+          if (selectedId !== undefined && selectedId !== null && typeof selectedId !== 'string') {
+            throw new Error('バックアップのrelationshipGraphSettings.selectedIdが不正です。')
+          }
+          return { selectedId: typeof selectedId === 'string' ? selectedId : null }
+        })()
         : undefined
       const importedRecentFacilityIds = !Array.isArray(parsed)
         && typeof parsed === 'object'
         && parsed !== null
         && 'recentFacilityIds' in parsed
-        && Array.isArray((parsed as { recentFacilityIds?: unknown }).recentFacilityIds)
-        ? (parsed as { recentFacilityIds: unknown[] }).recentFacilityIds.filter((id): id is string => typeof id === 'string').slice(0, 10)
+        ? (() => {
+          const value = (parsed as { recentFacilityIds?: unknown }).recentFacilityIds
+          if (!Array.isArray(value) || value.some((id) => typeof id !== 'string')) {
+            throw new Error('バックアップのrecentFacilityIdsが不正です。')
+          }
+          return Array.from(new Set(value)).slice(0, 10)
+        })()
         : undefined
       const importedMapFilterSettings = !Array.isArray(parsed)
         && typeof parsed === 'object'
         && parsed !== null
         && 'mapFilterSettings' in parsed
-        ? (parsed as { mapFilterSettings?: MapFilterSettings }).mapFilterSettings
+        ? (() => {
+          const value = (parsed as { mapFilterSettings?: unknown }).mapFilterSettings
+          if (!value || typeof value !== 'object') throw new Error('バックアップのmapFilterSettingsが不正です。')
+          const candidate = value as Partial<MapFilterSettings>
+          if (candidate.visibleCategories !== undefined
+            && (!Array.isArray(candidate.visibleCategories) || candidate.visibleCategories.some((category) => typeof category !== 'string'))) {
+            throw new Error('バックアップのmapFilterSettings.visibleCategoriesが不正です。')
+          }
+          const informationTypes = ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot']
+          if (candidate.visibleInformationTypes !== undefined
+            && (!Array.isArray(candidate.visibleInformationTypes)
+              || candidate.visibleInformationTypes.some((type) => !informationTypes.includes(type as string)))) {
+            throw new Error('バックアップのmapFilterSettings.visibleInformationTypesが不正です。')
+          }
+          if (candidate.clusteringEnabled !== undefined && typeof candidate.clusteringEnabled !== 'boolean') {
+            throw new Error('バックアップのmapFilterSettings.clusteringEnabledが不正です。')
+          }
+          const defaults = defaultMapFilterSettings()
+          const visibleCategories = Array.isArray(candidate.visibleCategories)
+            ? Array.from(new Set(candidate.visibleCategories.map((category) => getCategoryDefinition(category).value)))
+            : defaults.visibleCategories
+          return {
+            ...defaults,
+            ...candidate,
+            visibleCategories: visibleCategories.length === CATEGORY_DEFINITIONS.length ? [] : visibleCategories,
+            visibleInformationTypes: Array.isArray(candidate.visibleInformationTypes)
+              ? candidate.visibleInformationTypes as MapFilterSettings['visibleInformationTypes']
+              : defaults.visibleInformationTypes,
+            clusteringEnabled: candidate.clusteringEnabled === true,
+          }
+        })()
         : undefined
       setBackupImportDraft({
         facilities: facilitiesToImport,
@@ -1871,42 +1915,15 @@ export default function App() {
     const message = `${modeLabel}を実行します。\nバックアップ施設：${backupImportDraft.facilities.length}件\n新規追加：${addedCount}件\n上書き：${overwrittenCount}件\n削除：${deletedCount}件\n復元する設定：${settings.length ? settings.join('、') : 'なし'}\n${backupImportDraft.mode === 'replace' ? '現在の施設は置き換えられます。' : 'バックアップにない現在の施設は維持されます。'}\n実行前に現在のデータのバックアップを保存済みか確認してください。続行しますか？`
     if (!window.confirm(message)) return
     try {
-      await applyImportedFacilities(backupImportDraft.facilities, backupImportDraft.mode)
+      await applyImportedBackup(backupImportDraft.facilities, backupImportDraft.mode, {
+        relationshipSettings: backupImportDraft.relationshipSettings,
+        mapFilterSettings: backupImportDraft.mapFilterSettings,
+        recentFacilityIds: backupImportDraft.recentFacilityIds,
+      })
       setBackupImportDraft(null)
-      if (backupImportDraft.relationshipSettings) {
-        const normalizedSettings: RelationshipGraphSettings = {
-          selectedId: typeof backupImportDraft.relationshipSettings.selectedId === 'string'
-            ? backupImportDraft.relationshipSettings.selectedId
-            : null,
-        }
-        await saveRelationshipGraphSettings(normalizedSettings)
-        setRelationshipSettings(normalizedSettings)
-      }
-      if (backupImportDraft.recentFacilityIds) {
-        const normalizedRecentIds = Array.from(new Set(backupImportDraft.recentFacilityIds)).slice(0, 10)
-        await saveRecentFacilityIds(normalizedRecentIds)
-        setRecentFacilityIds(normalizedRecentIds)
-      }
-      if (backupImportDraft.mapFilterSettings) {
-        const defaults = defaultMapFilterSettings()
-        const normalizedMapSettings: MapFilterSettings = {
-          ...defaults,
-          ...backupImportDraft.mapFilterSettings,
-          visibleCategories: (() => {
-            const values = Array.isArray(backupImportDraft.mapFilterSettings?.visibleCategories)
-              ? Array.from(new Set(backupImportDraft.mapFilterSettings.visibleCategories.map((category) => getCategoryDefinition(category).value)))
-              : defaults.visibleCategories
-            return values.length === CATEGORY_DEFINITIONS.length ? [] : values
-          })(),
-          visibleInformationTypes: Array.isArray(backupImportDraft.mapFilterSettings.visibleInformationTypes)
-            ? backupImportDraft.mapFilterSettings.visibleInformationTypes.filter((type) =>
-              ['facility', 'prop', 'trivia', 'hidden_mickey', 'photo_spot'].includes(type))
-            : defaults.visibleInformationTypes,
-          clusteringEnabled: backupImportDraft.mapFilterSettings.clusteringEnabled === true,
-        }
-        await saveMapFilterSettings(normalizedMapSettings)
-        setMapFilterSettings(normalizedMapSettings)
-      }
+      if (backupImportDraft.relationshipSettings) setRelationshipSettings(backupImportDraft.relationshipSettings)
+      if (backupImportDraft.recentFacilityIds) setRecentFacilityIds(backupImportDraft.recentFacilityIds)
+      if (backupImportDraft.mapFilterSettings) setMapFilterSettings(backupImportDraft.mapFilterSettings)
       await reload()
       setBackupMessage(`${backupImportDraft.facilities.length}件を${modeLabel}しました。施設画像も含まれています。`)
     } catch (error) {
