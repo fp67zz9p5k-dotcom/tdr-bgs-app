@@ -1061,3 +1061,31 @@
   min-height: 100dvh;
   overflow: hidden;
 }
+
+/* The home add action is a compact floating control above the fixed navigation. */
+:root[data-theme] .home-page .home-content {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+
+:root[data-theme] .home-page .add-button {
+  right: 16px;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  left: auto;
+  display: grid;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  min-height: 56px;
+  box-sizing: border-box;
+  padding: 0;
+  place-items: center;
+  transform: none;
+  border-radius: 50%;
+  font-size: 0;
+}
+
+:root[data-theme] .home-page .add-button span {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1;
+}

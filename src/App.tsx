@@ -2431,8 +2431,8 @@ export default function App() {
         }}
       />
       {!hasNoSearchResults && (
-        <button className="add-button" onClick={openNewFacilityFromHome}>
-          <span>＋</span> 施設を追加
+        <button className="add-button" onClick={openNewFacilityFromHome} aria-label="施設を追加" title="施設を追加">
+          <span aria-hidden="true">＋</span>
         </button>
       )}
     </main>
