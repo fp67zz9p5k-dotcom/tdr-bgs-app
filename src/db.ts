@@ -140,6 +140,15 @@ export const getFacilities = async (): Promise<Facility[]> => {
   return rawFacilities.map(migrateFacility)
 }
 
+export const getFacilityById = async (id: string): Promise<Facility | null> => {
+  const db = await openDatabase()
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id)
+    request.onsuccess = () => resolve(request.result ? migrateFacility(request.result as Facility | LegacyFacility) : null)
+    request.onerror = () => reject(request.error)
+  })
+}
+
 export const saveFacility = async (facility: Facility): Promise<void> => {
   const db = await openDatabase()
   const persistedFacility = { ...facility } as Facility & { tags?: unknown }

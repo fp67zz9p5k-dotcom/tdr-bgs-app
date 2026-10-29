@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   deleteFacility,
+  getFacilityById,
   getFacilities,
   getMapFilterSettings,
   getRecentFacilityIds,
@@ -1779,8 +1780,7 @@ export default function App() {
     setPhotoCompression(state)
     for (const photoRef of photoRefs) {
       try {
-        const latestFacilities = await getFacilities()
-        const facility = latestFacilities.find((item) => item.id === photoRef.facilityId)
+        const facility = await getFacilityById(photoRef.facilityId)
         if (!facility) throw new Error('facility-not-found')
         const currentPhoto = photoRef.propId
           ? facility.props.find((prop) => prop.id === photoRef.propId)?.photos.find((photo) => photo.id === photoRef.photoId)
