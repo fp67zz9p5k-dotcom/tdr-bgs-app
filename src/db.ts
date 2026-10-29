@@ -14,6 +14,7 @@ import { CATEGORY_DEFINITIONS, normalizeCategory } from './categories'
 
 const DB_NAME = 'tdr-archive'
 let activeDatabaseName = DB_NAME
+const testDatabaseConnections = new Set<IDBDatabase>()
 const STORE_NAME = 'facilities'
 const SETTINGS_STORE_NAME = 'settings'
 const DB_VERSION = 4
@@ -30,7 +31,10 @@ const openDatabase = (): Promise<IDBDatabase> =>
         db.createObjectStore(SETTINGS_STORE_NAME, { keyPath: 'id' })
       }
     }
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+      if (activeDatabaseName !== DB_NAME) testDatabaseConnections.add(request.result)
+      resolve(request.result)
+    }
     request.onerror = () => reject(request.error)
   })
 
@@ -38,6 +42,11 @@ const openDatabase = (): Promise<IDBDatabase> =>
 export const __setDatabaseNameForTests = (name: string): void => {
   if (!name || name === DB_NAME) throw new Error('テスト用DB名を指定してください。')
   activeDatabaseName = name
+}
+
+export const __closeTestDatabaseConnections = (): void => {
+  testDatabaseConnections.forEach((database) => database.close())
+  testDatabaseConnections.clear()
 }
 
 const normalizeTextEntries = (value: unknown): TextEntry[] => {
@@ -292,9 +301,27 @@ export const deleteFacility = async (id: string): Promise<void> => {
   const db = await openDatabase()
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite')
-    transaction.objectStore(STORE_NAME).delete(id)
+    const store = transaction.objectStore(STORE_NAME)
+    const request = store.getAll()
+    request.onsuccess = () => {
+      try {
+        store.delete(id)
+        for (const value of request.result as Array<Record<string, unknown>>) {
+          if (value.id === id || !Array.isArray(value.relatedFacilityIds)) continue
+          const relatedFacilityIds = value.relatedFacilityIds.filter((relatedId) => relatedId !== id)
+          if (relatedFacilityIds.length !== value.relatedFacilityIds.length) {
+            store.put({ ...value, relatedFacilityIds })
+          }
+        }
+      } catch (error) {
+        try { transaction.abort() } catch { /* transaction already inactive */ }
+        reject(error)
+      }
+    }
+    request.onerror = () => reject(request.error)
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)
+    transaction.onabort = () => reject(transaction.error ?? new Error('施設削除処理が中断されました。'))
   })
 }
 

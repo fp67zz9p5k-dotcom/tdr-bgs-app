@@ -1,17 +1,20 @@
 import {
   __setDatabaseNameForTests,
   applyImportedBackup,
+  deleteFacility,
   getFacilities,
   getMapFilterSettings,
   getRecentFacilityIds,
   getRelationshipGraphSettings,
   normalizeImportedFacilities,
 } from '../src/db'
+import { IDBObjectStore } from 'fake-indexeddb'
 import type { Facility } from '../src/types'
 
 const result = document.querySelector<HTMLPreElement>('#result')!
 const dbName = `tdr-archive-test-${crypto.randomUUID()}`
 __setDatabaseNameForTests(dbName)
+export const backupTestDatabaseName = dbName
 
 const facility = (id: string, name: string): Facility => ({
   schemaVersion: 10,
@@ -89,11 +92,37 @@ const run = async (): Promise<string[]> => {
   await rejects(() => applyImportedBackup([badClone], 'replace'), 'トランザクション失敗')
   assert((await ids()).join(',') === beforeFailure.join(','), 'トランザクション失敗後に部分適用されました。')
   assert((await getMapFilterSettings()).visibleInformationTypes.includes('facility'), '設定読み込みに失敗しました。')
-  return ['正常検証', '不正データ拒否', '検証失敗時の不変性', 'merge', 'replace', '設定維持', '旧形式互換', 'トランザクション失敗時の不変性']
+
+  await applyImportedBackup([
+    { ...facility('delete-a', '削除参照元'), relatedFacilityIds: ['delete-target'] },
+    { ...facility('delete-b', '複数参照元'), relatedFacilityIds: ['delete-target', 'keep-id'] },
+    facility('delete-target', '削除対象'),
+    facility('delete-unrelated', '無関係'),
+  ], 'replace')
+  const originalPut = IDBObjectStore.prototype.put as unknown as (this: IDBObjectStore, value: unknown, key?: IDBValidKey) => IDBRequest
+  IDBObjectStore.prototype.put = function(this: IDBObjectStore, value: unknown, key?: IDBValidKey) {
+    if (value && typeof value === 'object' && Array.isArray((value as { relatedFacilityIds?: unknown }).relatedFacilityIds)) {
+      throw new Error('テスト用の保存失敗')
+    }
+    return originalPut.call(this, value, key)
+  }
+  await rejects(() => deleteFacility('delete-target'), '削除失敗')
+  IDBObjectStore.prototype.put = originalPut
+  const afterFailure = await getFacilities()
+  assert(afterFailure.some((item) => item.id === 'delete-target'), '削除失敗後に対象施設が消えました。')
+  assert(afterFailure.find((item) => item.id === 'delete-a')?.relatedFacilityIds.includes('delete-target'), '削除失敗後に関連IDが消えました。')
+  await deleteFacility('delete-target')
+  const afterDelete = await getFacilities()
+  assert(!afterDelete.some((item) => item.id === 'delete-target'), '削除対象が残っています。')
+  assert(afterDelete.find((item) => item.id === 'delete-a')?.relatedFacilityIds.length === 0, '関連元AのIDが残っています。')
+  assert(afterDelete.find((item) => item.id === 'delete-b')?.relatedFacilityIds.join(',') === 'keep-id', '複数参照元の整理に失敗しました。')
+  assert(afterDelete.find((item) => item.id === 'delete-unrelated')?.name === '無関係', '無関係な施設に影響しました。')
+  return ['正常検証', '不正データ拒否', '検証失敗時の不変性', 'merge', 'replace', '設定維持', '旧形式互換', 'トランザクション失敗時の不変性', '削除時の関連ID整理']
 }
 
-run().then((passed) => {
+export const backupTestPromise = run().then((passed) => {
   result.textContent = `PASS\n${passed.map((item) => `- ${item}`).join('\n')}\nDB: ${dbName}`
 }).catch((error) => {
   result.textContent = `FAIL\n${error instanceof Error ? error.message : String(error)}`
+  throw error
 })
