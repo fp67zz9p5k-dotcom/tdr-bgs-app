@@ -261,17 +261,23 @@ export const applyImportedBackup = async (
   const db = await openDatabase()
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME, SETTINGS_STORE_NAME], 'readwrite')
-    const store = transaction.objectStore(STORE_NAME)
-    const settingsStore = transaction.objectStore(SETTINGS_STORE_NAME)
-    if (mode === 'replace') store.clear()
-    facilities.forEach((facility) => {
-      const persistedFacility = { ...facility } as Facility & { tags?: unknown }
-      delete persistedFacility.tags
-      store.put(persistedFacility)
-    })
-    if (settings.relationshipSettings) settingsStore.put({ id: 'relationshipGraph', value: settings.relationshipSettings })
-    if (settings.mapFilterSettings) settingsStore.put({ id: 'mapFilters', value: settings.mapFilterSettings })
-    if (settings.recentFacilityIds) settingsStore.put({ id: 'recentFacilities', value: settings.recentFacilityIds })
+    try {
+      const store = transaction.objectStore(STORE_NAME)
+      const settingsStore = transaction.objectStore(SETTINGS_STORE_NAME)
+      if (mode === 'replace') store.clear()
+      facilities.forEach((facility) => {
+        const persistedFacility = { ...facility } as Facility & { tags?: unknown }
+        delete persistedFacility.tags
+        store.put(persistedFacility)
+      })
+      if (settings.relationshipSettings) settingsStore.put({ id: 'relationshipGraph', value: settings.relationshipSettings })
+      if (settings.mapFilterSettings) settingsStore.put({ id: 'mapFilters', value: settings.mapFilterSettings })
+      if (settings.recentFacilityIds) settingsStore.put({ id: 'recentFacilities', value: settings.recentFacilityIds })
+    } catch (error) {
+      try { transaction.abort() } catch { /* transaction already inactive */ }
+      reject(error)
+      return
+    }
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)
     transaction.onabort = () => reject(transaction.error ?? new Error('施設データの適用が中断されました。'))

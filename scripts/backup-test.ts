@@ -86,7 +86,7 @@ const run = async (): Promise<string[]> => {
   const beforeFailure = await ids()
   const badClone = { ...facility('clone-failure', '複製失敗') } as Facility & { invalid: unknown }
   badClone.invalid = () => undefined
-  await rejects(() => applyImportedBackup([badClone], 'merge'), 'トランザクション失敗')
+  await rejects(() => applyImportedBackup([badClone], 'replace'), 'トランザクション失敗')
   assert((await ids()).join(',') === beforeFailure.join(','), 'トランザクション失敗後に部分適用されました。')
   assert((await getMapFilterSettings()).visibleInformationTypes.includes('facility'), '設定読み込みに失敗しました。')
   return ['正常検証', '不正データ拒否', '検証失敗時の不変性', 'merge', 'replace', '設定維持', '旧形式互換', 'トランザクション失敗時の不変性']
