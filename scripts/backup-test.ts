@@ -51,13 +51,54 @@ const rejects = async (action: () => unknown, label: string): Promise<void> => {
 
 const ids = async (): Promise<string[]> => (await getFacilities()).map((item) => item.id).sort()
 
+const putRawFacility = async (value: unknown): Promise<void> => {
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(dbName, 4)
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const database = request.result
+      const transaction = database.transaction('facilities', 'readwrite')
+      transaction.objectStore('facilities').put(value)
+      transaction.oncomplete = () => { database.close(); resolve() }
+      transaction.onerror = () => { database.close(); reject(transaction.error) }
+    }
+  })
+}
+
+const getRawFacility = async (id: string): Promise<unknown> => await new Promise((resolve, reject) => {
+  const request = indexedDB.open(dbName, 4)
+  request.onerror = () => reject(request.error)
+  request.onsuccess = () => {
+    const database = request.result
+    const read = database.transaction('facilities', 'readonly').objectStore('facilities').get(id)
+    read.onsuccess = () => { database.close(); resolve(read.result) }
+    read.onerror = () => { database.close(); reject(read.error) }
+  }
+})
+
 const run = async (): Promise<string[]> => {
-  const initial = [facility('test-a', 'テストA'), facility('test-keep', '保持施設')]
+  const richFacility: Facility = {
+    ...facility('test-a', 'テストA'),
+    bgs: [{ id: 'bgs-1', text: '登録済みBGS' }],
+    trivia: [{ id: 'trivia-1', text: '登録済みトリビア' }],
+    photos: [{ id: 'photo-1', name: '写真', title: '写真タイトル', description: '写真説明', location: '現地', dataUrl: 'data:image/jpeg;base64,AA==', createdAt: '2026-01-01T00:00:00.000Z' }],
+    props: [{ id: 'prop-1', title: '小物', description: '小物説明', location: '入口', photos: [] }],
+    relatedFacilityIds: ['test-keep'],
+  }
+  const initial = [richFacility, facility('test-keep', '保持施設')]
   await applyImportedBackup(initial, 'replace', {
     relationshipSettings: { selectedId: 'test-a' },
     recentFacilityIds: ['test-a'],
+    mapFilterSettings: { visibleCategories: [], visibleInformationTypes: ['facility', 'photo_spot'], clusteringEnabled: true },
   })
   assert((await ids()).join(',') === 'test-a,test-keep', '初期データの投入に失敗しました。')
+  const loadedInitial = (await getFacilities()).find((item) => item.id === 'test-a')
+  assert(loadedInitial?.bgs[0]?.text === '登録済みBGS', 'BGSが保持されません。')
+  assert(loadedInitial?.trivia[0]?.text === '登録済みトリビア', 'トリビアが保持されません。')
+  assert(loadedInitial?.photos[0]?.dataUrl === 'data:image/jpeg;base64,AA==', '写真が保持されません。')
+  assert(loadedInitial?.props[0]?.description === '小物説明', 'プロップが保持されません。')
+  assert(loadedInitial?.relatedFacilityIds[0] === 'test-keep', '関連施設IDが保持されません。')
+  assert((await getMapFilterSettings()).clusteringEnabled === true, 'マップ設定が保持されません。')
 
   const valid = normalizeImportedFacilities([facility('test-new', 'テスト新規')])
   assert(valid.length === 1 && valid[0].id === 'test-new', '正常なバックアップを検証できません。')
@@ -68,6 +109,7 @@ const run = async (): Promise<string[]> => {
     ['写真', [{ ...facility('bad-photo', '不正写真'), photos: [{ dataUrl: 123 }] }]],
     ['プロップ', [{ ...facility('bad-prop', '不正プロップ'), props: [{ photos: '不正' }] }]],
     ['関連施設ID', [{ ...facility('bad-related', '不正関連'), relatedFacilityIds: ['ok', 123] }]],
+    ['カテゴリ', [{ ...facility('bad-category', '不正カテゴリ'), category: '未知のカテゴリ' }]],
   ]
   for (const [label, value] of invalidCases) await rejects(() => normalizeImportedFacilities(value), label)
   assert((await ids()).join(',') === 'test-a,test-keep', '検証失敗時に既存データが変更されました。')
@@ -80,6 +122,14 @@ const run = async (): Promise<string[]> => {
   assert((await ids()).join(',') === 'test-only', 'replaceで施設が置換されません。')
   assert((await getRelationshipGraphSettings()).selectedId === 'test-a', 'バックアップに含まれない関係設定が消えました。')
   assert((await getRecentFacilityIds()).join(',') === 'test-a', 'バックアップに含まれない履歴が消えました。')
+  assert((await getMapFilterSettings()).clusteringEnabled === true, 'バックアップに含まれないマップ設定が消えました。')
+
+  const legacyRaw = { id: 'legacy-raw', name: '旧形式保存データ', category: 'その他', bgs: '旧BGS', trivia: '旧トリビア', props: '旧プロップ', relatedFacilityIds: ['test-only'] }
+  await putRawFacility(legacyRaw)
+  const legacyBeforeRead = JSON.stringify(await getRawFacility('legacy-raw'))
+  const legacyLoaded = (await getFacilities()).find((item) => item.id === 'legacy-raw')
+  assert(legacyLoaded?.bgs[0]?.text === '旧BGS' && legacyLoaded.trivia[0]?.text === '旧トリビア' && legacyLoaded.props[0]?.description === '旧プロップ', '旧形式保存データを表示できません。')
+  assert(JSON.stringify(await getRawFacility('legacy-raw')) === legacyBeforeRead, 'getFacilities()が旧形式データを書き換えました。')
 
   const legacy = normalizeImportedFacilities([{
     id: 'legacy', name: '旧形式', bgs: '旧BGS', trivia: '旧トリビア', props: '旧プロップ',

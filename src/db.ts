@@ -227,7 +227,11 @@ export const normalizeImportedFacilities = (rawFacilities: unknown): Facility[] 
     for (const key of ['name', 'area', 'notes', 'createdAt', 'updatedAt']) {
       if (item[key] !== undefined && typeof item[key] !== 'string') throw new Error(`バックアップのfacilities[${index}].${key}が不正です。`)
     }
-    if (item.category !== undefined && typeof item.category !== 'string') throw new Error(`バックアップのfacilities[${index}].categoryが不正です。`)
+    if (item.category !== undefined) {
+      if (typeof item.category !== 'string' || !CATEGORY_DEFINITIONS.some((definition) => definition.value === item.category || definition.id === item.category)) {
+        throw new Error(`バックアップのfacilities[${index}].categoryが不正です。`)
+      }
+    }
     if (item.park !== undefined && !['東京ディズニーランド', '東京ディズニーシー', 'パーク外'].includes(item.park as string)) {
       throw new Error(`バックアップのfacilities[${index}].parkが不正です。`)
     }
