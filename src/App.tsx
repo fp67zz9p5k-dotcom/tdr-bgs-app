@@ -7,10 +7,12 @@ import {
   getFacilities,
   getMapFilterSettings,
   getRecentFacilityIds,
+  getRandomDiscoveryHistory,
   getRelationshipGraphSettings,
   applyImportedFacilities,
   normalizeImportedFacilities,
   saveRecentFacilityIds,
+  saveRandomDiscoveryHistory,
   saveFacility,
   saveFacilities,
   saveMapFilterSettings,
@@ -507,6 +509,7 @@ export default function App() {
   const [draftFavoriteOnly, setDraftFavoriteOnly] = useState(false)
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [recentFacilityIds, setRecentFacilityIds] = useState<string[]>([])
+  const [randomDiscoveryHistory, setRandomDiscoveryHistory] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [backupMessage, setBackupMessage] = useState('')
@@ -542,6 +545,7 @@ export default function App() {
   const navigationHistoryRef = useRef<NavigationTimeline>({ entries: [], index: -1 })
   const swipeBackActionRef = useRef<() => void>(() => undefined)
   const swipeForwardActionRef = useRef<() => void>(() => undefined)
+  const randomDiscoveryBusyRef = useRef(false)
 
   const openSettings = useCallback(() => setSettingsOpen(true), [])
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
@@ -631,6 +635,7 @@ export default function App() {
       getRelationshipGraphSettings().then(setRelationshipSettings),
       getMapFilterSettings().then(setMapFilterSettings),
       getRecentFacilityIds().then(setRecentFacilityIds),
+      getRandomDiscoveryHistory().then(setRandomDiscoveryHistory),
     ])
     const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
     if (failed.length) setLoadError(`データを読み込めませんでした。保存データは削除していません。もう一度お試しください。${failed[0].reason instanceof Error ? `\n${failed[0].reason.message}` : ''}`)
@@ -1380,6 +1385,33 @@ export default function App() {
     if (screen.page === 'map') setScreen(nextScreen)
     else navigateForward(nextScreen)
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  }
+
+  const discoverRandomFacility = async () => {
+    if (randomDiscoveryBusyRef.current) return
+    randomDiscoveryBusyRef.current = true
+    try {
+      if (!facilities.length) {
+        window.alert('登録されている施設がありません。')
+        return
+      }
+      const facilityIds = new Set(facilities.map((facility) => facility.id))
+      let history = Array.from(new Set(randomDiscoveryHistory.filter((id) => facilityIds.has(id))))
+      let candidates = facilities.filter((facility) => !history.includes(facility.id))
+      while (!candidates.length && history.length > 0) {
+        history = history.slice(0, -1)
+        candidates = facilities.filter((facility) => !history.includes(facility.id))
+      }
+      const selectedFacility = candidates[Math.floor(Math.random() * candidates.length)]
+      const nextHistory = [selectedFacility.id, ...history].slice(0, 10)
+      setRandomDiscoveryHistory(nextHistory)
+      await saveRandomDiscoveryHistory(nextHistory)
+      openFacility(selectedFacility, 'home')
+    } catch (error) {
+      window.alert(`ランダム発見を実行できませんでした。${error instanceof Error ? `\n${error.message}` : ''}`)
+    } finally {
+      randomDiscoveryBusyRef.current = false
+    }
   }
 
   const selectSearchSuggestion = (facility: Facility) => {
@@ -2259,6 +2291,9 @@ export default function App() {
         </div>
         {homeFilterTrigger}
         </div>
+        <button type="button" className="random-discovery-button" onClick={() => { void discoverRandomFacility() }} disabled={randomDiscoveryBusyRef.current}>
+          <span aria-hidden="true">⤨</span><strong>ランダム発見</strong><small>登録施設から次の1件を見つける</small>
+        </button>
         {!hasNoSearchResults && (
           <>
         {recentFacilities.length > 0 && (

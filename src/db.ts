@@ -298,3 +298,26 @@ export const saveRecentFacilityIds = async (facilityIds: string[]): Promise<void
     transaction.onerror = () => reject(transaction.error)
   })
 }
+
+export const getRandomDiscoveryHistory = async (): Promise<string[]> => {
+  const db = await openDatabase()
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(SETTINGS_STORE_NAME, 'readonly').objectStore(SETTINGS_STORE_NAME).get('randomDiscovery')
+    request.onsuccess = () => {
+      const value = request.result?.value
+      resolve(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string').slice(0, 10) : [])
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const saveRandomDiscoveryHistory = async (facilityIds: string[]): Promise<void> => {
+  const db = await openDatabase()
+  const value = Array.from(new Set(facilityIds.filter((id) => typeof id === 'string'))).slice(0, 10)
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(SETTINGS_STORE_NAME, 'readwrite')
+    transaction.objectStore(SETTINGS_STORE_NAME).put({ id: 'randomDiscovery', value })
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
